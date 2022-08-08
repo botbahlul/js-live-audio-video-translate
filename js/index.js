@@ -420,7 +420,7 @@ document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h0)+'px';
 document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 	src_h = $('#src_textarea').height();
 	document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h)+'px';
-	document.querySelector("#src_textarea").style.position='fixed';
+	document.querySelector("#src_textarea").style.position='absolute';
 	document.querySelector("#src_textarea").style.width = '100%';
 	document.querySelector("#src_textarea").style.height = '100%';
 });
@@ -470,7 +470,7 @@ document.querySelector("#dst_textarea").style.fontSize=String(0.28*src_h0)+'px';
 document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 	dst_h = $('#dst_textarea').height();
 	document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h)+'px';
-	document.querySelector("#dst_textarea").style.position='fixed';
+	document.querySelector("#dst_textarea").style.position='absolute';
 	document.querySelector("#dst_textarea").style.width = '100%';
 	document.querySelector("#dst_textarea").style.height = '100%';
 });

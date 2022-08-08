@@ -668,7 +668,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						document.querySelector("#dst_textarea").style.display = 'inline-block';
 						dst_textarea.value=result;
 						dst_textarea.scrollTop=dst_textarea.scrollHeight;
-						return result;
 					}));
 
 					translate_time = Date.now();

@@ -100,6 +100,7 @@ var src_language =
  ['Kannada',         ['kn-IN']],
  ['Khmer',           ['km-KH']],
  ['Kiswahili',       ['sw-TZ', 'Tanzania'],
+                     ['sw-KE', 'Kenya']],
  ['Korean',          ['ko-KR']],
  ['Lao',             ['lo-LA']],
  ['Latvian',         ['lv-LV']],
@@ -139,7 +140,7 @@ var src_language =
                      ['es-UY', 'Uruguay'],
                      ['es-VE', 'Venezuela']],
  ['Sundanese',       ['su-ID']],
- ['Swedish',         ['sv-SE']],
+ ['Swedish',         ['sv-SE'],
                      ['sw-KE', 'Kenya']],
  ['Tamil',           ['ta-IN', 'India'],
                      ['ta-SG', 'Singapore'],
@@ -153,6 +154,7 @@ var src_language =
  ['Vietnamese',      ['vi-VN']],
  ['Ukrainian',       ['uk-UA']],
  ['Zulu',            ['zu-ZA']]];
+
  
 for (var i = 0; i < src_language.length; i++) {
     document.querySelector("#select_src_language").options[i] = new Option(src_language[i][0], i);
@@ -246,6 +248,7 @@ var dst_language =
  ['Kannada',         ['kn-IN']],
  ['Khmer',           ['km-KH']],
  ['Kiswahili',       ['sw-TZ', 'Tanzania'],
+                     ['sw-KE', 'Kenya']],
  ['Korean',          ['ko-KR']],
  ['Lao',             ['lo-LA']],
  ['Latvian',         ['lv-LV']],
@@ -285,7 +288,7 @@ var dst_language =
                      ['es-UY', 'Uruguay'],
                      ['es-VE', 'Venezuela']],
  ['Sundanese',       ['su-ID']],
- ['Swedish',         ['sv-SE']],
+ ['Swedish',         ['sv-SE'],
                      ['sw-KE', 'Kenya']],
  ['Tamil',           ['ta-IN', 'India'],
                      ['ta-SG', 'Singapore'],
@@ -299,6 +302,7 @@ var dst_language =
  ['Vietnamese',      ['vi-VN']],
  ['Ukrainian',       ['uk-UA']],
  ['Zulu',            ['zu-ZA']]];
+
  
 for (var j = 0; j < dst_language.length; j++) {
     document.querySelector("#select_dst_language").options[j] = new Option(dst_language[j][0], j);

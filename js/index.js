@@ -708,7 +708,7 @@ function startButton(event) {
 	console.log('dst_dialect =', dst_dialect);
 
 	recognizing=!recognizing;
-	console.log('startButton clickedL recognizing =', recognizing);
+	console.log('startButton clicked recognizing =', recognizing);
 	if (!recognizing) {
 		recognition.stop();
 		return;

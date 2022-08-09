@@ -470,7 +470,7 @@ document.querySelector("#dst_textarea").style.allow="fullscreen";
 //document.querySelector("#dst_textarea").style.position="relatif";
 
 dst_h0 = $('#dst_textarea').height();
-document.querySelector("#dst_textarea").style.fontSize=String(0.28*src_h0)+'px';
+document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h0)+'px';
 document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 	dst_h = $('#dst_textarea').height();
 	document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h)+'px';
@@ -506,7 +506,7 @@ window.addEventListener('resize', function(event){
 	document.querySelector("#dst_textarea").style.height = String(0.09*window.innerHeight)+'px';
 
 	dst_h0 = $('#dst_textarea').height();
-	document.querySelector("#dst_textarea").style.fontSize=String(0.28*src_h0)+'px';
+	document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h0)+'px';
 	if (document.querySelector("#dst_textarea").offsetParent) {
 		document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 			dst_h = $('#dst_textarea').height();

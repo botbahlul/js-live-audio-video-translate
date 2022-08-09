@@ -667,7 +667,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						document.querySelector("#dst_textarea_container").style.display = 'block';
 						document.querySelector("#dst_textarea").style.display = 'inline-block';
 						dst_textarea.value=result;
-						dst_textarea.scrollTop=dst_textarea.scrollHeight;
+						document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 					}));
 
 					translate_time = Date.now();
@@ -713,8 +713,8 @@ function startButton(event) {
 		recognition.stop();
 		return;
 	} else {
-		//src_textarea.value='';
-		//dst_textarea.value='';
+		//document.querySelector("#src_textarea").value='';
+		//document.querySelector("#dst_textarea").value='';
 		final_transcript='';
 		interim_transcript='';
 		recognition.lang = src_dialect;

@@ -535,10 +535,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	console.log('Initializing recognition: recognition.lang =', recognition.lang);
 
 	recognition.onstart = function() {
+		final_transcript = '';
+		interim_transcript = '';
 		if (!recognizing) {
 			recognizing = false;
-			final_transcript = '';
-			interim_transcript = '';
 			document.querySelector("#start_img").src = 'images/mic.gif';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
@@ -551,7 +551,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		}
 	};
 
-	recognition.onspeechstart = function(event) {
+	/*recognition.onspeechstart = function(event) {
 		console.log('recognition.onspeechstart: recognizing =', recognizing);
 		final_transcript = '';
 		interim_transcript = '';
@@ -566,7 +566,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 		start_timestamp = Date.now();
 		translate_time = Date.now();
-	};
+	};*/
 
 	recognition.onerror = function(event) {
 		if (event.error == 'no-speech') {
@@ -594,10 +594,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onend = function() {
+		final_transcript='';
+		interim_transcript='';
 		if (!recognizing) {
 			document.querySelector("#start_img").src = 'images/mic.gif';
-			final_transcript='';
-			interim_transcript='';
 			if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").style.display = 'none';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'none';			

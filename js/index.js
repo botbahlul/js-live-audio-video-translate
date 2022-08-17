@@ -375,7 +375,6 @@ document.querySelector("#checkbox_show_dst").checked = true;
 show_src = document.querySelector("#checkbox_show_src").checked;
 show_dst = document.querySelector("#checkbox_show_dst").checked;
 
-
 function create_modal_text_area() {
 	var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
 		.width(0.5*window.innerWidth)
@@ -484,15 +483,49 @@ window.addEventListener('resize', function(event){
 		document.querySelector("#src_textarea_container").style.top = String(0.1*window.innerHeight)+'px';
 		document.querySelector("#src_textarea_container").style.left = String(0.5*(window.innerWidth-0.5*window.innerWidth))+'px';
 
+		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
+			.width(0.5*window.innerWidth)
+			.height(0.09*window.innerHeight)
+			.resizable().draggable({
+				cancel: 'text',
+				start: function (){
+					$('#src_textarea').focus();
+				},
+				stop: function (){
+					$('#src_textarea').focus();
+				}
+			})
+			.css({
+				'position': 'absolute',
+				'background-color': 'rgba(0,0,0,0.3)',
+				'color': 'yellow',
+				'border': 'none',
+				'display': 'block',
+				'overflow': 'hidden',
+				'z-index': '2147483647'
+			})
+			.offset({top:0.1*window.innerHeight, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
+
 		document.querySelector("#src_textarea").style.width = String(0.5*window.innerWidth)+'px';
 		document.querySelector("#src_textarea").style.height = String(0.09*window.innerHeight)+'px';
+		document.querySelector("#src_textarea").style.width = '100%';
+		document.querySelector("#src_textarea").style.height = '100%';
+		document.querySelector("#src_textarea").style.color = 'yellow';
+		document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
+		document.querySelector("#src_textarea").style.border = 'none';
+		document.querySelector("#src_textarea").style.display = 'inline-block';
+		document.querySelector("#src_textarea").style.overflow = 'hidden';
+		document.querySelector("#src_textarea").style.allow="fullscreen";
 
 		src_h0 = $('#src_textarea').height();
 		document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h0)+'px';
-		if (document.querySelector("#src_textarea").offsetParent) {
+		if (document.querySelector("#dst_textarea").offsetParent) {
 			document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 				src_h = $('#src_textarea').height();
 				document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h)+'px';
+				document.querySelector("#src_textarea").style.position='absolute';
+				document.querySelector("#src_textarea").style.width = '100%';
+				document.querySelector("#src_textarea").style.height = '100%';
 				document.querySelector("#src_textarea").scrollTop=document.querySelector("#src_textarea").scrollHeight;
 			});
 		}
@@ -504,8 +537,39 @@ window.addEventListener('resize', function(event){
 		document.querySelector("#dst_textarea_container").style.top = String(0.65*window.innerHeight)+'px';
 		document.querySelector("#dst_textarea_container").style.left = String(0.5*(window.innerWidth-0.5*window.innerWidth))+'px';
 
+		var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
+			.width(0.5*window.innerWidth)
+			.height(0.09*window.innerHeight)
+			.resizable().draggable({
+				cancel: 'text',
+				start: function (){
+					$('#dst_textarea').focus();
+				},
+				stop: function (){
+					$('#dst_textarea').focus();
+				}
+			})
+			.css({
+				'position': 'absolute',
+				'background-color': 'rgba(0,0,0,0.3)',
+				'color': 'yellow',
+				'border': 'none',
+				'display': 'block',
+				'overflow': 'hidden',
+				'z-index': '2147483647'
+			})
+			.offset({top:0.65*window.innerHeight, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
+
 		document.querySelector("#dst_textarea").style.width = String(0.5*window.innerWidth)+'px';
 		document.querySelector("#dst_textarea").style.height = String(0.09*window.innerHeight)+'px';
+		document.querySelector("#dst_textarea").style.width = '100%';
+		document.querySelector("#dst_textarea").style.height = '100%';
+		document.querySelector("#dst_textarea").style.color = 'yellow';
+		document.querySelector("#dst_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
+		document.querySelector("#dst_textarea").style.border = 'none';
+		document.querySelector("#dst_textarea").style.display = 'inline-block';
+		document.querySelector("#dst_textarea").style.overflow = 'hidden';
+		document.querySelector("#dst_textarea").style.allow="fullscreen";
 
 		dst_h0 = $('#dst_textarea').height();
 		document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h0)+'px';
@@ -513,6 +577,10 @@ window.addEventListener('resize', function(event){
 			document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 				dst_h = $('#dst_textarea').height();
 				document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h)+'px';
+				document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h)+'px';
+				document.querySelector("#dst_textarea").style.position='absolute';
+				document.querySelector("#dst_textarea").style.width = '100%';
+				document.querySelector("#dst_textarea").style.height = '100%';
 				document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 			});
 		}

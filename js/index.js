@@ -18,7 +18,7 @@ document.querySelector("#select_src_dialect").addEventListener('change', functio
 
 document.querySelector("#select_dst_language").addEventListener('change', function(){
 	update_dst_country();
-	console.log('document.querySelector("#select_dst_language") on change: src =', src);
+	console.log('document.querySelector("#select_dst_language") on change: dst =', dst);
 	//console.log('document.querySelector("#select_dst_language") on change:dst_language_index =', dst_language_index);
 });
 
@@ -178,6 +178,20 @@ function update_src_country() {
     }
     document.querySelector("#select_src_dialect").style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
     src = document.querySelector("#select_src_dialect").value.split('-')[0];
+
+	if (src_dialect == "yue-Hant-HK") {
+		src = "zh-TW";
+	}
+	if (src_dialect == "cmn-Hans-CN") {
+		src = "zh-CN";
+	}
+	if (src_dialect == "cmn-Hans-HK") {
+		src = "zh-CN";
+	}
+	if (src_dialect == "cmn-Hant-TW") {
+		src = "zh-TW";
+	}
+
 	src_language_index = document.querySelector("#select_src_language").selectedIndex;
 	if (src_language[src_language_index].length>2) {
 		for (var j=0;j<document.querySelector("#select_src_dialect").length;j++) {
@@ -193,7 +207,7 @@ function update_src_country() {
 	} else {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
 	};
-	//console.log('update_src_country(): src_dialect =', src_dialect);
+	console.log('update_src_country(): src_dialect =', src_dialect);
 }
 
 var dst_language =
@@ -328,6 +342,20 @@ function update_dst_country() {
     }
     document.querySelector("#select_dst_dialect").style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
     dst = document.querySelector("#select_dst_dialect").value.split('-')[0];
+
+	if (dst_dialect == "yue-Hant-HK") {
+		dst = "zh-TW";
+	}
+	if (dst_dialect == "cmn-Hans-CN") {
+		dst = "zh-CN";
+	}
+	if (dst_dialect == "cmn-Hans-HK") {
+		dst = "zh-CN";
+	}
+	if (dst_dialect == "cmn-Hant-TW") {
+		dst = "zh-TW";
+	}
+
 	dst_language_index = document.querySelector("#select_dst_language").selectedIndex;
 	if (dst_language[dst_language_index].length>2) {
 		for (var j=0;j<document.querySelector("#select_dst_dialect").length;j++) {
@@ -343,31 +371,162 @@ function update_dst_country() {
 	} else {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
 	};
-	//console.log('update_dst_country(): dst_dialect =', dst_dialect);
+	console.log('update_dst_country(): dst_dialect =', dst_dialect);
 }
 
-function youtube_parser(url){
-	var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-	var match = url.match(regExp);
-	return (match&&match[7].length==11)? match[7] : false;
+function parseURL(url) {
+  var isRelative = /^(ftp|file|gopher|https?|wss?)(:|$)/.test(url),
+      urlRegex, urlMatch, authorityRegex, authorityMatch;
+
+  var ALPHA = 'a-zA-Z';
+  var DIGIT = '0-9';
+  var SUB_DELIMITERS = '\!\$&\'\(\)\*\+\,;\=\\[\\]';
+  var UNRESERVED = ALPHA + DIGIT + '\-\._~';
+  var SCHEME = '(([' + ALPHA + ']+[' + ALPHA + DIGIT + '\+\-\.' + ']*):)';
+  var PATH = '([' + SUB_DELIMITERS + UNRESERVED + '@%\:\/ ' + ']*)';
+  var QUERY = '(\\?([' + SUB_DELIMITERS + UNRESERVED + '@%\:\/\? ' + ']*))?';
+  var FRAGMENT = '(#([' + SUB_DELIMITERS + UNRESERVED + '@%\:\/\? ' + ']*))?';
+
+  if (isRelative) {
+    urlRegex = new RegExp('^' + SCHEME + '(\/\/([^/?#]*))?' + PATH + QUERY + FRAGMENT + '$');
+    authorityRegex = new RegExp('^((([' + SUB_DELIMITERS + UNRESERVED + '%' + ']+)?(:([' +
+      SUB_DELIMITERS + UNRESERVED + '%\:' + ']*))?)@)?' + '([' + SUB_DELIMITERS +
+      UNRESERVED + '%' + ']*)?(:([' + DIGIT + ']+))?$');
+  } else {
+    urlRegex = /^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/;
+    authorityRegex = /^((([^:/?#@]+)?(:([^/?#@]*))?)@)?([^/?#:]*)?(:([0-9]+))?$/;
+  }
+
+  urlMatch = url.match(urlRegex);
+  if (!urlMatch) {
+    return null;
+  }
+
+  authorityMatch = urlMatch[4] && urlMatch[4].match(authorityRegex);
+  if (!authorityMatch) {
+    return null;
+  }
+
+  return {
+    scheme: urlMatch[2] || '',
+    path: urlMatch[5] || '',
+    search: urlMatch[7] || '',
+    fragment: urlMatch[9] || '',
+    query: parseQuery(urlMatch[7]),
+    username: authorityMatch[3] || '',
+    password: authorityMatch[5] || '',
+    hostname: authorityMatch[6] || '',
+    port: authorityMatch[8] || '',
+    host: authorityMatch[6] + (authorityMatch[8] ? ':' + authorityMatch[8] : ''),
+    schemeData: url.slice(urlMatch[2].length + 1)
+  };
+}
+
+function parseQuery(url) {
+  var parts, subpart, name, value, index,
+      obj = {};
+
+  if (!url) {
+    return obj;
+  }
+
+  if (url[0] === '?') {
+    url = url.substring(1);
+  }
+
+  parts = url.split('&');
+
+  for (var i = 0, il = parts.length; i < il; i++) {
+    subpart = parts[i];
+    index = subpart.indexOf('=');
+    if (index === -1) {
+      obj[decodeURIComponent(subpart)] = '';
+      continue;
+    }
+    name = subpart.substring(0, index);
+    if (name) {
+      value = subpart.substring(index + 1);
+      obj[decodeURIComponent(name)] = value || '';
+    }
+  }
+  return obj;
+}
+
+function getVideoID(url) {
+  var urlObj = URL_String.parseURL(url);
+  if (urlObj) {
+    return urlObj.hostname === 'youtu.be' ? urlObj.path.slice(1) : urlObj.query.v;
+  }
+  return null;
+}
+
+function insert_videojs_script() {
+	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>')
+	video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>')
+	console.log('appending video_script to html body');
+	video_script$.appendTo('body');
 }
 
 function embed(){
 	var url = url_box.value;
-	if (url.includes(('https://www.youtube')||('https://youtube')||('https://youtu.be'))) {
-		var ytID=youtube_parser(url);
+	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
+		var ytID=getVideoID(url);
 		var src="https://www.youtube.com/embed/"+ytID;
 		url = src;
+		document.querySelector("#yt_iframe").style.display = "block";
 		yt_iframe.src = url;
 		url_box.value=url;
-		//console.log('url =', url)
-	} else if (url.includes("file:")) {
-		yt_iframe.src = src;
-		//console.log(yt_iframe.src);
+	}
+	if (url.includes("mp4")) {
+		insert_videojs_script();
+		document.querySelector("#my_video").style.display = "block";
+		document.querySelector("#video_source").src = url;
+		document.querySelector("#video_source").type = "video/mp4";
+	}
+	if (url.includes("m3u8")) {
+		insert_videojs_script();
+		document.querySelector("#my_video").style.display = "block";
+		document.querySelector("#video_source").src = url;
+		document.querySelector("#video_source").type = "application/x-mpegURL";
 	}
 }
 
-embed_button.addEventListener("click", embed);
+
+if (document.querySelector("#yt_iframe")) {
+	//document.querySelector("#yt_iframe").style.width = String(window.innerWidth) + 'px';
+	//document.querySelector("#yt_iframe").style.height = String(window.innerHeight) + 'px';
+	document.querySelector("#yt_iframe").style.width = '100%';
+	document.querySelector("#yt_iframe").style.height = '100%';
+	window.onresize = (function(){
+		//document.querySelector("#yt_iframe").style.position='absolute';
+		//document.querySelector("#yt_iframe").style.width = String(window.innerWidth) + 'px';
+		//document.querySelector("#yt_iframe").style.height = String(window.innerHeight) + 'px';
+		document.querySelector("#yt_iframe").style.width = '100%';
+		document.querySelector("#yt_iframe").style.height = '100%';
+	});
+}
+
+//console.log(document.querySelector("#my_video"));
+if (document.querySelector("#my_video")) {
+	//document.querySelector("#my_video").style.width = String(window.innerWidth) + 'px';
+	//document.querySelector("#my_video").style.height = String(window.innerHeight) + 'px';
+	document.querySelector("#my_video").style.width = '100%';
+	document.querySelector("#my_video").style.height = '100%';
+	window.onresize = (function(){
+		//document.querySelector("#my_video").style.position='absolute';
+		//document.querySelector("#my_video").style.width = String(window.innerWidth) + 'px';
+		//document.querySelector("#my_video").style.height = String(window.innerHeight) + 'px';
+		document.querySelector("#my_video").style.width = '100%';
+		document.querySelector("#my_video").style.height = '100%';
+	});
+}
+
+
+const URL_String = {
+	parseURL: parseURL,
+	parseQuery: parseQuery
+};
+
 
 recognizing = false;
 document.querySelector("#checkbox_show_src").checked = true;
@@ -397,7 +556,9 @@ function create_modal_text_area() {
 			'overflow': 'hidden',
 			'z-index': '2147483647'
 		})
-		.offset({top:0.1*window.innerHeight, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
+		.offset({top:0.15*window.innerHeight, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
+		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:document.querySelector("#yt_iframe").style.left + 0.5*(document.querySelector("#yt_iframe").style.width-0.5*document.querySelector("#yt_iframe").style.width)})
+		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
 
 	if (!document.querySelector("#src_textarea_container")) {
 		console.log('appending src_textarea_container to html body');
@@ -480,7 +641,7 @@ window.addEventListener('resize', function(event){
 	if (document.querySelector("#src_textarea_container")) {
 		document.querySelector("#src_textarea_container").style.width = String(0.5*window.innerWidth)+'px';
 		document.querySelector("#src_textarea_container").style.height = String(0.1*window.innerHeight)+'px';
-		document.querySelector("#src_textarea_container").style.top = String(0.1*window.innerHeight)+'px';
+		document.querySelector("#src_textarea_container").style.top = String(0.15*window.innerHeight)+'px';
 		document.querySelector("#src_textarea_container").style.left = String(0.5*(window.innerWidth-0.5*window.innerWidth))+'px';
 
 		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
@@ -725,6 +886,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			//console.log('show_dst =', show_dst);
 			if (show_dst) {
+				console.log('dst =', dst);
 				var  t = final_transcript + interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 
@@ -803,7 +965,8 @@ var translate = async (t,src,dst) => {
 		xmlHttp.onreadystatechange = function(event) {
 			if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
 				response = JSON.parse(xmlHttp.responseText);
-				for (var i = 0, len = response.sentences?.length; i < len; i++) {
+				//for (var i = 0, len = response.sentences?.length; i < len; i++) {
+				for (var i = 0, len = response.sentences.length; i < len; i++) {
 					var r=(((response.sentences[i].trans).replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
 					r=((r.replace('}','')).replace(')','')).replace('\%20/g', ' ');
 					tt += r;

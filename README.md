@@ -7,4 +7,4 @@ You will also need Stereo Mix or Virtual Audio Cable recording device for best r
 
 https://user-images.githubusercontent.com/88623122/183360325-64f32c7b-cec8-470f-bb59-eca27140d232.mp4
 
-Check my other SPEECH RECOGNITIION + TRANSLATE PROJECTS in https://github.com/botbahlul/botbahlul.github.io
+Check my other SPEECH RECOGNITIION + TRANSLATE PROJECTS in https://botbahlul.github.io

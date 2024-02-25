@@ -52,6 +52,22 @@ document.querySelector("#start_button").addEventListener('click', function(){
 var src_language =
 [['Afrikaans',       ['af-ZA']],
  ['Amharic',         ['am-ET']],
+ ['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
+                     ['ar-BH', 'Bahrain'],
+                     ['ar-DZ', 'Algeria'],
+                     ['ar-EG', 'Egypt'],
+                     ['ar-IQ', 'Iraq'],
+                     ['ar-JO', 'Jordan'],
+                     ['ar-KW', 'Kuwait'],
+                     ['ar-LB', 'Lebanon'],
+                     ['ar-LY', 'Libya'],
+                     ['ar-MA', 'Maroco'],
+                     ['ar-OM', 'Oman'],
+                     ['ar-QA', 'Qatar'],
+                     ['ar-SA', 'Saudi Arabia'],
+                     ['ar-SY', 'Syria'],
+                     ['ar-TN', 'Tunisia'],
+                     ['ar-YE', 'Yemen']],
  ['Armenian',        ['hy-AM']],
  ['Azerbaijani',     ['az-AZ']],
  ['Bangla',          ['bn-BD', 'Bangladesh'],
@@ -214,6 +230,22 @@ function update_src_country() {
 var dst_language =
 [['Afrikaans',       ['af-ZA']],
  ['Amharic',         ['am-ET']],
+ ['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
+                     ['ar-BH', 'Bahrain'],
+                     ['ar-DZ', 'Algeria'],
+                     ['ar-EG', 'Egypt'],
+                     ['ar-IQ', 'Iraq'],
+                     ['ar-JO', 'Jordan'],
+                     ['ar-KW', 'Kuwait'],
+                     ['ar-LB', 'Lebanon'],
+                     ['ar-LY', 'Libya'],
+                     ['ar-MA', 'Maroco'],
+                     ['ar-OM', 'Oman'],
+                     ['ar-QA', 'Qatar'],
+                     ['ar-SA', 'Saudi Arabia'],
+                     ['ar-SY', 'Syria'],
+                     ['ar-TN', 'Tunisia'],
+                     ['ar-YE', 'Yemen']],
  ['Armenian',        ['hy-AM']],
  ['Azerbaijani',     ['az-AZ']],
  ['Bangla',          ['bn-BD', 'Bangladesh'],
@@ -471,13 +503,14 @@ function insert_videojs_script() {
 
 function embed(){
 	var url = url_box.value;
+	var original_url = url_box.value;
 	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
 		var ytID=getVideoID(url);
 		var src="https://www.youtube.com/embed/"+ytID;
 		url = src;
 		document.querySelector("#yt_iframe").style.display = "block";
 		yt_iframe.src = url;
-		url_box.value=url;
+		url_box.value=original_url;
 	}
 	if (url.includes("mp4")) {
 		insert_videojs_script();
@@ -892,7 +925,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				var  t = final_transcript + interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 
-					if (t) var tt=translate(t,src,dst).then((result => {
+					if (t) var tt=gtranslate(t,src,dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
@@ -985,3 +1018,32 @@ var translate = async (t,src,dst) => {
 	});
 	return await tt;
 }
+
+var gtranslate = async (t,src,dst) => {
+	var tt = new Promise(function(resolve) {
+		var i=0, len=0, r='', tt='';
+		const url = 'https://translate.googleapis.com/translate_a/'
+		var params = 'single?client=gtx&sl='+src+'&tl='+dst+'&dt=t&q='+t;
+		var xmlHttp = new XMLHttpRequest();
+		var response;
+		xmlHttp.onreadystatechange = function(event) {
+			if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+				response = JSON.parse(xmlHttp.responseText)[0];
+				for (var i = 0, len = response.length; i < len; i++) {
+					var r=(((response[i][0]).replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
+					r=((r.replace('}','')).replace(')','')).replace('\%20/g', ' ');
+					tt += r;
+				}
+				if (tt.includes('}'||')'||'%20')) {
+					tt=((tt.replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
+				}
+				resolve(tt);
+			}
+		}
+		xmlHttp.open('GET', url+params, true);
+		xmlHttp.send(null);
+		xmlHttp.onreadystatechange();
+	});
+	return await tt;
+}
+

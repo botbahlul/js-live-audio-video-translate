@@ -16,4 +16,4 @@ https://user-images.githubusercontent.com/88623122/183360325-64f32c7b-cec8-470f-
 
 Check my other SPEECH RECOGNITIION + TRANSLATE PROJECTS https://github.com/botbahlul?tab=repositories
 
-Buy me some coffee : https://sociabuzz.com/botbahlul/tribe
+Buy me coffee : https://sociabuzz.com/botbahlul/tribe

@@ -17,19 +17,19 @@
 		width: 48px;
 		height: 48px;
 	}
-	.header-unit parent iframe {
-		position: absolute;
+	.iframe_header_unit iframe_container iframe {
 		top: 0;
 		left: 0;
 		bottom: 0;
-		text-align: center;
 		width: 100%;
 		height: 100%;
+		text-align: center;
 		border: 0;
+		position: absolute;
 	}
-	#parent {
-		height:100%;
+	#iframe_container {
 		width:100%;
+		height:100%;
 		position: relative;
 		overflow: hidden;
 	}
@@ -44,16 +44,69 @@
 		/*background-color:transparent;*/
 		position: absolute;
 		z-index: 1;
+		display: none;
 	}
+	.video_header_unit video_container video {
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+		border: 0;
+		position: absolute;
+	}
+	#video_container {
+		height:100%;
+		width:100%;
+		position: relative;
+		overflow: hidden;
+	}
+	video {
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		z-index: 0;
+	}
+	#my_video {
+		/*border: 0;*/
+		/*background-color:transparent;*/
+		position: absolute;
+		z-index: 1;
+		display: none;
+	}
+
+  #fontSelect {
+    width: 160px; /* Adjust width as needed */
+    height: 20px; /* Adjust height as needed */
+  }
+  #fontSize {
+    width: 40px; /* Adjust width as needed */
+    height: 20px; /* Adjust height as needed */
+  }
+  #fontColor {
+    width: 50px; /* Adjust width as needed */
+    height: 20px; /* Adjust height as needed */
+  }
+  #containerWidthFactor {
+    width: 56px; /* Adjust width as needed */
+    height: 20px; /* Adjust height as needed */
+  }
+  #containerHeightFactor {
+    width: 56px; /* Adjust width as needed */
+    height: 20px; /* Adjust height as needed */
+  }
 </style>
 <html lang="en">
 <head>
 	<meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 	<title>Live Audio/Video Translate</title>
-	<label style="font-size: 12px">Youtube URL :</label> <input id="url_box" type="url"></input>
+</head>
+
+<body>
+	<label style="font-size: 12px">Video URL :</label> <input id="url_box" type="url"></input>
 	<button type="button" id="embed_button">Embed</button>
 	&nbsp;&nbsp;&nbsp;&nbsp;
 	<label style="font-size: 12px">Audio Language :</label>
@@ -68,34 +121,75 @@
 			<img id="start_img" src="images/mic.gif" alt="Start" height="45%" width="45%" border="0">
 		</button>
 	</div>
-	<br></br>
+	<br>
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	<input type="checkbox" id="checkbox_show_src" name="checkbox_show_src"> <label style='font-size: 12px'> Show recognized audio text </label>
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	<input type="checkbox" id="checkbox_show_dst" name="#checkbox_show_dst"> <label style='font-size: 12px'> Show translation text</label>
-</head>
+	<br></br>
 
-<body>
-<div class="header-unit">
-	<div class="parent">
-		<div class="yt_iframe">
-			<iframe id="yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="fillWidth"></iframe>
+	<label for="fontSelect">Subtitle Font&nbsp;</label>
+	<select id="fontSelect"></select>
+	<input type="number" id="fontSize" min="1" value="18">
+	<input type="color" id="fontColor" value="#ffff00">
+
+	<label for="containerWidth">&nbsp;&nbsp;&nbsp;Container Width&nbsp;</label>
+	<input type="number" id="containerWidthFactor" min="0" max="1" step="0.001" value="0.8">
+	<label for="containerWidthContinuingText">&nbsp;x window.innerWidth</label>
+
+	<label for="containerHeight">&nbsp;&nbsp;&nbsp;Container Height&nbsp;</label>
+	<input type="number" id="containerHeightFactor" min="0" max="1" step="0.001" value="0.15">
+	<label for="containerHeightContinuingText">&nbsp;x window.innerHeight</label>
+
+	<br></br>
+
+	<div class="iframe_header_unit">
+		<div class="iframe_container">
+			<div class="yt_iframe">
+				<iframe id="yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen class="fillWidth"></iframe>
+			</div>
 		</div>
 	</div>
-</div>
 
-<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css" />
-<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script-->
-<script src="js/jquery.min.js"></script>
-<link rel="stylesheet" href="css/jquery-ui.css">
-<script src="js/jquery-ui.min.js"></script>
-<!--link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" >
-<script src="https://unpkg.com/video.js/dist/video.js"></script>
-<script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script-->
-<script type='text/javascript' src="js/index.js"></script>
+	<div class="video_header_unit">
+		<div class="video_container">
+			<div class="video">
+				<video id="my_video" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
+					<!--source id="video_source" src="" type="" /-->
+					<source id="video_source" />
+				</video>
+			</div>
+		</div>
+	</div>
+
+
+	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css" />
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script-->
+
+	<script src="js/jquery.min.js"></script>
+	<link rel="stylesheet" href="css/jquery-ui.css">
+	<script src="js/jquery-ui.min.js"></script>
+
+	<!--link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" >
+	<script src="https://unpkg.com/video.js/dist/video.js"></script>
+	<script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script-->
+
+	<!--link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" >
+	<script src="https://unpkg.com/video.js/dist/video.js"></script>
+	<script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script-->
+	<!--link rel="stylesheet" href="js/video-js.css">
+	<script src="js/video.js"></script>
+	<script src="js/videojs-http-streaming.min.js"></script-->
+
+	<script type='text/javascript' src="js/index.js"></script>
+	<script>
+
+
+	</script>
+
 </body>
 </html>

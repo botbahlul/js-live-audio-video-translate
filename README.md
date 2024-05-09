@@ -1,5 +1,5 @@
 # js-live-audio-video-translate
-This is a web template that can RECOGNIZE any live audio/video streaming and TRANSLATE it for FREE!
+This is a web template that can RECOGNIZE any live audio/video streaming (using Chrome webkitSpeechRecognition API) and TRANSLATE it (using unofficial Google Translate API) for FREE!
 
 You need to install CORS Unblock Chrome extension to avoid default CORS Blocking Policy of Chrome and Edge
 

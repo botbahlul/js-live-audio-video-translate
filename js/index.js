@@ -1,6 +1,320 @@
 var recognition, recognizing, src, src_language, src_language_index, src_dialect, src_dialect_index, show_src, dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
 var selectedFontIndex, selectedFont, fontSize, fontColor, fontSelect, fontSizeInput, fontColorInput, sampleText, fonts, containerWidthFactor, containerHeightFactor, containerWidthFactorInput, containerHeightFactorInput;
-var version = "0.1.0"
+var yt_iframe_rect;
+var version = "0.1.1"
+
+var src_language =
+	[['Afrikaans',       ['af-ZA']],
+	['Amharic',         ['am-ET']],
+	['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
+						['ar-BH', 'Bahrain'],
+						['ar-DZ', 'Algeria'],
+						['ar-EG', 'Egypt'],
+						['ar-IQ', 'Iraq'],
+						['ar-JO', 'Jordan'],
+						['ar-KW', 'Kuwait'],
+						['ar-LB', 'Lebanon'],
+						['ar-LY', 'Libya'],
+						['ar-MA', 'Maroco'],
+						['ar-OM', 'Oman'],
+						['ar-QA', 'Qatar'],
+						['ar-SA', 'Saudi Arabia'],
+						['ar-SY', 'Syria'],
+						['ar-TN', 'Tunisia'],
+						['ar-YE', 'Yemen']],
+	['Armenian',        ['hy-AM']],
+	['Azerbaijani',     ['az-AZ']],
+	['Bangla',          ['bn-BD', 'Bangladesh'],
+						['bn-IN', 'India']],
+	['Basque',          ['eu-ES']],
+	['Bulgarian',       ['bg-BG']],
+	['Catalan',         ['ca-ES']],
+	['Chinese',         ['cmn-Hans-CN', 'Chinese Mandarin (Mainland China)'],
+						['cmn-Hans-HK', 'Chinese Mandarin (Hongkong)'],
+						['cmn-Hant-TW', 'Chinese (Taiwan)'],
+						['yue-Hant-HK', 'Chinese Cantonese (Hongkong)']],
+	['Croatian',        ['hr-HR']],
+	['Czech',           ['cs-CZ']],
+	['Dansk',           ['da-DK']],
+	['Deutsch',         ['de-DE']],
+	['Dutch',           ['nl-NL']],
+	['English',         ['en-AU', 'Australia'],
+						['en-CA', 'Canada'],
+						['en-IN', 'India'],
+						['en-KE', 'Kenya'],
+						['en-TZ', 'Tanzania'],
+						['en-GH', 'Ghana'],
+						['en-NZ', 'New Zealand'],
+						['en-NG', 'Nigeria'],
+						['en-ZA', 'South Africa'],
+						['en-PH', 'Philippines'],
+						['en-GB', 'United Kingdom'],
+						['en-US', 'United States']],
+	['Filipino',        ['fil-PH']],
+	['Finland',         ['fi-FI']],
+	['French',          ['fr-FR']],
+	['Galician',        ['gl-ES']],
+	['Georgian',        ['ka-GE']],
+	['Greek',           ['el-GR']],
+	['Gujarati',        ['gu-IN']],
+	['Hindi',           ['hi-IN']],
+	['Hungarian',       ['hu-HU']],
+	['Icelandic',       ['is-IS']],
+	['Indonesian',      ['id-ID']],
+	['Italian',         ['it-IT', 'Italia'],
+						['it-CH', 'Svizzera']],
+	['Japanese',        ['ja-JP']],
+	['Javanese',        ['jv-ID']],
+	['Kannada',         ['kn-IN']],
+	['Khmer',           ['km-KH']],
+	['Kiswahili',       ['sw-TZ', 'Tanzania'],
+						['sw-KE', 'Kenya']],
+	['Korean',          ['ko-KR']],
+	['Lao',             ['lo-LA']],
+	['Latvian',         ['lv-LV']],
+	['Lithuanian',      ['lt-LT']],
+	['Malay',           ['ms-MY']],
+	['Malayalam',       ['ml-IN']],
+	['Marathi',         ['mr-IN']],
+	['Myanmar',         ['my-MM']],
+	['Nepali',          ['ne-NP']],
+	['Norwegian Bokmål',['nb-NO']],
+	['Polish',          ['pl-PL']],
+	['Portuguese',      ['pt-BR', 'Brasil'],
+						['pt-PT', 'Portugal']],
+	['Romania',         ['ro-RO']],
+	['Russian',         ['ru-RU']],
+	['Serbian',         ['sr-RS']],
+	['Sinhala',         ['si-LK']],
+	['Slovene',         ['sl-SI']],
+	['Slovak',          ['sk-SK']],
+	['Spanish',         ['es-AR', 'Argentina'],
+						['es-BO', 'Bolivia'],
+						['es-CL', 'Chile'],
+						['es-CO', 'Colombia'],
+						['es-CR', 'Costa Rica'],
+						['es-EC', 'Ecuador'],
+						['es-SV', 'El Salvador'],
+						['es-ES', 'España'],
+						['es-US', 'Estados Unidos'],
+						['es-GT', 'Guatemala'],
+						['es-HN', 'Honduras'],
+						['es-MX', 'México'],
+						['es-NI', 'Nicaragua'],
+						['es-PA', 'Panamá'],
+						['es-PY', 'Paraguay'],
+						['es-PE', 'Perú'],
+						['es-PR', 'Puerto Rico'],
+						['es-DO', 'República Dominicana'],
+						['es-UY', 'Uruguay'],
+						['es-VE', 'Venezuela']],
+	['Sundanese',       ['su-ID']],
+	['Swedish',         ['sv-SE'],
+						['sw-KE', 'Kenya']],
+	['Tamil',           ['ta-IN', 'India'],
+						['ta-SG', 'Singapore'],
+						['ta-LK', 'Sri Lanka'],
+						['ta-MY', 'Malaysia']],
+	['Telugu',          ['te-IN']],
+	['Thai',            ['th-TH']],
+	['Turkish',         ['tr-TR']],
+	['Urdu',            ['ur-PK', 'Pakistan'],
+						['ur-IN', 'India']],
+	['Vietnamese',      ['vi-VN']],
+	['Ukrainian',       ['uk-UA']],
+	['Zulu',            ['zu-ZA']]];
+ 
+for (var i = 0; i < src_language.length; i++) {
+    document.querySelector("#select_src_language").options[i] = new Option(src_language[i][0], i);
+}
+
+if (localStorage.getItem("src_language_index")) {
+	src_language_index = localStorage.getItem("src_language_index");
+	document.querySelector("#select_src_language").selectedIndex = src_language_index;
+	console.log('localStorage.getItem("src_language_index") =', src_language_index);
+} else {
+	document.querySelector("#select_src_language").selectedIndex = 26;
+}
+
+if (localStorage.getItem("src_dialect")) {
+	src_dialect = localStorage.getItem("src_dialect");
+	console.log('localStorage.getItem("src_dialect") =', src_dialect);
+} else {
+	if (src_language[src_language_index].length>2) {
+		src_dialect = document.querySelector("#select_src_dialect").value;
+	} else {
+		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
+	};
+}
+
+if (localStorage.getItem("show_src")) {
+	show_src = localStorage.getItem("show_src");
+	document.querySelector("#checkbox_show_src").checked = show_src;
+	console.log('localStorage.getItem("show_src") =', show_src);
+} else {
+	document.querySelector("#checkbox_show_src").checked = true;
+}
+
+update_src_country();
+//console.log('after update_src_country(): src_dialect =', src_dialect);
+
+
+var dst_language =
+	[['Afrikaans',       ['af-ZA']],
+	['Amharic',         ['am-ET']],
+	['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
+						['ar-BH', 'Bahrain'],
+						['ar-DZ', 'Algeria'],
+						['ar-EG', 'Egypt'],
+						['ar-IQ', 'Iraq'],
+						['ar-JO', 'Jordan'],
+						['ar-KW', 'Kuwait'],
+						['ar-LB', 'Lebanon'],
+						['ar-LY', 'Libya'],
+						['ar-MA', 'Maroco'],
+						['ar-OM', 'Oman'],
+						['ar-QA', 'Qatar'],
+						['ar-SA', 'Saudi Arabia'],
+						['ar-SY', 'Syria'],
+						['ar-TN', 'Tunisia'],
+						['ar-YE', 'Yemen']],
+	['Armenian',        ['hy-AM']],
+	['Azerbaijani',     ['az-AZ']],
+	['Bangla',          ['bn-BD', 'Bangladesh'],
+						['bn-IN', 'India']],
+	['Basque',          ['eu-ES']],
+	['Bulgarian',       ['bg-BG']],
+	['Catalan',         ['ca-ES']],
+	['Chinese',         ['cmn-Hans-CN', 'Chinese Mandarin (Mainland China)'],
+						['cmn-Hans-HK', 'Chinese Mandarin (Hongkong)'],
+						['cmn-Hant-TW', 'Chinese (Taiwan)'],
+						['yue-Hant-HK', 'Chinese Cantonese (Hongkong)']],
+	['Croatian',        ['hr-HR']],
+	['Czech',           ['cs-CZ']],
+	['Dansk',           ['da-DK']],
+	['Deutsch',         ['de-DE']],
+	['Dutch',           ['nl-NL']],
+	['English',         ['en-AU', 'Australia'],
+						['en-CA', 'Canada'],
+						['en-IN', 'India'],
+						['en-KE', 'Kenya'],
+						['en-TZ', 'Tanzania'],
+						['en-GH', 'Ghana'],
+						['en-NZ', 'New Zealand'],
+						['en-NG', 'Nigeria'],
+						['en-ZA', 'South Africa'],
+						['en-PH', 'Philippines'],
+						['en-GB', 'United Kingdom'],
+						['en-US', 'United States']],
+	['Filipino',        ['fil-PH']],
+	['Finland',         ['fi-FI']],
+	['French',          ['fr-FR']],
+	['Galician',        ['gl-ES']],
+	['Georgian',        ['ka-GE']],
+	['Greek',           ['el-GR']],
+	['Gujarati',        ['gu-IN']],
+	['Hindi',           ['hi-IN']],
+	['Hungarian',       ['hu-HU']],
+	['Icelandic',       ['is-IS']],
+	['Indonesian',      ['id-ID']],
+	['Italian',         ['it-IT', 'Italia'],
+						['it-CH', 'Svizzera']],
+	['Japanese',        ['ja-JP']],
+	['Javanese',        ['jv-ID']],
+	['Kannada',         ['kn-IN']],
+	['Khmer',           ['km-KH']],
+	['Kiswahili',       ['sw-TZ', 'Tanzania'],
+						['sw-KE', 'Kenya']],
+	['Korean',          ['ko-KR']],
+	['Lao',             ['lo-LA']],
+	['Latvian',         ['lv-LV']],
+	['Lithuanian',      ['lt-LT']],
+	['Malay',           ['ms-MY']],
+	['Malayalam',       ['ml-IN']],
+	['Marathi',         ['mr-IN']],
+	['Myanmar',         ['my-MM']],
+	['Nepali',          ['ne-NP']],
+	['Norwegian Bokmål',['nb-NO']],
+	['Polish',          ['pl-PL']],
+	['Portuguese',      ['pt-BR', 'Brasil'],
+						['pt-PT', 'Portugal']],
+	['Romania',         ['ro-RO']],
+	['Russian',         ['ru-RU']],
+	['Serbian',         ['sr-RS']],
+	['Sinhala',         ['si-LK']],
+	['Slovene',         ['sl-SI']],
+	['Slovak',          ['sk-SK']],
+	['Spanish',         ['es-AR', 'Argentina'],
+						['es-BO', 'Bolivia'],
+						['es-CL', 'Chile'],
+						['es-CO', 'Colombia'],
+						['es-CR', 'Costa Rica'],
+						['es-EC', 'Ecuador'],
+						['es-SV', 'El Salvador'],
+						['es-ES', 'España'],
+						['es-US', 'Estados Unidos'],
+						['es-GT', 'Guatemala'],
+						['es-HN', 'Honduras'],
+						['es-MX', 'México'],
+						['es-NI', 'Nicaragua'],
+						['es-PA', 'Panamá'],
+						['es-PY', 'Paraguay'],
+						['es-PE', 'Perú'],
+						['es-PR', 'Puerto Rico'],
+						['es-DO', 'República Dominicana'],
+						['es-UY', 'Uruguay'],
+						['es-VE', 'Venezuela']],
+	['Sundanese',       ['su-ID']],
+	['Swedish',         ['sv-SE'],
+						['sw-KE', 'Kenya']],
+	['Tamil',           ['ta-IN', 'India'],
+						['ta-SG', 'Singapore'],
+						['ta-LK', 'Sri Lanka'],
+						['ta-MY', 'Malaysia']],
+	['Telugu',          ['te-IN']],
+	['Thai',            ['th-TH']],
+	['Turkish',         ['tr-TR']],
+	['Urdu',            ['ur-PK', 'Pakistan'],
+						['ur-IN', 'India']],
+	['Vietnamese',      ['vi-VN']],
+	['Ukrainian',       ['uk-UA']],
+	['Zulu',            ['zu-ZA']]];
+ 
+for (var j = 0; j < dst_language.length; j++) {
+    document.querySelector("#select_dst_language").options[j] = new Option(dst_language[j][0], j);
+}
+
+if (localStorage.getItem("dst_language_index")) {
+	dst_language_index = localStorage.getItem("dst_language_index");
+	document.querySelector("#select_dst_language").selectedIndex = dst_language_index;
+	console.log('localStorage.getItem("dst_language_index") =', dst_language_index);
+} else {
+	document.querySelector("#select_dst_language").selectedIndex = 15;
+}
+
+if (localStorage.getItem("dst_dialect")) {
+	dst_dialect = localStorage.getItem("dst_dialect");
+	console.log('localStorage.getItem("dst_dialect") =', dst_dialect);
+} else {
+	if (dst_language[dst_language_index].length>2) {
+		dst_dialect = document.querySelector("#select_dst_dialect").value;
+	} else {
+		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
+	};
+}
+
+if (localStorage.getItem("show_dst")) {
+	show_dst = localStorage.getItem("show_dst");
+	document.querySelector("#checkbox_show_dst").checked = show_dst;
+	console.log('localStorage.getItem("show_dst") =', show_dst);
+} else {
+	document.querySelector("#checkbox_show_dst").checked = true;
+}
+
+update_dst_country();
+//console.log('after update_dst_country(): dst_dialect =', dst_dialect);
+
+
 
 fontSelect = document.getElementById("fontSelect");
 selectedFont = fontSelect.value;
@@ -19,6 +333,48 @@ containerWidthFactor = containerWidthFactorInput.value;
 containerHeightFactorInput = document.getElementById("containerHeightFactor");
 containerHeightFactor = containerHeightFactorInput.value;
 
+// Load saved values from localStorage if available
+if (localStorage.getItem("selectedFontIndex")) {
+	selectedFontIndex = localStorage.getItem("selectedFontIndex");
+	console.log('localStorage.getItem("selectedFontIndex") =', selectedFontIndex);
+	fontSelect.selectedIndex = selectedFontIndex;
+	console.log('fontSelect.selectedIndex =', fontSelect.selectedIndex);
+} else {
+	selectedFontIndex = 0;
+	fontSelect.selectedIndex = selectedFontIndex;
+}
+
+if (localStorage.getItem("selectedFont")) {
+    fontSelect.value = localStorage.getItem("selectedFont");
+} else {
+	fontSelect.value = "Arial";
+}
+
+if (localStorage.getItem("fontSize")) {
+    fontSizeInput.value = localStorage.getItem("fontSize");
+} else {
+	fontSizeInput.value = "18";
+}
+
+if (localStorage.getItem("fontColor")) {
+	fontColorInput.value = localStorage.getItem("fontColor");
+} else {
+	fontSizeInput.value = "#ffff00";
+}
+
+if (localStorage.getItem("containerWidthFactor")) {
+	containerWidthFactorInput.value = localStorage.getItem("containerWidthFactor");
+} else {
+	containerWidthFactorInput.value = "0.8";
+}
+
+if (localStorage.getItem("containerHeightFactor")) {
+	containerHeightFactorInput.value = localStorage.getItem("containerHeightFactor");
+} else {
+	containerHeightFactorInput.value = "0.15";
+}
+
+
 // Add event listeners for changes in font select and font size input
 fontSelect.addEventListener("change", updateSubtitleText);
 fontSizeInput.addEventListener("input", updateSubtitleText);
@@ -29,6 +385,7 @@ containerWidthFactorInput.addEventListener("input", updateSubtitleText);
 containerWidthFactorInput.addEventListener("change", updateSubtitleText);
 containerHeightFactorInput.addEventListener("input", updateSubtitleText);
 containerHeightFactorInput.addEventListener("change", updateSubtitleText);
+
 
 function getAvailableFonts() {
     var fontList = [];
@@ -60,7 +417,11 @@ function getAvailableFonts() {
     return fontList;
 }
 
+
 function updateSubtitleText() {
+	selectedFontIndex = fontSelect.selectedFontIndex;
+	console.log('selectedFontIndex =', selectedFontIndex);
+
     selectedFont = fontSelect.value;
 	console.log('selectedFont =', selectedFont);
 
@@ -79,52 +440,86 @@ function updateSubtitleText() {
 	containerHeightFactor = containerHeightFactorInput.value;
 	console.log('containerHeightFactor =', containerHeightFactor);
 
-	src_textarea.style.fontFamily = selectedFont + ", sans-serif";
-    src_textarea.style.fontSize = String(fontSize) + "px";
-	src_textarea.style.color = fontColor;
-	src_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
-	src_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
-	console.log('width =', src_textarea.style.width);
-	src_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
-	console.log('height =', src_textarea.style.height);
-	src_textarea_container.style.left = String(0.2*(window.innerWidth-0.5*window.innerWidth)) + "px";
-	console.log('left =', src_textarea.style.left);
+    localStorage.setItem("selectedFontIndex", selectedFontIndex);
+	localStorage.setItem("selectedFont", selectedFont);
+    localStorage.setItem("fontSize", fontSize);
+    localStorage.setItem("fontColor", fontColor);
+    localStorage.setItem("containerWidthFactor", containerWidthFactor);
+	localStorage.setItem("containerHeightFactor", containerHeightFactor);
 
-	dst_textarea.style.fontFamily = selectedFont + ", sans-serif";
-    dst_textarea.style.fontSize = String(fontSize) + "px";
-	dst_textarea.style.color = fontColor;
-	dst_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
-	dst_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
-	console.log('width =', dst_textarea.style.width);
-	dst_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
-	console.log('height =', dst_textarea.style.height);
-	dst_textarea_container.style.left = String(0.2*(window.innerWidth-0.5*window.innerWidth)) + "px";
-	console.log('left =', dst_textarea.style.left);
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
 
-	//create_modal_text_area();
+	if (src_textarea_container && src_textarea) {
+		src_textarea.style.fontFamily = selectedFont + ", sans-serif";
+		src_textarea.style.fontSize = String(fontSize) + "px";
+		src_textarea.style.color = fontColor;
+		src_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
+
+		//src_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
+		src_textarea_container.style.width = String(containerWidthFactor*yt_iframe_rect.width) + "px";
+		console.log('width =', src_textarea.style.width);
+
+		//src_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
+		src_textarea_container.style.height = String(containerHeightFactor*yt_iframe_rect.height) + "px";
+		console.log('height =', src_textarea.style.height);
+
+		//src_textarea_container.style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)) + "px";
+		src_textarea_container.style.left = String(0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)) + "px";
+		console.log('left =', src_textarea.style.left);
+	}
+
+	if (dst_textarea_container && dst_textarea) {
+		dst_textarea.style.fontFamily = selectedFont + ", sans-serif";
+		dst_textarea.style.fontSize = String(fontSize) + "px";
+		dst_textarea.style.color = fontColor;
+		dst_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
+
+		dst_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
+		//dst_textarea_container.style.width = String(containerWidthFactor*yt_iframe_rect.width) + "px";
+		console.log('width =', dst_textarea.style.width);
+
+		dst_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
+		//dst_textarea_container.style.height = String(containerHeightFactor*yt_iframe_rect.height) + "px";
+		console.log('height =', dst_textarea.style.height);
+
+		dst_textarea_container.style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)) + "px";
+		//dst_textarea_container.style.left = String(0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)) + "px";
+		console.log('left =', dst_textarea.style.left);
+	}
 }
+
 
 
 document.querySelector("#embed_button").addEventListener('click', function(){
 	embed();
 });
 
+
+
 document.querySelector("#select_src_language").addEventListener('change', function(){
 	update_src_country()
 	console.log('document.querySelector("#select_src_language") on change: src =', src);
 	//console.log('document.querySelector("#select_src_language") on change: src_language_index =', src_language_index);
+	localStorage.setItem("src_language_index", src_language_index);
 });
 
 document.querySelector("#select_src_dialect").addEventListener('change', function(){
 	src_dialect = document.querySelector("#select_src_dialect").value;
 	//console.log('document.querySelector("#select_src_dialect") on change: document.querySelector("#select_src_dialect").value =', document.querySelector("#select_src_dialect").value);
 	console.log('document.querySelector("#select_src_dialect") on change: src_dialect =', src_dialect);
+	localStorage.setItem("src_dialect", src_dialect);
+	localStorage.setItem("src_dialect_index", src_dialect_index);
 });
 
 document.querySelector("#select_dst_language").addEventListener('change', function(){
 	update_dst_country();
 	console.log('document.querySelector("#select_dst_language") on change: dst =', dst);
 	//console.log('document.querySelector("#select_dst_language") on change:dst_language_index =', dst_language_index);
+	localStorage.setItem("dst_language_index", dst_language_index);
 });
 
 document.querySelector("#select_dst_dialect").addEventListener('change', function(){
@@ -132,6 +527,8 @@ document.querySelector("#select_dst_dialect").addEventListener('change', functio
 	dst_dialect = document.querySelector("#select_dst_dialect").value;
 	console.log('document.querySelector("#select_dst_dialect") on change: document.querySelector("#select_dst_dialect").value =', document.querySelector("#select_dst_dialect").value);
 	console.log('document.querySelector("#select_dst_dialect") on change: dst_dialect =', dst_dialect);
+	localStorage.setItem("dst_dialect", dst_dialect);
+	localStorage.setItem("dst_dialect_index", dst_dialect_index);
 });
 
 document.querySelector("#checkbox_show_src").addEventListener('change', function(){
@@ -140,6 +537,7 @@ document.querySelector("#checkbox_show_src").addEventListener('change', function
 	if (!show_src) {
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 	}
+	localStorage.setItem("show_src", show_src);
 });
 
 document.querySelector("#checkbox_show_dst").addEventListener('change', function(){
@@ -148,145 +546,16 @@ document.querySelector("#checkbox_show_dst").addEventListener('change', function
 	if (!show_dst) {
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 	}
+	localStorage.setItem("show_dst", show_dst);
 });
+
+
 
 document.querySelector("#start_button").addEventListener('click', function(){
 	startButton(event);
 });
 
-var src_language =
-[['Afrikaans',       ['af-ZA']],
- ['Amharic',         ['am-ET']],
- ['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
-                     ['ar-BH', 'Bahrain'],
-                     ['ar-DZ', 'Algeria'],
-                     ['ar-EG', 'Egypt'],
-                     ['ar-IQ', 'Iraq'],
-                     ['ar-JO', 'Jordan'],
-                     ['ar-KW', 'Kuwait'],
-                     ['ar-LB', 'Lebanon'],
-                     ['ar-LY', 'Libya'],
-                     ['ar-MA', 'Maroco'],
-                     ['ar-OM', 'Oman'],
-                     ['ar-QA', 'Qatar'],
-                     ['ar-SA', 'Saudi Arabia'],
-                     ['ar-SY', 'Syria'],
-                     ['ar-TN', 'Tunisia'],
-                     ['ar-YE', 'Yemen']],
- ['Armenian',        ['hy-AM']],
- ['Azerbaijani',     ['az-AZ']],
- ['Bangla',          ['bn-BD', 'Bangladesh'],
-                     ['bn-IN', 'India']],
- ['Basque',          ['eu-ES']],
- ['Bulgarian',       ['bg-BG']],
- ['Catalan',         ['ca-ES']],
- ['Chinese',         ['cmn-Hans-CN', 'Chinese Mandarin (Mainland China)'],
-                     ['cmn-Hans-HK', 'Chinese Mandarin (Hongkong)'],
-                     ['cmn-Hant-TW', 'Chinese (Taiwan)'],
-                     ['yue-Hant-HK', 'Chinese Cantonese (Hongkong)']],
- ['Croatian',        ['hr-HR']],
- ['Czech',           ['cs-CZ']],
- ['Dansk',           ['da-DK']],
- ['Deutsch',         ['de-DE']],
- ['Dutch',           ['nl-NL']],
- ['English',         ['en-AU', 'Australia'],
-                     ['en-CA', 'Canada'],
-                     ['en-IN', 'India'],
-                     ['en-KE', 'Kenya'],
-                     ['en-TZ', 'Tanzania'],
-                     ['en-GH', 'Ghana'],
-                     ['en-NZ', 'New Zealand'],
-                     ['en-NG', 'Nigeria'],
-                     ['en-ZA', 'South Africa'],
-                     ['en-PH', 'Philippines'],
-                     ['en-GB', 'United Kingdom'],
-                     ['en-US', 'United States']],
- ['Filipino',        ['fil-PH']],
- ['Finland',         ['fi-FI']],
- ['French',          ['fr-FR']],
- ['Galician',        ['gl-ES']],
- ['Georgian',        ['ka-GE']],
- ['Greek',           ['el-GR']],
- ['Gujarati',        ['gu-IN']],
- ['Hindi',           ['hi-IN']],
- ['Hungarian',       ['hu-HU']],
- ['Icelandic',       ['is-IS']],
- ['Indonesian',      ['id-ID']],
- ['Italian',         ['it-IT', 'Italia'],
-                     ['it-CH', 'Svizzera']],
- ['Japanese',        ['ja-JP']],
- ['Javanese',        ['jv-ID']],
- ['Kannada',         ['kn-IN']],
- ['Khmer',           ['km-KH']],
- ['Kiswahili',       ['sw-TZ', 'Tanzania'],
-                     ['sw-KE', 'Kenya']],
- ['Korean',          ['ko-KR']],
- ['Lao',             ['lo-LA']],
- ['Latvian',         ['lv-LV']],
- ['Lithuanian',      ['lt-LT']],
- ['Malay',           ['ms-MY']],
- ['Malayalam',       ['ml-IN']],
- ['Marathi',         ['mr-IN']],
- ['Myanmar',         ['my-MM']],
- ['Nepali',          ['ne-NP']],
- ['Norwegian Bokmål',['nb-NO']],
- ['Polish',          ['pl-PL']],
- ['Portuguese',      ['pt-BR', 'Brasil'],
-                     ['pt-PT', 'Portugal']],
- ['Romania',         ['ro-RO']],
- ['Russian',         ['ru-RU']],
- ['Serbian',         ['sr-RS']],
- ['Sinhala',         ['si-LK']],
- ['Slovene',         ['sl-SI']],
- ['Slovak',          ['sk-SK']],
- ['Spanish',         ['es-AR', 'Argentina'],
-                     ['es-BO', 'Bolivia'],
-                     ['es-CL', 'Chile'],
-                     ['es-CO', 'Colombia'],
-                     ['es-CR', 'Costa Rica'],
-                     ['es-EC', 'Ecuador'],
-                     ['es-SV', 'El Salvador'],
-                     ['es-ES', 'España'],
-                     ['es-US', 'Estados Unidos'],
-                     ['es-GT', 'Guatemala'],
-                     ['es-HN', 'Honduras'],
-                     ['es-MX', 'México'],
-                     ['es-NI', 'Nicaragua'],
-                     ['es-PA', 'Panamá'],
-                     ['es-PY', 'Paraguay'],
-                     ['es-PE', 'Perú'],
-                     ['es-PR', 'Puerto Rico'],
-                     ['es-DO', 'República Dominicana'],
-                     ['es-UY', 'Uruguay'],
-                     ['es-VE', 'Venezuela']],
- ['Sundanese',       ['su-ID']],
- ['Swedish',         ['sv-SE'],
-                     ['sw-KE', 'Kenya']],
- ['Tamil',           ['ta-IN', 'India'],
-                     ['ta-SG', 'Singapore'],
-                     ['ta-LK', 'Sri Lanka'],
-                     ['ta-MY', 'Malaysia']],
- ['Telugu',          ['te-IN']],
- ['Thai',            ['th-TH']],
- ['Turkish',         ['tr-TR']],
- ['Urdu',            ['ur-PK', 'Pakistan'],
-                     ['ur-IN', 'India']],
- ['Vietnamese',      ['vi-VN']],
- ['Ukrainian',       ['uk-UA']],
- ['Zulu',            ['zu-ZA']]];
- 
-for (var i = 0; i < src_language.length; i++) {
-    document.querySelector("#select_src_language").options[i] = new Option(src_language[i][0], i);
-}
-document.querySelector("#select_src_language").selectedIndex = 26;
-src_language_index = document.querySelector("#select_src_language").selectedIndex;
-update_src_country();
-if (src_language[src_language_index].length>2) {
-	src_dialect = document.querySelector("#select_src_dialect").value;
-} else {
-	src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
-};
-//console.log('after update_src_country(): src_dialect =', src_dialect);
+
 
 function update_src_country() {
     for (var i = document.querySelector("#select_src_dialect").options.length - 1; i >= 0; i--) {
@@ -315,11 +584,13 @@ function update_src_country() {
 	}
 
 	src_language_index = document.querySelector("#select_src_language").selectedIndex;
+	//localStorage.setItem("src_language_index", src_language_index);
 	if (src_language[src_language_index].length>2) {
 		for (var j=0;j<document.querySelector("#select_src_dialect").length;j++) {
 			if (document.querySelector("#select_src_dialect")[j].value===src_dialect) {
 				src_dialect_index = j;
 				document.querySelector("#select_src_dialect").selectedIndex = src_dialect_index;
+				//localStorage.setItem("src_dialect_index", src_dialect_index);
 				break;
 			}
 		}
@@ -332,142 +603,6 @@ function update_src_country() {
 	console.log('update_src_country(): src_dialect =', src_dialect);
 }
 
-var dst_language =
-[['Afrikaans',       ['af-ZA']],
- ['Amharic',         ['am-ET']],
- ['Arabic',          ['ar-AE', 'Uni Arab Emirates'],
-                     ['ar-BH', 'Bahrain'],
-                     ['ar-DZ', 'Algeria'],
-                     ['ar-EG', 'Egypt'],
-                     ['ar-IQ', 'Iraq'],
-                     ['ar-JO', 'Jordan'],
-                     ['ar-KW', 'Kuwait'],
-                     ['ar-LB', 'Lebanon'],
-                     ['ar-LY', 'Libya'],
-                     ['ar-MA', 'Maroco'],
-                     ['ar-OM', 'Oman'],
-                     ['ar-QA', 'Qatar'],
-                     ['ar-SA', 'Saudi Arabia'],
-                     ['ar-SY', 'Syria'],
-                     ['ar-TN', 'Tunisia'],
-                     ['ar-YE', 'Yemen']],
- ['Armenian',        ['hy-AM']],
- ['Azerbaijani',     ['az-AZ']],
- ['Bangla',          ['bn-BD', 'Bangladesh'],
-                     ['bn-IN', 'India']],
- ['Basque',          ['eu-ES']],
- ['Bulgarian',       ['bg-BG']],
- ['Catalan',         ['ca-ES']],
- ['Chinese',         ['cmn-Hans-CN', 'Chinese Mandarin (Mainland China)'],
-                     ['cmn-Hans-HK', 'Chinese Mandarin (Hongkong)'],
-                     ['cmn-Hant-TW', 'Chinese (Taiwan)'],
-                     ['yue-Hant-HK', 'Chinese Cantonese (Hongkong)']],
- ['Croatian',        ['hr-HR']],
- ['Czech',           ['cs-CZ']],
- ['Dansk',           ['da-DK']],
- ['Deutsch',         ['de-DE']],
- ['Dutch',           ['nl-NL']],
- ['English',         ['en-AU', 'Australia'],
-                     ['en-CA', 'Canada'],
-                     ['en-IN', 'India'],
-                     ['en-KE', 'Kenya'],
-                     ['en-TZ', 'Tanzania'],
-                     ['en-GH', 'Ghana'],
-                     ['en-NZ', 'New Zealand'],
-                     ['en-NG', 'Nigeria'],
-                     ['en-ZA', 'South Africa'],
-                     ['en-PH', 'Philippines'],
-                     ['en-GB', 'United Kingdom'],
-                     ['en-US', 'United States']],
- ['Filipino',        ['fil-PH']],
- ['Finland',         ['fi-FI']],
- ['French',          ['fr-FR']],
- ['Galician',        ['gl-ES']],
- ['Georgian',        ['ka-GE']],
- ['Greek',           ['el-GR']],
- ['Gujarati',        ['gu-IN']],
- ['Hindi',           ['hi-IN']],
- ['Hungarian',       ['hu-HU']],
- ['Icelandic',       ['is-IS']],
- ['Indonesian',      ['id-ID']],
- ['Italian',         ['it-IT', 'Italia'],
-                     ['it-CH', 'Svizzera']],
- ['Japanese',        ['ja-JP']],
- ['Javanese',        ['jv-ID']],
- ['Kannada',         ['kn-IN']],
- ['Khmer',           ['km-KH']],
- ['Kiswahili',       ['sw-TZ', 'Tanzania'],
-                     ['sw-KE', 'Kenya']],
- ['Korean',          ['ko-KR']],
- ['Lao',             ['lo-LA']],
- ['Latvian',         ['lv-LV']],
- ['Lithuanian',      ['lt-LT']],
- ['Malay',           ['ms-MY']],
- ['Malayalam',       ['ml-IN']],
- ['Marathi',         ['mr-IN']],
- ['Myanmar',         ['my-MM']],
- ['Nepali',          ['ne-NP']],
- ['Norwegian Bokmål',['nb-NO']],
- ['Polish',          ['pl-PL']],
- ['Portuguese',      ['pt-BR', 'Brasil'],
-                     ['pt-PT', 'Portugal']],
- ['Romania',         ['ro-RO']],
- ['Russian',         ['ru-RU']],
- ['Serbian',         ['sr-RS']],
- ['Sinhala',         ['si-LK']],
- ['Slovene',         ['sl-SI']],
- ['Slovak',          ['sk-SK']],
- ['Spanish',         ['es-AR', 'Argentina'],
-                     ['es-BO', 'Bolivia'],
-                     ['es-CL', 'Chile'],
-                     ['es-CO', 'Colombia'],
-                     ['es-CR', 'Costa Rica'],
-                     ['es-EC', 'Ecuador'],
-                     ['es-SV', 'El Salvador'],
-                     ['es-ES', 'España'],
-                     ['es-US', 'Estados Unidos'],
-                     ['es-GT', 'Guatemala'],
-                     ['es-HN', 'Honduras'],
-                     ['es-MX', 'México'],
-                     ['es-NI', 'Nicaragua'],
-                     ['es-PA', 'Panamá'],
-                     ['es-PY', 'Paraguay'],
-                     ['es-PE', 'Perú'],
-                     ['es-PR', 'Puerto Rico'],
-                     ['es-DO', 'República Dominicana'],
-                     ['es-UY', 'Uruguay'],
-                     ['es-VE', 'Venezuela']],
- ['Sundanese',       ['su-ID']],
- ['Swedish',         ['sv-SE'],
-                     ['sw-KE', 'Kenya']],
- ['Tamil',           ['ta-IN', 'India'],
-                     ['ta-SG', 'Singapore'],
-                     ['ta-LK', 'Sri Lanka'],
-                     ['ta-MY', 'Malaysia']],
- ['Telugu',          ['te-IN']],
- ['Thai',            ['th-TH']],
- ['Turkish',         ['tr-TR']],
- ['Urdu',            ['ur-PK', 'Pakistan'],
-                     ['ur-IN', 'India']],
- ['Vietnamese',      ['vi-VN']],
- ['Ukrainian',       ['uk-UA']],
- ['Zulu',            ['zu-ZA']]];
- 
-for (var j = 0; j < dst_language.length; j++) {
-    document.querySelector("#select_dst_language").options[j] = new Option(dst_language[j][0], j);
-}
-
-document.querySelector("#select_dst_language").selectedIndex = 15;
-dst_language_index = document.querySelector("#select_dst_language").selectedIndex;
-update_dst_country();
-document.querySelector("#select_dst_dialect").selectedIndex = 11;
-//console.log('dst_language[dst_language_index].length =', dst_language[dst_language_index].length);
-if (dst_language[dst_language_index].length>2) {
-	dst_dialect = document.querySelector("#select_dst_dialect").value;
-} else {
-	dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
-};
-//console.log('after update_dst_country(): dst_dialect =', dst_dialect);
 
 function update_dst_country() {
     for (var j = document.querySelector("#select_dst_dialect").options.length - 1; j >= 0; j--) {
@@ -496,11 +631,13 @@ function update_dst_country() {
 	}
 
 	dst_language_index = document.querySelector("#select_dst_language").selectedIndex;
+	//localStorage.setItem("dst_language_index", dst_language_index);
 	if (dst_language[dst_language_index].length>2) {
 		for (var j=0;j<document.querySelector("#select_dst_dialect").length;j++) {
 			if (document.querySelector("#select_dst_dialect")[j].value===dst_dialect) {
 				dst_dialect_index = j;
 				document.querySelector("#select_dst_dialect").selectedIndex = dst_dialect_index;
+				//localStorage.setItem("dst_dialect_index", dst_dialect_index);
 				break;
 			}
 		}
@@ -512,6 +649,7 @@ function update_dst_country() {
 	};
 	console.log('update_dst_country(): dst_dialect =', dst_dialect);
 }
+
 
 function parseURL(url) {
   var isRelative = /^(ftp|file|gopher|https?|wss?)(:|$)/.test(url),
@@ -561,6 +699,7 @@ function parseURL(url) {
   };
 }
 
+
 function parseQuery(url) {
   var parts, subpart, name, value, index,
       obj = {};
@@ -591,6 +730,7 @@ function parseQuery(url) {
   return obj;
 }
 
+
 function getVideoID(url) {
   var urlObj = URL_String.parseURL(url);
   if (urlObj) {
@@ -599,12 +739,14 @@ function getVideoID(url) {
   return null;
 }
 
+
 function insert_videojs_script() {
 	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>')
 	video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>')
 	console.log('appending video_script to html body');
 	video_script$.appendTo('body');
 }
+
 
 function embed(){
 	var url = url_box.value;
@@ -629,6 +771,13 @@ function embed(){
 		document.querySelector("#video_source").src = url;
 		document.querySelector("#video_source").type = "application/x-mpegURL";
 	}
+
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 }
 
 
@@ -637,12 +786,26 @@ if (document.querySelector("#yt_iframe")) {
 	//document.querySelector("#yt_iframe").style.height = String(window.innerHeight) + 'px';
 	document.querySelector("#yt_iframe").style.width = '100%';
 	document.querySelector("#yt_iframe").style.height = '100%';
+
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 	window.onresize = (function(){
 		//document.querySelector("#yt_iframe").style.position='absolute';
 		//document.querySelector("#yt_iframe").style.width = String(window.innerWidth) + 'px';
 		//document.querySelector("#yt_iframe").style.height = String(window.innerHeight) + 'px';
 		document.querySelector("#yt_iframe").style.width = '100%';
 		document.querySelector("#yt_iframe").style.height = '100%';
+
+		yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+		//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+		//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+		//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+		//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 	});
 }
 
@@ -674,10 +837,18 @@ document.querySelector("#checkbox_show_dst").checked = true;
 show_src = document.querySelector("#checkbox_show_src").checked;
 show_dst = document.querySelector("#checkbox_show_dst").checked;
 
+
 function create_modal_text_area() {
+
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 	var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
-		.width(containerWidthFactor*window.innerWidth)
-		.height(containerHeightFactor*window.innerHeight)
+		.width(containerWidthFactor*yt_iframe_rect.width)
+		.height(containerHeightFactor*yt_iframe_rect.height)
 		.resizable().draggable({
 			cancel: 'text',
 			start: function (){
@@ -696,9 +867,10 @@ function create_modal_text_area() {
 			'overflow': 'hidden',
 			'z-index': '2147483647'
 		})
-		.offset({top:0.2*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+		//.offset({top:0.25*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
 		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:document.querySelector("#yt_iframe").style.left + 0.5*(document.querySelector("#yt_iframe").style.width-0.5*document.querySelector("#yt_iframe").style.width)})
 		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
+		.offset({top:yt_iframe_rect.top + 0.02*yt_iframe_rect.height, left:0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)})
 
 	if (!document.querySelector("#src_textarea_container")) {
 		console.log('appending src_textarea_container to html body');
@@ -731,8 +903,8 @@ function create_modal_text_area() {
 
 
 	var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
-		.width(containerWidthFactor*window.innerWidth)
-		.height(containerHeightFactor*window.innerHeight)
+		.width(containerWidthFactor*yt_iframe_rect.width)
+		.height(containerHeightFactor*yt_iframe_rect.height)
 		.resizable().draggable({
 			cancel: 'text',
 			start: function (){
@@ -751,7 +923,7 @@ function create_modal_text_area() {
 			'overflow': 'hidden',
 			'z-index': '2147483647'
 		})
-		.offset({top:0.75*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+		.offset({top:yt_iframe_rect.top + 0.6*yt_iframe_rect.height, left:0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)})
 
 	if (!document.querySelector("#dst_textarea_container")) {
 		console.log('appending dst_textarea_container to html body');
@@ -784,15 +956,25 @@ function create_modal_text_area() {
 
 
 window.addEventListener('resize', function(event){
+
+	document.documentElement.scrollTop = 0; // For modern browsers
+	document.body.scrollTop = 0; // For older browsers
+
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 	if (document.querySelector("#src_textarea_container")) {
-		document.querySelector("#src_textarea_container").style.width = String(containerWidthFactor*window.innerWidth)+'px';
-		document.querySelector("#src_textarea_container").style.height = String(containerHeightFactor*window.innerHeight)+'px';
-		document.querySelector("#src_textarea_container").style.top = String(0.2*window.innerHeight)+'px';
-		document.querySelector("#src_textarea_container").style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth))+'px';
+		document.querySelector("#src_textarea_container").style.width = String(containerWidthFactor*yt_iframe_rect.width) + 'px';
+		document.querySelector("#src_textarea_container").style.height = String(containerHeightFactor*yt_iframe_rect.height) + 'px';
+		document.querySelector("#src_textarea_container").style.top = String(yt_iframe_rect.top + 0.02*yt_iframe_rect.height) + 'px';
+		document.querySelector("#src_textarea_container").style.left = String(0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)) + 'px';
 
 		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
-			.width(containerWidthFactor*window.innerWidth)
-			.height(containerHeightFactor*window.innerHeight)
+			.width(containerWidthFactor*yt_iframe_rect.width)
+			.height(containerHeightFactor*yt_iframe_rect.height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -811,10 +993,11 @@ window.addEventListener('resize', function(event){
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:0.15*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+			//.offset({top:0.25*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+			.offset({top:yt_iframe_rect.top + 0.02*yt_iframe_rect.height, left:0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)})
 
-		document.querySelector("#src_textarea").style.width = String(containerWidthFactor*window.innerWidth)+'px';
-		document.querySelector("#src_textarea").style.height = String(containerHeightFactor*window.innerHeight)+'px';
+		document.querySelector("#src_textarea").style.width = String(containerWidthFactor*yt_iframe_rect.width)+'px';
+		document.querySelector("#src_textarea").style.height = String(containerHeightFactor*yt_iframe_rect.height)+'px';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 		document.querySelector("#src_textarea").style.color = fontColor;
@@ -838,17 +1021,21 @@ window.addEventListener('resize', function(event){
 				document.querySelector("#src_textarea").scrollTop=document.querySelector("#src_textarea").scrollHeight;
 			});
 		}
+
+		document.documentElement.scrollTop = yt_iframe_rect.top; // For modern browsers
+		document.body.scrollTop = yt_iframe_rect.top; // For older browsers
+
 	}
 
 	if (document.querySelector("#dst_textarea_container")) {
-		document.querySelector("#dst_textarea_container").style.width = String(containerWidthFactor*window.innerWidth)+'px';
-		document.querySelector("#dst_textarea_container").style.height = String(containerHeightFactor*window.innerHeight)+'px';
-		document.querySelector("#dst_textarea_container").style.top = String(0.75*window.innerHeight)+'px';
-		document.querySelector("#dst_textarea_container").style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth))+'px';
+		document.querySelector("#dst_textarea_container").style.width = String(containerWidthFactor*yt_iframe_rect.width)+'px';
+		document.querySelector("#dst_textarea_container").style.height = String(containerHeightFactor*yt_iframe_rect.height)+'px';
+		document.querySelector("#dst_textarea_container").style.top = String(yt_iframe_rect.top + 0.6*yt_iframe_rect.height)+'px';
+		document.querySelector("#dst_textarea_container").style.left = String(0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)) + 'px';
 
 		var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
-			.width(containerWidthFactor*window.innerWidth)
-			.height(containerHeightFactor*window.innerHeight)
+			.width(containerWidthFactor*yt_iframe_rect.width)
+			.height(containerHeightFactor*yt_iframe_rect.height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -867,10 +1054,11 @@ window.addEventListener('resize', function(event){
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:0.65*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+			//.offset({top:0.75*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+			.offset({top:yt_iframe_rect.top + 0.6*yt_iframe_rect.height, left:0.5*(yt_iframe_rect.width-containerWidthFactor*yt_iframe_rect.width)})
 
-		document.querySelector("#dst_textarea").style.width = String(containerWidthFactor*window.innerWidth)+'px';
-		document.querySelector("#dst_textarea").style.height = String(containerHeightFactor*window.innerHeight)+'px';
+		document.querySelector("#dst_textarea").style.width = String(containerWidthFactor*yt_iframe_rect.width)+'px';
+		document.querySelector("#dst_textarea").style.height = String(containerHeightFactor*yt_iframe_rect)+'px';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 		document.querySelector("#dst_textarea").style.color = fontColor;
@@ -896,6 +1084,7 @@ window.addEventListener('resize', function(event){
 		}
 	}
 });
+
 
 console.log('Initializing recognition: recognizing =', recognizing);
 var final_transcript = '';
@@ -929,6 +1118,9 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			console.log('recognition.onstart: recognizing =', recognizing);
 			recognition.lang = src_dialect;
 			document.querySelector("#start_img").src = 'images/mic-animate.gif';
+
+			document.documentElement.scrollTop = yt_iframe_rect.top; // For modern browsers
+			document.body.scrollTop = yt_iframe_rect.top; // For older browsers
 		}
 	};
 
@@ -994,7 +1186,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	recognition.onresult = function(event) {
 		console.log('recognition.onresult: recognizing =', recognizing);
 		//console.log('document.querySelector("#src_textarea_container").style.display =', document.querySelector("#src_textarea_container").style.display);
-
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
         update_src_country();
@@ -1009,6 +1200,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			console.log('recognition.onresult: stopping because recognizing =', recognizing);
 			return;
+
 		} else {
 			recognition.lang=src_dialect;
 			var interim_transcript = '';
@@ -1062,18 +1254,31 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 }
 
+
 var two_line = /\n\n/g;
 var one_line = /\n/g;
 function remove_linebreak(s) {
 	return s.replace(two_line, '').replace(one_line, '');
 }
 
+
 var first_char = /\S/;
 function capitalize(s) {
     return s.replace(first_char, function(m) { return m.toUpperCase(); });
 }
 
+
 function startButton(event) {
+
+	document.documentElement.scrollTop = 0; // For modern browsers
+	document.body.scrollTop = 0; // For older browsers
+
+	yt_iframe_rect = document.querySelector("#yt_iframe").getBoundingClientRect();
+	//console.log('yt_iframe_rect.top = ', yt_iframe_rect.top);
+	//console.log('yt_iframe_rect.left = ', yt_iframe_rect.left);
+	//console.log('yt_iframe_rect.width = ', yt_iframe_rect.width);
+	//console.log('yt_iframe_rect.height = ', yt_iframe_rect.height);
+
 	show_src = document.querySelector("#checkbox_show_src").checked;
 	show_dst = document.querySelector("#checkbox_show_dst").checked;
 	src_dialect = document.querySelector("#select_src_dialect").value;
@@ -1083,6 +1288,7 @@ function startButton(event) {
 
 	recognizing=!recognizing;
 	console.log('startButton clicked recognizing =', recognizing);
+
 	if (!recognizing) {
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").parentElement.removeChild(document.querySelector("#src_textarea_container"));
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").parentElement.removeChild(document.querySelector("#dst_textarea_container"));
@@ -1090,6 +1296,7 @@ function startButton(event) {
 		recognition.stop();
 		document.querySelector("#start_img").src = 'images/mic.gif';
 		return;
+
 	} else {
 		//document.querySelector("#src_textarea").value='';
 		//document.querySelector("#dst_textarea").value='';
@@ -1161,3 +1368,22 @@ var gtranslate = async (t,src,dst) => {
 	return await tt;
 }
 
+
+function getPosition(target) {
+	var target_body = target.parents('body');
+	if ($('body').get(0) === target_body.get(0)) {
+		return {left: target.position().left, top: target.position().top};
+	}
+
+	// find the corresponding iframe container
+	var iframe = $('iframe').filter(function() {
+		var iframe_body = $(this).contents().find('body');
+		return target_body.get(0) === iframe_body.get(0);
+	});
+
+	// need to adjust the iframe target position by current document scrolling
+	var left = $(iframe).offset().left + target.offset().left - $(document).scrollLeft();
+	var top = $(iframe).offset().top + target.offset().top - $(document).scrollTop();
+
+	return {left: left, top: top};
+}

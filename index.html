@@ -7,10 +7,30 @@
 		font-size: 12px;
 		box-sizing: inherit;
 	}
+	#select_src_language {
+		width: 160px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
+	#select_src_dialect {
+		width: 160px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
+	#select_dst_language {
+		width: 160px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
+	#select_dst_dialect {
+		width: 160px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
 	#start_button {
 		border: 0;
 		/*background-color:transparent;*/
 		padding: 0;
+	}
+	#url_box {
+		width: 350px; /* Adjust width as needed */
+		height: 18px; /* Adjust height as needed */
 	}
 	.mic-button {
 		float: right;
@@ -78,23 +98,23 @@
 
   #fontSelect {
     width: 160px; /* Adjust width as needed */
-    height: 20px; /* Adjust height as needed */
+    height: 16px; /* Adjust height as needed */
   }
   #fontSize {
     width: 40px; /* Adjust width as needed */
-    height: 20px; /* Adjust height as needed */
+    height: 16px; /* Adjust height as needed */
   }
   #fontColor {
     width: 50px; /* Adjust width as needed */
-    height: 20px; /* Adjust height as needed */
+    height: 16px; /* Adjust height as needed */
   }
   #containerWidthFactor {
     width: 56px; /* Adjust width as needed */
-    height: 20px; /* Adjust height as needed */
+    height: 16px; /* Adjust height as needed */
   }
   #containerHeightFactor {
     width: 56px; /* Adjust width as needed */
-    height: 20px; /* Adjust height as needed */
+    height: 16px; /* Adjust height as needed */
   }
 </style>
 <html lang="en">
@@ -102,52 +122,55 @@
 	<meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Live Audio/Video Translate</title>
+	<title>Live Audio/Video Translate v0.1.1</title>
 </head>
 
 <body>
-	<label style="font-size: 12px">Video URL :</label> <input id="url_box" type="url"></input>
-	<button type="button" id="embed_button">Embed</button>
-	&nbsp;&nbsp;&nbsp;&nbsp;
-	<label style="font-size: 12px">Audio Language :</label>
+	<label style="font-size: 12px">Audio Language&nbsp;&nbsp;</label> 
 	<select id="select_src_language" style="font-size:12px"></select>
 	<select id="select_src_dialect" style="font-size:12px"></select>
-	&nbsp;&nbsp;&nbsp;&nbsp;
-	<label style="font-size: 12px">Translation :</label>
+	<input type="checkbox" id="checkbox_show_src" name="checkbox_show_src"> <label style='font-size: 12px'> Show recognized audio text </label>
+
+	<br>
+
+	<label style="font-size: 12px">Translation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 	<select id="select_dst_language" style="font-size:12px"></select>
 	<select id="select_dst_dialect" style="font-size:12px"></select>
+	<input type="checkbox" id="checkbox_show_dst" name="#checkbox_show_dst"> <label style='font-size: 12px'> Show translation text</label>
+
+	<br>
+
+	<label for="fontSelect">Subtitle Font&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+	<select id="fontSelect"></select>
+	<input type="number" id="fontSize" min="1" value="18">
+	<input type="color" id="fontColor" value="#ffff00">
+
+	<br>
+
+	<label for="containerWidth">Container Width&nbsp;</label>
+	<input type="number" id="containerWidthFactor" min="0" max="1" step="0.001" value="0.8">
+	<label for="containerWidthContinuingText"> x Video Width</label>
+
+	<label for="containerHeight">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Container Height&nbsp;</label>
+	<input type="number" id="containerHeightFactor" min="0" max="1" step="0.001" value="0.15">
+	<label for="containerHeightContinuingText"> x Video Height</label>
+
+	<br>
+
+	<label style="font-size: 12px">Video URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+	<input id="url_box" type="url"></input>
+	<button type="button" id="embed_button">Embed</button>
+
 	<div class="mic-button">
 		<button id="start_button">
 			<img id="start_img" src="images/mic.gif" alt="Start" height="45%" width="45%" border="0">
 		</button>
 	</div>
-	<br>
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	<input type="checkbox" id="checkbox_show_src" name="checkbox_show_src"> <label style='font-size: 12px'> Show recognized audio text </label>
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	<input type="checkbox" id="checkbox_show_dst" name="#checkbox_show_dst"> <label style='font-size: 12px'> Show translation text</label>
-	<br></br>
-
-	<label for="fontSelect">Subtitle Font&nbsp;</label>
-	<select id="fontSelect"></select>
-	<input type="number" id="fontSize" min="1" value="18">
-	<input type="color" id="fontColor" value="#ffff00">
-
-	<label for="containerWidth">&nbsp;&nbsp;&nbsp;Container Width&nbsp;</label>
-	<input type="number" id="containerWidthFactor" min="0" max="1" step="0.001" value="0.8">
-	<label for="containerWidthContinuingText">&nbsp;x window.innerWidth</label>
-
-	<label for="containerHeight">&nbsp;&nbsp;&nbsp;Container Height&nbsp;</label>
-	<input type="number" id="containerHeightFactor" min="0" max="1" step="0.001" value="0.15">
-	<label for="containerHeightContinuingText">&nbsp;x window.innerHeight</label>
 
 	<br></br>
 
-	<div class="iframe_header_unit">
-		<div class="iframe_container">
+	<div class="iframe_header_unit" id="yt_iframe_header_unit">
+		<div class="iframe_container" id="yt_iframe_container">
 			<div class="yt_iframe">
 				<iframe id="yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen class="fillWidth"></iframe>
 			</div>

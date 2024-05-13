@@ -1,9 +1,9 @@
 var recognition, recognizing, src, src_language, src_language_index, src_dialect, src_dialect_index, show_src, dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
 var selectedFontIndex, selectedFont, fontSize, fontColor, fontSelect, fontSizeInput, fontColorInput, sampleText, fonts, containerWidthFactor, containerHeightFactor, containerWidthFactorInput, containerHeightFactorInput;
 var videoInfo, srcWidth, srcHeight, srcTop, srcLeft, dstWidth, dstHeight, dstTop, dstLeft;
-var timestamp, timestamped_final_transcript, timestamped_translated_transcript;
+var startTimestamp, endTimestamp, timestamped_final_transcript, timestamped_translated_transcript;
 
-var version = "0.1.2"
+var version = "0.1.3"
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -455,11 +455,11 @@ function updateSubtitleText() {
 	videoInfo = getVideoPlayerInfo();
 	if (videoInfo) {
 		console.log("Video player found!");
-		console.log("id:", videoInfo.id);
-		console.log("Top:", videoInfo.top);
-		console.log("Left:", videoInfo.left);
-		console.log("Width:", videoInfo.width);
-		console.log("Height:", videoInfo.height);
+		console.log("videoInfo.id = ", videoInfo.id);
+		//console.log("Top:", videoInfo.top);
+		//console.log("Left:", videoInfo.left);
+		//console.log("Width:", videoInfo.width);
+		//console.log("Height:", videoInfo.height);
 	} else {
 		console.log("No video player found on this page.");
 	}
@@ -616,11 +616,11 @@ document.addEventListener('fullscreenchange', function(event) {
 	if (videoInfo) {
 		console.log('fullscreenchange');
 		console.log("Video player found!");
-		console.log("id:", videoInfo.id);
-		console.log("Top:", videoInfo.top);
-		console.log("Left:", videoInfo.left);
-		console.log("Width:", videoInfo.width);
-		console.log("Height:", videoInfo.height);
+		console.log("videoInfo.id = ", videoInfo.id);
+		//console.log("Top:", videoInfo.top);
+		//console.log("Left:", videoInfo.left);
+		//console.log("Width:", videoInfo.width);
+		//console.log("Height:", videoInfo.height);
 	} else {
 		console.log("No video player found on this page.");
 	}
@@ -1051,10 +1051,10 @@ function create_modal_text_area() {
 	if (videoInfo) {
 		console.log("Video player found!");
 		console.log("Id:", videoInfo.id);
-		console.log("Top:", videoInfo.top);
-		console.log("Left:", videoInfo.left);
-		console.log("Width:", videoInfo.width);
-		console.log("Height:", videoInfo.height);
+		//console.log("Top:", videoInfo.top);
+		//console.log("Left:", videoInfo.left);
+		//console.log("Width:", videoInfo.width);
+		//console.log("Height:", videoInfo.height);
 	} else {
 		console.log("No video player found on this page.");
 	}
@@ -1216,10 +1216,10 @@ window.addEventListener('resize', function(event){
 		console.log('Window is resized');
 		console.log("Video player found!");
 		console.log("Id:", videoInfo.id);
-		console.log("Top:", videoInfo.top);
-		console.log("Left:", videoInfo.left);
-		console.log("Width:", videoInfo.width);
-		console.log("Height:", videoInfo.height);
+		//console.log("Top:", videoInfo.top);
+		//console.log("Left:", videoInfo.left);
+		//console.log("Width:", videoInfo.width);
+		//console.log("Height:", videoInfo.height);
 	} else {
 		console.log("No video player found on this page.");
 	}
@@ -1511,11 +1511,15 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					//final_transcript = capitalize(final_transcript);
 					//final_transcript = remove_linebreak(final_transcript);
 
-					timestamp = formatTimestamp(new Date());
-					final_transcript += `${timestamp} : ${capitalize(event.results[i][0].transcript)}`;
+					endTimestamp = formatTimestamp(new Date());
+					final_transcript += `${startTimestamp} - ${endTimestamp} : ${capitalize(event.results[i][0].transcript)}`;
 					final_transcript = final_transcript + '.\n'
 
 				} else {
+					if (interim_transcript.split(/\s+/).length === 1) {
+						startTimestamp = formatTimestamp(new Date());
+					}
+				
 					interim_transcript += event.results[i][0].transcript;
 					//interim_transcript = remove_linebreak(interim_transcript);
 					interim_transcript = capitalize(interim_transcript);
@@ -1528,11 +1532,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			}
 
 			timestamped_final_transcript = final_transcript + interim_transcript;
-			//timestamped_final_transcript = capitalize(timestamped_final_transcript);
 
 			if (containsColon(timestamped_final_transcript)) {
 				timestamped_final_transcript = capitalizeSentences(timestamped_final_transcript);
-				//console.log('capitalizeSentences(timestamped_final_transcript) = ', timestamped_final_transcript);
+				console.log('capitalizeSentences(timestamped_final_transcript) = ', timestamped_final_transcript);
 			}
 
 			//console.log('show_src =', show_src);
@@ -1604,38 +1607,6 @@ function capitalize(s) {
 }
 
 
-function capitalizeSentences(transcription) {
-	//console.log('transcription = ', transcription);
-
-    // Split the transcription into individual lines
-    const lines = transcription.split('\n');
-    
-    // Iterate over each line
-    for (let i = 0; i < lines.length; i++) {
-        // Split each line by colon to separate timestamp and sentence
-        const parts = lines[i].split(' : ');
-		//console.log('parts[0] = ', parts[0]);
-		//console.log('parts[1] = ', parts[1]);
-
-        // If the line is in the correct format (timestamp : sentence)
-        if (parts.length === 2) {
-            // Capitalize the first character of the sentence
-            const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
-
-            // Replace the original sentence with the capitalized one
-            lines[i] = parts[0] + ' : ' + capitalizedSentence;
-			//console.log('i = ', i );
-			//console.log('lines[i] = ', lines[i] );
-        }
-    }
-    
-    // Join the lines back into a single string and return
-	//console.log('lines.join("\n") = ', lines.join('\n'));
-    return lines.join('\n');
-}
-
-
-
 function startButton(event) {
 
 	document.documentElement.scrollTop = 0; // For modern browsers
@@ -1644,11 +1615,11 @@ function startButton(event) {
 	videoInfo = getVideoPlayerInfo();
 	if (videoInfo) {
 		console.log("Video player found!");
-		console.log("id:", videoInfo.id);
-		console.log("Top:", videoInfo.top);
-		console.log("Left:", videoInfo.left);
-		console.log("Width:", videoInfo.width);
-		console.log("Height:", videoInfo.height);
+		console.log("videoInfo.id = ", videoInfo.id);
+		//console.log("Top:", videoInfo.top);
+		//console.log("Left:", videoInfo.left);
+		//console.log("Width:", videoInfo.width);
+		//console.log("Height:", videoInfo.height);
 	} else {
 		console.log("No video player found on this page.");
 	}
@@ -1839,9 +1810,9 @@ function saveTranslatedTranscript(timestamped_translated_transcript) {
 }
 
 
-function formatTimestamp(timestamp) {
-  // Convert timestamp to string
-  const timestampString = timestamp.toISOString();
+function formatTimestamp(startTimestamp) {
+  // Convert startTimestamp to string
+  const timestampString = startTimestamp.toISOString();
 
   // Extract date and time parts
   const datePart = timestampString.slice(0, 10);
@@ -1886,6 +1857,39 @@ function getVideoPlayerInfo() {
 	return null;
 }
 
+
+function capitalizeSentences(transcription) {
+	//console.log('transcription = ', transcription);
+
+    // Split the transcription into individual lines
+    const lines = transcription.split('\n');
+    
+    // Iterate over each line
+    for (let i = 0; i < lines.length; i++) {
+        // Split each line by colon to separate startTimestamp and sentence
+        const parts = lines[i].split(' : ');
+		//console.log('parts[0] = ', parts[0]);
+		//console.log('parts[1] = ', parts[1]);
+
+        // If the line is in the correct format (startTimestamp : sentence)
+        if (parts.length === 2) {
+            // Capitalize the first character of the sentence
+            const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
+
+            // Replace the original sentence with the capitalized one
+            lines[i] = parts[0] + ' : ' + capitalizedSentence;
+			//console.log('i = ', i );
+			//console.log('lines[i] = ', lines[i] );
+        }
+    }
+    
+    // Join the lines back into a single string and return
+	//console.log('lines.join("\n") = ', lines.join('\n'));
+    return lines.join('\n');
+}
+
+
+/*
 function formatText(text) {
 	text = text.replace('\%20/g', ' ');
 	const timestamps = text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}/g);
@@ -1920,6 +1924,44 @@ function formatText(text) {
 		return text;
 	}
 }
+*/
+
+
+function formatText(text) {
+	text = text.replace('\%20/g', ' ');
+	const timestamps = text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} - \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}/g);
+	//console.log('timestamps', timestamps);
+	let formattedText = "";
+	if (timestamps) {
+		const lines = text.split(/(?=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3} - \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3})/);
+		//console.log('lines', lines);
+		for (let line of lines) {
+			const parts = line.split(/(?<=\d{3}:\d{2}): /);
+			//console.log('parts.length', parts.length);
+			//console.log('parts[0]', parts[0]);
+			//console.log('parts[1]', parts[1]);
+			if (parts[0].includes('.')) {
+				formattedText += parts[0].replace(/\./g, ".") + "\n";
+			}
+			else if (parts[0].includes('?')) {
+				formattedText += parts[0].replace(/\?/g, "?") + "\n";
+			}
+			else if (parts[0].includes('!')) {
+				formattedText += parts[0].replace(/\!/g, "!") + "\n";
+			}
+		}
+
+		//let splitByPeriod = formattedText.split(/\.(?!\d)/); // Split by period not followed by a digit (to avoid splitting timestamps)
+		//let splitByPeriod = formattedText.split(/\.\s/); // Split by period  followed by a space
+		//formattedText = splitByPeriod.join('.\n');
+
+		//console.log('formattedText', formattedText);
+		return formattedText;
+	} else {
+		return text;
+	}
+}
+
 
 
 function readTextFile(filename, callback) {

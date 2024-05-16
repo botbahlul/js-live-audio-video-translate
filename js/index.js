@@ -4,7 +4,7 @@ var videoInfo, srcWidth, srcHeight, srcTop, srcLeft, dstWidth, dstHeight, dstTop
 var startTimestamp, endTimestamp, timestamped_final_transcript, timestamped_translated_transcript;
 var timestamp_separator = "-->";
 
-var version = "0.1.3"
+var version = "0.1.5"
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -136,13 +136,15 @@ if (localStorage.getItem("src_language_index")) {
 	document.querySelector("#select_src_language").selectedIndex = src_language_index;
 	console.log('localStorage.getItem("src_language_index") =', src_language_index);
 } else {
-	document.querySelector("#select_src_language").selectedIndex = 26;
+	src_language_index = 26;
+	document.querySelector("#select_src_language").selectedIndex = src_language_index;
 }
 
 if (localStorage.getItem("src_dialect")) {
 	src_dialect = localStorage.getItem("src_dialect");
 	console.log('localStorage.getItem("src_dialect") =', src_dialect);
 } else {
+	//src_dialect = "id-ID";
 	if (src_language[src_language_index].length>2) {
 		src_dialect = document.querySelector("#select_src_dialect").value;
 	} else {
@@ -155,7 +157,8 @@ if (localStorage.getItem("show_src")) {
 	document.querySelector("#checkbox_show_src").checked = show_src;
 	console.log('localStorage.getItem("show_src") =', show_src);
 } else {
-	document.querySelector("#checkbox_show_src").checked = true;
+	show_src = true;
+	document.querySelector("#checkbox_show_src").checked = show_src;
 }
 
 update_src_country();
@@ -292,7 +295,8 @@ if (localStorage.getItem("dst_language_index")) {
 	document.querySelector("#select_dst_language").selectedIndex = dst_language_index;
 	console.log('localStorage.getItem("dst_language_index") =', dst_language_index);
 } else {
-	document.querySelector("#select_dst_language").selectedIndex = 15;
+	dst_language_index = 15;
+	document.querySelector("#select_dst_language").selectedIndex = dst_language_index;
 }
 
 if (localStorage.getItem("dst_dialect")) {
@@ -311,7 +315,8 @@ if (localStorage.getItem("show_dst")) {
 	document.querySelector("#checkbox_show_dst").checked = show_dst;
 	console.log('localStorage.getItem("show_dst") =', show_dst);
 } else {
-	document.querySelector("#checkbox_show_dst").checked = true;
+	show_dst = true;
+	document.querySelector("#checkbox_show_dst").checked = show_dst;
 }
 
 update_dst_country();
@@ -1382,18 +1387,18 @@ window.addEventListener('resize', function(event){
 });
 
 
-document.addEventListener('DOMContentLoaded', (event) => {
-	document.querySelector("#dst_textarea").addEventListener('input', () => {
-		const value = document.querySelector("#dst_textarea").value;
-		if (value.includes('%20')) {
-			console.log('dst_textarea contains %20');
-			value = value.replace('\%20/g', ' ');
-			document.querySelector("#dst_textarea").value = formattedText(value);
-        }
+if (document.querySelector("#dst_textarea")) {
+	document.addEventListener('DOMContentLoaded', (event) => {
+		document.querySelector("#dst_textarea").addEventListener('input', () => {
+			const value = document.querySelector("#dst_textarea").value;
+			if (value.includes('%20')) {
+				console.log('dst_textarea contains %20');
+				value = value.replace('\%20/g', ' ');
+				document.querySelector("#dst_textarea").value = formattedText(value);
+			}
+		});
 	});
-});
-
-
+}
 
 
 console.log('Initializing recognition: recognizing =', recognizing);

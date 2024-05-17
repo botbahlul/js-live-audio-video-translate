@@ -1,10 +1,10 @@
 var recognition, recognizing, src, src_language, src_language_index, src_dialect, src_dialect_index, show_src, dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
 var selectedFontIndex, selectedFont, fontSize, fontColor, fontSelect, fontSizeInput, fontColorInput, sampleText, fonts, containerWidthFactor, containerHeightFactor, containerWidthFactorInput, containerHeightFactorInput;
 var videoInfo, srcWidth, srcHeight, srcTop, srcLeft, dstWidth, dstHeight, dstTop, dstLeft;
-var startTimestamp, endTimestamp, timestamped_final_transcript, timestamped_translated_transcript;
+var startTimestamp, endTimestamp, timestamped_final_and_interim_transcript, timestamped_translated_transcript, interim_started=false;
 var timestamp_separator = "-->";
 
-var version = "0.1.5"
+var version = "0.1.6"
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -1473,15 +1473,15 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			console.log('recognition.onend: stopping because recognizing =', recognizing);
-			saveTranscript(timestamped_final_transcript);
-			console.log('timestamped_final_transcript', timestamped_final_transcript);
-			if (timestamped_final_transcript) var tt=gtranslate(timestamped_final_transcript,src,dst).then((result => {
+			saveTranscript(timestamped_final_and_interim_transcript);
+			console.log('timestamped_final_and_interim_transcript', timestamped_final_and_interim_transcript);
+			if (timestamped_final_and_interim_transcript) var tt=gtranslate(timestamped_final_and_interim_transcript,src,dst).then((result => {
 				result = result.replace(/(\d+),(\d+)/g, '$1.$2');
 				result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
 				result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-				result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
 				result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
 				result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+				result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
 				result = capitalizeSentences(result);
 				result = formatText(result);
 				result = result.replace(/\n\s*$/, '');
@@ -1525,12 +1525,15 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					//final_transcript = final_transcript + '.\n'
 					//final_transcript = capitalize(final_transcript);
 					//final_transcript = remove_linebreak(final_transcript);
+					interim_transcript = '';
+					interim_started = false;
 					endTimestamp = formatTimestamp(new Date());
 					final_transcript += `${startTimestamp} ${timestamp_separator} ${endTimestamp} : ${capitalize(event.results[i][0].transcript)}`;
 					final_transcript = final_transcript + '.\n'
 				} else {
-					if (interim_transcript.split(/\s+/).length === 1) {
+					if (!interim_started) {
 						startTimestamp = formatTimestamp(new Date());
+						interim_started = true; // Set the flag to true
 					}
 					interim_transcript += event.results[i][0].transcript;
 					//interim_transcript = remove_linebreak(interim_transcript);
@@ -1539,31 +1542,31 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				}
 			}
 
-			timestamped_final_transcript = final_transcript + interim_transcript;
+			timestamped_final_and_interim_transcript = final_transcript + interim_transcript;
 
-			if (containsColon(timestamped_final_transcript)) {
-				timestamped_final_transcript = capitalizeSentences(timestamped_final_transcript);
-				console.log('capitalizeSentences(timestamped_final_transcript) = ', timestamped_final_transcript);
+			if (containsColon(timestamped_final_and_interim_transcript)) {
+				timestamped_final_and_interim_transcript = capitalizeSentences(timestamped_final_and_interim_transcript);
+				console.log('capitalizeSentences(timestamped_final_and_interim_transcript) = ', timestamped_final_and_interim_transcript);
 			}
 
 			//console.log('show_src =', show_src);
 			if (show_src) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
 				//if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").innerHTML = final_transcript + interim_transcript;
-				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = timestamped_final_transcript;
+				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = timestamped_final_and_interim_transcript;
 				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").scrollTop = document.querySelector("#src_textarea").scrollHeight;
 			} else {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			}
 
-			timestamped_final_transcript = document.querySelector("#src_textarea").value;
-			//timestamped_final_transcript = timestamped_transcript+interim_transcript;
+			timestamped_final_and_interim_transcript = document.querySelector("#src_textarea").value;
+			//timestamped_final_and_interim_transcript = timestamped_transcript+interim_transcript;
 
 			//console.log('show_dst =', show_dst);
 			if (show_dst) {
 				console.log('dst =', dst);
 				//var  t = final_transcript + interim_transcript;
-				var t = timestamped_final_transcript;
+				var t = timestamped_final_and_interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 
 					if (t) var tt=gtranslate(t,src,dst).then((result => {
@@ -1574,6 +1577,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
 						result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
 						result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
 						result = capitalizeSentences(result);
 						result = formatText(result);
 						result = result.replace(/\n\s*$/, '');
@@ -1718,12 +1722,12 @@ var translate = async (t,src,dst) => {
 				response = JSON.parse(xmlHttp.responseText);
 				//for (var i = 0, len = response.sentences?.length; i < len; i++) {
 				for (var i = 0, len = response.sentences.length; i < len; i++) {
-					var r=(((response.sentences[i].trans).replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
-					r=((r.replace('}','')).replace(')','')).replace('\%20/g', ' ');
+					var r=((((response[i][0]).replace('}/g','')).replace(')/g','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
+					r=(((r.replace('}','')).replace(')','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 					tt += r;
 				}
-				if (tt.includes('}'||')'||'%20')) {
-					tt=((tt.replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
+				if (tt.includes('}'||')'||'%20'||'%3E')) {
+					tt=(((tt.replace('}/g','')).replace(')/g','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 				}
 				resolve(tt);
 			}
@@ -1746,12 +1750,12 @@ var gtranslate = async (t,src,dst) => {
 			if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
 				response = JSON.parse(xmlHttp.responseText)[0];
 				for (var i = 0, len = response.length; i < len; i++) {
-					var r=(((response[i][0]).replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
-					r=((r.replace('}','')).replace(')','')).replace('\%20/g', ' ');
+					var r=((((response[i][0]).replace('}/g','')).replace(')/g','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
+					r=(((r.replace('}','')).replace(')','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 					tt += r;
 				}
-				if (tt.includes('}'||')'||'%20')) {
-					tt=((tt.replace('}/g','')).replace(')/g','')).replace('\%20/g', ' ');
+				if (tt.includes('}'||')'||'%20'||'%3E')) {
+					tt=(((tt.replace('}/g','')).replace(')/g','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 				}
 				resolve(tt);
 			}
@@ -1784,9 +1788,9 @@ function getPosition(target) {
 }
 
 
-function saveTranscript(timestamped_final_transcript) {
+function saveTranscript(timestamped_final_and_interim_transcript) {
   // Create a Blob with the transcript content
-  const blob = new Blob([timestamped_final_transcript], { type: 'text/plain' });
+  const blob = new Blob([timestamped_final_and_interim_transcript], { type: 'text/plain' });
   //const blob = new Blob([timestamped_interim_transcript], { type: 'text/plain' });
 
   // Create a URL for the Blob

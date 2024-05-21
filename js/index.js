@@ -25,7 +25,7 @@ var session_start_time, session_end_time;
 var interim_started=false;
 var pause_timeout, input_pause_threshold, pause_threshold;
 var all_final_transcripts = [], formatted_all_final_transcripts;
-var version = "0.2.0"
+var version = "0.2.1"
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -767,17 +767,19 @@ function updateSubtitleText() {
 		//document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(input_src_container_color.value, input_src_container_opacity.value);
 
-		//document.querySelector("#src_textarea_container").style.width = String(src_container_width_factor*window.innerWidth) + "px";
-		document.querySelector("#src_textarea_container").style.width = String(src_width) + "px";
-		console.log('width =', document.querySelector("#src_textarea_container").style.width);
+		//document.querySelector("#src_textarea").style.width = String(src_container_width_factor*window.innerWidth) + "px";
+		document.querySelector("#src_textarea").style.width = String(src_width) + "px";
+		console.log('width =', document.querySelector("#src_textarea").style.width);
 
-		//document.querySelector("#src_textarea_container").style.height = String(src_container_height_factor*window.innerHeight) + "px";
-		document.querySelector("#src_textarea_container").style.height = String(src_height) + "px";
-		console.log('height =', document.querySelector("#src_textarea_container").style.height);
+		//document.querySelector("#src_textarea").style.height = String(src_container_height_factor*window.innerHeight) + "px";
+		document.querySelector("#src_textarea").style.height = String(src_height) + "px";
+		console.log('height =', document.querySelector("#src_textarea").style.height);
 
-		//document.querySelector("#src_textarea_container").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
-		document.querySelector("#src_textarea_container").style.left = String(src_left) + "px";
-		console.log('left =', document.querySelector("#src_textarea_container").style.left);
+		//document.querySelector("#src_textarea").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
+		document.querySelector("#src_textarea").style.left = String(src_left) + "px";
+		console.log('left =', document.querySelector("#src_textarea").style.left);
+
+
 	}
 
 	if (document.querySelector("#dst_textarea_container") && document.querySelector("#dst_textarea")) {
@@ -788,16 +790,16 @@ function updateSubtitleText() {
 		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
 
 		//document.querySelector("#dst_textarea_container").style.width = String(src_container_width_factor*window.innerWidth) + "px";
-		document.querySelector("#dst_textarea_container").style.width = String(dst_width) + "px";
+		document.querySelector("#dst_textarea").style.width = String(dst_width) + "px";
 		console.log('width =', document.querySelector("#dst_textarea_container").style.width);
 
-		//document.querySelector("#dst_textarea_container").style.height = String(src_container_height_factor*window.innerHeight) + "px";
-		document.querySelector("#dst_textarea_container").style.height = String(dst_height) + "px";
-		console.log('height =', document.querySelector("#dst_textarea_container").style.height);
+		//document.querySelector("#dst_textarea").style.height = String(src_container_height_factor*window.innerHeight) + "px";
+		document.querySelector("#dst_textarea").style.height = String(dst_height) + "px";
+		console.log('height =', document.querySelector("#dst_textarea").style.height);
 
-		//document.querySelector("#dst_textarea_container").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
-		document.querySelector("#dst_textarea_container").style.left = String(dst_left) + "px";
-		console.log('left =', document.querySelector("#dst_textarea_container").style.left);
+		//document.querySelector("#dst_textarea").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
+		document.querySelector("#dst_textarea").style.left = String(dst_left) + "px";
+		console.log('left =', document.querySelector("#dst_textarea").style.left);
 	}
 
 }
@@ -1576,7 +1578,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
 	document.querySelector("#dst_textarea").style.allow="fullscreen";
 
-	document.querySelector("#src_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
+	document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
 	document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
 	document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
@@ -1604,8 +1606,8 @@ function create_modal_text_area() {
 
 	});
 
-	document.documentElement.scrollTop = video_info.top; // For modern browsers
-	document.body.scrollTop = video_info.top; // For older browsers
+	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
+	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
 
 }
 
@@ -2123,6 +2125,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						result = capitalizeSentences(result);
 						result = formatText(result);
 						result = result.replace(/\n\s*$/, '');
+
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 					}));

@@ -1,10 +1,31 @@
-var recognition, recognizing, src, src_language, src_language_index, src_dialect, src_dialect_index, show_src, dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
-var selectedFontIndex, selectedFont, fontSize, fontColor, fontSelect, fontSizeInput, fontColorInput, sampleText, fonts, containerWidthFactor, containerHeightFactor, containerWidthFactorInput, containerHeightFactorInput;
-var videoInfo, srcWidth, srcHeight, srcTop, srcLeft, dstWidth, dstHeight, dstTop, dstLeft;
-var startTimestamp, endTimestamp, timestamped_final_and_interim_transcript, timestamped_translated_transcript, interim_started=false;
-var timestamp_separator = "-->";
+var recognition, recognizing;
+var src, src_language, src_language_index, src_dialect, src_dialect_index, show_src;
+var dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
 
-var version = "0.1.6"
+var src_fonts, dst_fonts;
+
+var select_src_font, input_src_font_size, input_src_font_color;
+var src_selected_font_index, src_selected_font, src_font_size, src_font_color;
+var input_src_container_width_factor, input_src_container_height_factor;
+var src_container_width_factor, src_container_height_factor;
+var input_src_container_color, input_src_container_opacity;
+var src_container_color, src_container_opacity;
+
+var select_dst_font, input_dst_font_size, input_dst_font_color;
+var dst_selected_font_index, dst_selected_font, dst_font_size, dst_font_color;
+var input_dst_container_width_factor, input_dst_container_height_factor;
+var dst_container_width_factor, dst_container_height_factor;
+var input_dst_container_color, input_dst_container_opacity;
+var dst_container_color, dst_container_opacity;
+
+var video_info, src_width, src_height, src_top, src_left, dst_width, dst_height, dst_top, dst_left;
+var startTimestamp, endTimestamp, timestamped_final_and_interim_transcript, timestamped_translated_final_and_interim_transcript;
+var timestamp_separator = "-->";
+var session_start_time, session_end_time;
+var interim_started=false;
+var pause_timeout, input_pause_threshold, pause_threshold;
+var all_final_transcripts = [], formatted_all_final_transcripts;
+var version = "0.2.0"
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -323,75 +344,242 @@ update_dst_country();
 //console.log('after update_dst_country(): dst_dialect =', dst_dialect);
 
 
-fontSelect = document.getElementById("fontSelect");
-selectedFont = fontSelect.value;
-fontSizeInput = document.getElementById("fontSize");
-fontSize = fontSizeInput.value;
-fontColorInput = document.getElementById("fontColor");
-fontColor = fontColorInput.value;
-fonts = getAvailableFonts();
-fonts.forEach(function(font) {
+src_textarea_container = document.querySelector("#src_textarea_container");
+src_textarea = document.querySelector("#src_textarea");
+dst_textarea_container = document.querySelector("#dst_textarea_container");
+dst_textarea = document.querySelector("#dst_textarea");
+select_src_font = document.getElementById("select_src_font");
+src_selected_font = select_src_font.value;
+input_src_font_size = document.getElementById("input_src_font_size");
+src_font_size = input_src_font_size.value;
+input_src_font_color = document.getElementById("input_src_font_color");
+src_font_color = input_src_font_color.value;
+src_fonts = getAvailableFonts();
+src_fonts.forEach(function(font) {
 	var option = document.createElement("option");
     option.textContent = font;
-    fontSelect.appendChild(option);
+    select_src_font.appendChild(option);
 });
-containerWidthFactorInput = document.getElementById("containerWidthFactor");
-containerWidthFactor = containerWidthFactorInput.value;
-containerHeightFactorInput = document.getElementById("containerHeightFactor");
-containerHeightFactor = containerHeightFactorInput.value;
+select_dst_font = document.getElementById("select_dst_font");
+dst_selected_font = select_dst_font.value;
+input_dst_font_size = document.getElementById("input_dst_font_size");
+dst_font_size = input_dst_font_size.value;
+input_dst_font_color = document.getElementById("input_dst_font_color");
+dst_font_color = input_dst_font_color.value;
+dst_fonts = getAvailableFonts();
+dst_fonts.forEach(function(font) {
+	var option = document.createElement("option");
+    option.textContent = font;
+	select_dst_font.appendChild(option);
+});
+
+input_src_container_width_factor = document.getElementById("input_src_container_width_factor");
+src_container_width_factor = input_src_container_width_factor.value;
+input_src_container_height_factor = document.getElementById("input_src_container_height_factor");
+src_container_height_factor = input_src_container_height_factor.value;
+input_src_container_color = document.getElementById("input_src_container_color");
+src_container_color = input_src_container_color.value;
+input_src_container_opacity = document.getElementById("input_src_container_opacity");
+src_container_opacity = input_src_container_opacity.value;
+
+input_dst_container_width_factor = document.getElementById("input_dst_container_width_factor");
+dst_container_width_factor = input_dst_container_width_factor.value;
+input_dst_container_height_factor = document.getElementById("input_dst_container_height_factor");
+dst_container_height_factor = input_dst_container_height_factor.value;
+input_dst_container_color = document.getElementById("input_dst_container_color");
+dst_container_color = input_dst_container_color.value;
+input_dst_container_opacity = document.getElementById("input_dst_container_opacity");
+dst_container_opacity = input_dst_container_opacity.value;
+
+input_pause_threshold = document.getElementById("input_pause_threshold");
+pause_threshold = input_pause_threshold.value;
 
 // Load saved values from localStorage if available
-if (localStorage.getItem("selectedFontIndex")) {
-	selectedFontIndex = localStorage.getItem("selectedFontIndex");
-	console.log('localStorage.getItem("selectedFontIndex") =', selectedFontIndex);
-	fontSelect.selectedIndex = selectedFontIndex;
-	console.log('fontSelect.selectedIndex =', fontSelect.selectedIndex);
+if (localStorage.getItem("pause_threshold")) {
+	pause_threshold = localStorage.getItem("pause_threshold");
+	console.log('localStorage.getItem("pause_threshold") =', pause_threshold);
+    input_pause_threshold.value = pause_threshold;
 } else {
-	selectedFontIndex = 0;
-	fontSelect.selectedIndex = selectedFontIndex;
+	input_pause_threshold.value = 2000;
+	pause_threshold = 2000;
 }
 
-if (localStorage.getItem("selectedFont")) {
-    fontSelect.value = localStorage.getItem("selectedFont");
+if (localStorage.getItem("src_selected_font_index")) {
+	src_selected_font_index = localStorage.getItem("src_selected_font_index");
+	console.log('localStorage.getItem("src_selected_font_index") =', src_selected_font_index);
+	select_src_font.selectedIndex = src_selected_font_index;
+	console.log('select_src_font.selectedIndex =', select_src_font.selectedIndex);
 } else {
-	fontSelect.value = "Arial";
+	src_selected_font_index = 0;
+	select_src_font.selectedIndex = src_selected_font_index;
 }
 
-if (localStorage.getItem("fontSize")) {
-    fontSizeInput.value = localStorage.getItem("fontSize");
+if (localStorage.getItem("src_selected_font")) {
+    src_selected_font = localStorage.getItem("src_selected_font");
+	console.log('localStorage.getItem("src_selected_font") =', src_selected_font);
+	select_src_font.value = src_selected_font;
 } else {
-	fontSizeInput.value = "18";
+	src_selected_font = "Arial";
+	select_src_font.value = src_selected_font;
 }
 
-if (localStorage.getItem("fontColor")) {
-	fontColorInput.value = localStorage.getItem("fontColor");
+if (localStorage.getItem("src_font_size")) {
+    src_font_size = localStorage.getItem("src_font_size");
+	console.log('localStorage.getItem("src_font_size") =', src_font_size);
+	input_src_font_size.value = src_font_size;
 } else {
-	fontSizeInput.value = "#ffff00";
+	src_font_size = 18;
+	input_src_font_size.value = src_font_size;
 }
 
-if (localStorage.getItem("containerWidthFactor")) {
-	containerWidthFactorInput.value = localStorage.getItem("containerWidthFactor");
+if (localStorage.getItem("src_font_color")) {
+	src_font_color = localStorage.getItem("src_font_color");
+	console.log('localStorage.getItem("src_font_color") =', src_font_color);
+	input_src_font_color.value = src_font_color;
 } else {
-	containerWidthFactorInput.value = "0.8";
+	src_font_color = "#ffff00";
+	input_src_font_size.value = src_font_color;
 }
 
-if (localStorage.getItem("containerHeightFactor")) {
-	containerHeightFactorInput.value = localStorage.getItem("containerHeightFactor");
+if (localStorage.getItem("src_container_width_factor")) {
+	src_container_width_factor = localStorage.getItem("src_container_width_factor");
+	console.log('localStorage.getItem("src_container_width_factor") =', src_container_width_factor);
+	input_src_container_width_factor.value = src_container_width_factor;
 } else {
-	containerHeightFactorInput.value = "0.15";
+	src_container_width_factor = 0.8;
+	input_src_container_width_factor.value = src_container_width_factor;
+}
+
+if (localStorage.getItem("src_container_height_factor")) {
+	src_container_height_factor = localStorage.getItem("src_container_height_factor");
+	console.log('localStorage.getItem("src_container_height_factor") =', src_container_height_factor);
+	input_src_container_height_factor.value = src_container_height_factor;
+} else {
+	src_container_height_factor = 0.15;
+	input_src_container_height_factor.value = src_container_height_factor;
+}
+
+if (localStorage.getItem("src_container_color")) {
+	src_container_color = localStorage.getItem("src_container_color");
+	console.log('localStorage.getItem("src_container_color") =', src_container_color);
+	input_src_container_color.value = src_container_color;
+} else {
+	src_container_color = "#000000";
+	input_src_container_color.value = src_container_color;
+}
+
+if (localStorage.getItem("src_container_opacity")) {
+	src_container_opacity = localStorage.getItem("src_container_opacity");
+	console.log('localStorage.getItem("src_container_opacity") =', src_container_opacity);
+	input_src_container_opacity.value = src_container_opacity;
+} else {
+	src_container_opacity = "0.3";
+	input_src_container_opacity.value = src_container_opacity;
+}
+
+
+if (localStorage.getItem("dst_selected_font_index")) {
+	dst_selected_font_index = localStorage.getItem("dst_selected_font_index");
+	console.log('localStorage.getItem("dst_selected_font_index") =', dst_selected_font_index);
+	select_dst_font.selectedIndex = dst_selected_font_index;
+	console.log('select_dst_font.selectedIndex =', select_dst_font.selectedIndex);
+} else {
+	dst_selected_font_index = 0;
+	select_dst_font.selectedIndex = dst_selected_font_index;
+}
+
+if (localStorage.getItem("dst_selected_font")) {
+    dst_selected_font = localStorage.getItem("dst_selected_font");
+	console.log('localStorage.getItem("dst_selected_font") =', dst_selected_font);
+	select_dst_font.value = dst_selected_font;
+} else {
+	dst_selected_font = "Arial";
+	select_dst_font.value = dst_selected_font;
+}
+
+if (localStorage.getItem("dst_font_size")) {
+    dst_font_size = localStorage.getItem("dst_font_size");
+	console.log('localStorage.getItem("dst_font_size") =', dst_font_size);
+	input_dst_font_size.value = dst_font_size;
+} else {
+	dst_font_size = 18;
+	input_dst_font_size.value = dst_font_size;
+}
+
+if (localStorage.getItem("dst_font_color")) {
+	dst_font_color = localStorage.getItem("dst_font_color");
+	console.log('localStorage.getItem("dst_font_color") =', dst_font_color);
+	input_dst_font_color.value = dst_font_color;
+} else {
+	dst_font_color = "#ffff00";
+	input_dst_font_size.value = dst_font_color;
+}
+
+if (localStorage.getItem("dst_container_width_factor")) {
+	dst_container_width_factor = localStorage.getItem("dst_container_width_factor");
+	console.log('localStorage.getItem("dst_container_width_factor") =', dst_container_width_factor);
+	input_dst_container_width_factor.value = dst_container_width_factor;
+} else {
+	dst_container_width_factor = 0.8;
+	input_dst_container_width_factor.value = dst_container_width_factor;
+}
+
+if (localStorage.getItem("dst_container_height_factor")) {
+	dst_container_height_factor = localStorage.getItem("dst_container_height_factor");
+	console.log('localStorage.getItem("dst_container_height_factor") =', dst_container_height_factor);
+	input_dst_container_height_factor.value = dst_container_height_factor;
+} else {
+	dst_container_height_factor = 0.15;
+	input_dst_container_height_factor.value = dst_container_height_factor;
+}
+
+if (localStorage.getItem("dst_container_color")) {
+	dst_container_color = localStorage.getItem("dst_container_color");
+	console.log('localStorage.getItem("dst_container_color") =', dst_container_color);
+	input_dst_container_color.value = dst_container_color;
+} else {
+	dst_container_color = "#000000";
+	input_dst_container_color.value = dst_container_color;
+}
+
+if (localStorage.getItem("dst_container_opacity")) {
+	dst_container_opacity = localStorage.getItem("dst_container_opacity");
+	console.log('localStorage.getItem("dst_container_opacity") =', dst_container_opacity);
+	input_dst_container_opacity.value = dst_container_opacity;
+} else {
+	dst_container_opacity = "0.3";
+	input_dst_container_opacity.value = dst_container_opacity;
 }
 
 
 // Add event listeners for changes in font select and font size input
-fontSelect.addEventListener("change", updateSubtitleText);
-fontSizeInput.addEventListener("input", updateSubtitleText);
-fontSizeInput.addEventListener("change", updateSubtitleText);
-fontColorInput.addEventListener("input", updateSubtitleText);
-fontColorInput.addEventListener("change", updateSubtitleText);
-containerWidthFactorInput.addEventListener("input", updateSubtitleText);
-containerWidthFactorInput.addEventListener("change", updateSubtitleText);
-containerHeightFactorInput.addEventListener("input", updateSubtitleText);
-containerHeightFactorInput.addEventListener("change", updateSubtitleText);
+select_src_font.addEventListener("change", updateSubtitleText);
+input_src_font_size.addEventListener("input", updateSubtitleText);
+input_src_font_size.addEventListener("change", updateSubtitleText);
+input_src_font_color.addEventListener("input", updateSubtitleText);
+input_src_font_color.addEventListener("change", updateSubtitleText);
+input_src_container_width_factor.addEventListener("input", updateSubtitleText);
+input_src_container_width_factor.addEventListener("change", updateSubtitleText);
+input_src_container_height_factor.addEventListener("input", updateSubtitleText);
+input_src_container_height_factor.addEventListener("change", updateSubtitleText);
+input_src_container_color.addEventListener("input", updateSubtitleText);
+input_src_container_color.addEventListener("change", updateSubtitleText);
+input_src_container_opacity.addEventListener("input", updateSubtitleText);
+input_src_container_opacity.addEventListener("change", updateSubtitleText);
+
+select_dst_font.addEventListener("change", updateSubtitleText);
+input_dst_font_size.addEventListener("input", updateSubtitleText);
+input_dst_font_size.addEventListener("change", updateSubtitleText);
+input_dst_font_color.addEventListener("input", updateSubtitleText);
+input_dst_font_color.addEventListener("change", updateSubtitleText);
+input_dst_container_width_factor.addEventListener("input", updateSubtitleText);
+input_dst_container_width_factor.addEventListener("change", updateSubtitleText);
+input_dst_container_height_factor.addEventListener("input", updateSubtitleText);
+input_dst_container_height_factor.addEventListener("change", updateSubtitleText);
+input_dst_container_color.addEventListener("input", updateSubtitleText);
+input_dst_container_color.addEventListener("change", updateSubtitleText);
+input_dst_container_opacity.addEventListener("input", updateSubtitleText);
+input_dst_container_opacity.addEventListener("change", updateSubtitleText);
 
 
 function getAvailableFonts() {
@@ -405,7 +593,7 @@ function getAvailableFonts() {
     // Measure the width of the text for each font
     var defaultWidth = ctx.measureText(text).width;
 
-    // List of commonly available fonts in most browsers
+    // List of commonly available src_fonts in most browsers
     var fontFamilies = [
       "Arial", "Arial Black", "Calibri", "Cambria", "Candara", "Comic Sans MS",
       "Consolas", "Courier New", "Georgia", "Impact", "Lucida Console", "Lucida Sans Unicode",
@@ -426,125 +614,191 @@ function getAvailableFonts() {
 
 
 function updateSubtitleText() {
-	selectedFontIndex = fontSelect.selectedFontIndex;
-	console.log('selectedFontIndex =', selectedFontIndex);
+	src_selected_font_index = select_src_font.selectedIndex;
+	console.log('src_selected_font_index =', src_selected_font_index);
 
-    selectedFont = fontSelect.value;
-	console.log('selectedFont =', selectedFont);
+    src_selected_font = select_src_font.value;
+	console.log('src_selected_font =', src_selected_font);
 
-	selectedFontIndex = fontSelect.selectedIndex;
-	console.log('selectedFontIndex =', selectedFontIndex);
+    src_font_size = input_src_font_size.value;
+	console.log('src_font_size =', src_font_size);
 
-    fontSize = fontSizeInput.value;
-	console.log('fontSize =', fontSize);
+	src_font_color = input_src_font_color.value;
+	console.log('src_font_color =', src_font_color);
 
-	fontColor = fontColorInput.value;
-	console.log('fontColor =', fontColor);
+	src_container_width_factor = input_src_container_width_factor.value;
+	console.log('src_container_width_factor =', src_container_width_factor);
 
-	containerWidthFactor = containerWidthFactorInput.value;
-	console.log('containerWidthFactor =', containerWidthFactor);
+	src_container_height_factor = input_src_container_height_factor.value;
+	console.log('src_container_height_factor =', src_container_height_factor);
 
-	containerHeightFactor = containerHeightFactorInput.value;
-	console.log('containerHeightFactor =', containerHeightFactor);
+	src_container_color = input_src_container_color.value;
+	console.log('src_container_color =', src_container_color);
 
-    localStorage.setItem("selectedFontIndex", selectedFontIndex);
-	localStorage.setItem("selectedFont", selectedFont);
-    localStorage.setItem("fontSize", fontSize);
-    localStorage.setItem("fontColor", fontColor);
-    localStorage.setItem("containerWidthFactor", containerWidthFactor);
-	localStorage.setItem("containerHeightFactor", containerHeightFactor);
+	src_container_opacity = input_src_container_opacity.value;
+	console.log('src_container_opacity =', src_container_opacity);
 
+    localStorage.setItem("src_selected_font_index", src_selected_font_index);
+	localStorage.setItem("src_selected_font", src_selected_font);
+    localStorage.setItem("src_font_size", src_font_size);
+    localStorage.setItem("src_font_color", src_font_color);
+    localStorage.setItem("src_container_width_factor", src_container_width_factor);
+	localStorage.setItem("src_container_height_factor", src_container_height_factor);
+	localStorage.setItem("src_container_color", src_container_color);
+	localStorage.setItem("src_container_opacity", src_container_opacity);
+
+
+	dst_selected_font_index = select_dst_font.selectedIndex;
+	console.log('dst_selected_font_index =', dst_selected_font_index);
+
+    dst_selected_font = select_dst_font.value;
+	console.log('dst_selected_font =', dst_selected_font);
+
+    dst_font_size = input_dst_font_size.value;
+	console.log('dst_font_size =', dst_font_size);
+
+	dst_font_color = input_dst_font_color.value;
+	console.log('dst_font_color =', dst_font_color);
+
+	dst_container_width_factor = input_dst_container_width_factor.value;
+	console.log('dst_container_width_factor =', dst_container_width_factor);
+
+	dst_container_height_factor = input_dst_container_height_factor.value;
+	console.log('dst_container_height_factor =', dst_container_height_factor);
+
+	dst_container_color = input_dst_container_color.value;
+	console.log('dst_container_color =', dst_container_color);
+
+	dst_container_opacity = input_dst_container_opacity.value;
+	console.log('dst_container_opacity =', dst_container_opacity);
+
+    localStorage.setItem("dst_selected_font_index", dst_selected_font_index);
+	localStorage.setItem("dst_selected_font", dst_selected_font);
+    localStorage.setItem("dst_font_size", dst_font_size);
+    localStorage.setItem("dst_font_color", dst_font_color);
+    localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
+	localStorage.setItem("dst_container_height_factor", dst_container_height_factor);
+	localStorage.setItem("dst_container_color", dst_container_color);
+	localStorage.setItem("dst_container_opacity", dst_container_opacity);
 
 	document.documentElement.scrollTop = 0; // For modern browsers
 	document.body.scrollTop = 0; // For older browsers
 
-	videoInfo = getVideoPlayerInfo();
-	if (videoInfo) {
-		console.log("Video player found!");
-		console.log("videoInfo.id = ", videoInfo.id);
-		//console.log("Top:", videoInfo.top);
-		//console.log("Left:", videoInfo.left);
-		//console.log("Width:", videoInfo.width);
-		//console.log("Height:", videoInfo.height);
-	} else {
-		console.log("No video player found on this page.");
-	}
+	src_container_width_factor = input_src_container_width_factor.value;
+	src_container_height_factor = input_src_container_height_factor.value;
+	dst_container_width_factor = input_dst_container_width_factor.value;
+	dst_container_height_factor = input_dst_container_height_factor.value;
 
-	//srcWidth = containerWidthFactor*window.innerWidth;
-	srcWidth = containerWidthFactor*videoInfo.width;
-	//console.log('srcWidth =', srcWidth);
+	video_info = getVideoPlayerInfo();
+	if (video_info) {
+		console.log("Video player found");
+		console.log("video_info.id = ", video_info.id);
+		//console.log("Top:", video_info.top);
+		//console.log("Left:", video_info.left);
+		//console.log("Width:", video_info.width);
+		//console.log("Height:", video_info.height);
 
-	//srcHeight = containerHeightFactor*window.innerHeight;
-	srcHeight = containerHeightFactor*videoInfo.height;
-	//console.log('srcHeight =', srcWidth);
+		//src_width = src_container_width_factor*window.innerWidth;
+		src_width = src_container_width_factor*video_info.width;
+		//console.log('src_width =', src_width);
 
-	//srcTop = 0.25*window.innerHeight;
-	srcTop = videoInfo.top + 0.02*videoInfo.height;
-	//console.log('srcTop =', srcTop);
+		//src_height = src_container_height_factor*window.innerHeight;
+		src_height = src_container_height_factor*video_info.height;
+		//console.log('src_height =', src_width);
 
-	//srcLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//srcLeft = 0.5*(window.innerWidth-srcWidth);
-	srcLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('srcLeft =', srcLeft);
+		//src_top = 0.25*window.innerHeight;
+		src_top = video_info.top + 0.02*video_info.height;
+		//console.log('src_top =', src_top);
 
-	//dstWidth = containerWidthFactor*window.innerWidth;
-	dstWidth = containerWidthFactor*videoInfo.width;
-	//console.log('dstWidth =', dstWidth);
+		//src_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//src_left = 0.5*(window.innerWidth-src_width);
+		src_left = video_info.left + 0.5*(video_info.width-src_width);
+		//console.log('src_left =', src_left);
+
+		//dst_width = dst_container_width_factor*window.innerWidth;
+		dst_width = dst_container_width_factor*video_info.width;
+		//console.log('dst_width =', dst_width);
 		
-	//dstHeight = containerHeightFactor*window.innerHeight;
-	dstHeight = containerHeightFactor*videoInfo.height;
-	//console.log('dstHeight =', dstHeight);
+		//dst_height = dst_container_height_factor*window.innerHeight;
+		dst_height = dst_container_height_factor*video_info.height;
+		//console.log('dst_height =', dst_height);
 
-	//dstTop = 0.75*window.innerHeight;
-	dstTop = videoInfo.top + 0.6*videoInfo.height;
-	//console.log('dstTop =', dstTop);
+		//dst_top = 0.75*window.innerHeight;
+		dst_top = video_info.top + 0.6*video_info.height;
+		//console.log('dst_top =', dst_top);
 
-	//dstLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//dstLeft = 0.5*(window.innerWidth-dstWidth);
-	dstLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('dstLeft =', dstLeft);
+		//dst_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//dst_left = 0.5*(window.innerWidth-dst_width);
+		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+		//console.log('dst_left =', dst_left);
 
+	} else {
+		console.log("No video player found on this page");
 
-	if (src_textarea_container && src_textarea) {
-		src_textarea.style.fontFamily = selectedFont + ", sans-serif";
-		src_textarea.style.fontSize = String(fontSize) + "px";
-		src_textarea.style.color = fontColor;
-		src_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
+		src_width = src_container_width_factor*window.innerWidth;
+		//console.log('src_width =', src_width);
 
-		//src_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
-		src_textarea_container.style.width = String(srcWidth) + "px";
-		console.log('width =', src_textarea.style.width);
+		src_height = src_container_height_factor*window.innerHeight;
+		//console.log('src_height =', src_width);
 
-		//src_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
-		src_textarea_container.style.height = String(srcHeight) + "px";
-		console.log('height =', src_textarea.style.height);
+		src_top = 0.25*window.innerHeight;
+		//console.log('src_top =', src_top);
 
-		//src_textarea_container.style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)) + "px";
-		src_textarea_container.style.left = String(srcLeft) + "px";
-		console.log('left =', src_textarea.style.left);
+		src_left = 0.5*(window.innerWidth-src_width);
+		//console.log('src_left =', src_left);
+
+		dst_width = dst_container_width_factor*window.innerWidth;
+		//console.log('dst_width =', dst_width);
+		
+		dst_height = dst_container_height_factor*window.innerHeight;
+		//console.log('dst_height =', dst_height);
+
+		dst_top = 0.75*window.innerHeight;
+		//console.log('dst_top =', dst_top);
+
+		dst_left = 0.5*(window.innerWidth-dst_width);
+		//console.log('dst_left =', dst_left);
 	}
 
-	if (dst_textarea_container && dst_textarea) {
-		dst_textarea.style.fontFamily = selectedFont + ", sans-serif";
-		dst_textarea.style.fontSize = String(fontSize) + "px";
-		dst_textarea.style.color = fontColor;
-		dst_textarea_container.style.backgroundColor = 'rgba(0,0,0,0.3)';
+	if (document.querySelector("#src_textarea_container") && document.querySelector("#src_textarea")) {
+		document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
+		document.querySelector("#src_textarea").style.fontSize = String(src_font_size) + "px";
+		document.querySelector("#src_textarea").style.color = src_font_color;
+		//document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
+		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(input_src_container_color.value, input_src_container_opacity.value);
 
-		//dst_textarea_container.style.width = String(containerWidthFactor*window.innerWidth) + "px";
-		dst_textarea_container.style.width = String(dstWidth) + "px";
-		console.log('width =', dst_textarea.style.width);
+		//document.querySelector("#src_textarea_container").style.width = String(src_container_width_factor*window.innerWidth) + "px";
+		document.querySelector("#src_textarea_container").style.width = String(src_width) + "px";
+		console.log('width =', document.querySelector("#src_textarea_container").style.width);
 
-		//dst_textarea_container.style.height = String(containerHeightFactor*window.innerHeight) + "px";
-		dst_textarea_container.style.height = String(dstHeight) + "px";
-		console.log('height =', dst_textarea.style.height);
+		//document.querySelector("#src_textarea_container").style.height = String(src_container_height_factor*window.innerHeight) + "px";
+		document.querySelector("#src_textarea_container").style.height = String(src_height) + "px";
+		console.log('height =', document.querySelector("#src_textarea_container").style.height);
 
-		//dst_textarea_container.style.left = String(0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)) + "px";
-		dst_textarea_container.style.left = String(dstLeft) + "px";
-		console.log('left =', dst_textarea.style.left);
+		//document.querySelector("#src_textarea_container").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
+		document.querySelector("#src_textarea_container").style.left = String(src_left) + "px";
+		console.log('left =', document.querySelector("#src_textarea_container").style.left);
 	}
 
-	document.documentElement.scrollTop = videoInfo.top; // For modern browsers
-	document.body.scrollTop = videoInfo.top; // For older browsers
+	if (document.querySelector("#dst_textarea_container") && document.querySelector("#dst_textarea")) {
+		document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
+		document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size) + "px";
+		document.querySelector("#dst_textarea").style.color = dst_font_color;
+		//document.querySelector("#dst_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
+		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
+
+		//document.querySelector("#dst_textarea_container").style.width = String(src_container_width_factor*window.innerWidth) + "px";
+		document.querySelector("#dst_textarea_container").style.width = String(dst_width) + "px";
+		console.log('width =', document.querySelector("#dst_textarea_container").style.width);
+
+		//document.querySelector("#dst_textarea_container").style.height = String(src_container_height_factor*window.innerHeight) + "px";
+		document.querySelector("#dst_textarea_container").style.height = String(dst_height) + "px";
+		console.log('height =', document.querySelector("#dst_textarea_container").style.height);
+
+		//document.querySelector("#dst_textarea_container").style.left = String(0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)) + "px";
+		document.querySelector("#dst_textarea_container").style.left = String(dst_left) + "px";
+		console.log('left =', document.querySelector("#dst_textarea_container").style.left);
+	}
 
 }
 
@@ -591,7 +845,7 @@ document.querySelector("#checkbox_show_src").addEventListener('change', function
 	show_src = document.querySelector("#checkbox_show_src").checked;
 	console.log('document.querySelector("#checkbox_show_src") on change: show_src =', show_src);
 	if (!show_src) {
-			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 	}
 	localStorage.setItem("show_src", show_src);
 });
@@ -605,9 +859,15 @@ document.querySelector("#checkbox_show_dst").addEventListener('change', function
 	localStorage.setItem("show_dst", show_dst);
 });
 
-
+document.querySelector("#input_pause_threshold").addEventListener('change', function(){
+	pause_threshold = document.querySelector("#input_pause_threshold").value;
+	console.log('document.querySelector("#input_pause_threshold") on change: pause_threshold =', pause_threshold);
+	localStorage.setItem("pause_threshold", pause_threshold);
+});
 
 document.querySelector("#start_button").addEventListener('click', function(){
+	session_start_time = formatTimestamp(new Date());
+	console.log('session_start_time =', session_start_time);
 	startButton(event);
 });
 
@@ -618,63 +878,99 @@ document.addEventListener('fullscreenchange', function(event) {
 	document.documentElement.scrollTop = 0; // For modern browsers
 	document.body.scrollTop = 0; // For older browsers
 
-	videoInfo = getVideoPlayerInfo();
-	if (videoInfo) {
+	input_src_container_width_factor = document.getElementById("input_src_container_width_factor");
+	src_container_width_factor = input_src_container_width_factor.value;
+	input_src_container_height_factor = document.getElementById("input_src_container_height_factor");
+	src_container_height_factor = input_src_container_height_factor.value;
+
+	input_dst_container_width_factor = document.getElementById("input_dst_container_width_factor");
+	dst_container_width_factor = input_dst_container_width_factor.value;
+	input_dst_container_height_factor = document.getElementById("input_dst_container_height_factor");
+	dst_container_height_factor = input_dst_container_height_factor.value;
+
+	video_info = getVideoPlayerInfo();
+	if (video_info) {
 		console.log('fullscreenchange');
-		console.log("Video player found!");
-		console.log("videoInfo.id = ", videoInfo.id);
-		//console.log("Top:", videoInfo.top);
-		//console.log("Left:", videoInfo.left);
-		//console.log("Width:", videoInfo.width);
-		//console.log("Height:", videoInfo.height);
+		console.log("Video player found");
+		console.log("video_info.id = ", video_info.id);
+		//console.log("Top:", video_info.top);
+		//console.log("Left:", video_info.left);
+		//console.log("Width:", video_info.width);
+		//console.log("Height:", video_info.height);
+
+		//src_width = src_container_width_factor*window.innerWidth;
+		src_width = src_container_width_factor*video_info.width;
+		//console.log('src_width =', src_width);
+
+		//src_height = src_container_height_factor*window.innerHeight;
+		src_height = src_container_height_factor*video_info.height;
+		//console.log('src_height =', src_width);
+
+		//src_top = 0.25*window.innerHeight;
+		src_top = video_info.top + 0.02*video_info.height;
+		//console.log('src_top =', src_top);
+
+		//src_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//src_left = 0.5*(window.innerWidth-src_width);
+		src_left = video_info.left + 0.5*(video_info.width-src_width);
+		//console.log('src_left =', src_left);
+
+		//dst_width = dst_container_width_factor*window.innerWidth;
+		dst_width = dst_container_width_factor*video_info.width;
+		//console.log('dst_width =', dst_width);
+		
+		//dst_height = dst_container_height_factor*window.innerHeight;
+		dst_height = dst_container_height_factor*video_info.height;
+		//console.log('dst_height =', dst_height);
+
+		//dst_top = 0.75*window.innerHeight;
+		dst_top = video_info.top + 0.6*video_info.height;
+		//console.log('dst_top =', dst_top);
+
+		//dst_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//dst_left = 0.5*(window.innerWidth-dst_width);
+		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+		//console.log('dst_left =', dst_left);
+
 	} else {
 		console.log("No video player found on this page.");
-	}
 
-	//srcWidth = containerWidthFactor*window.innerWidth;
-	srcWidth = containerWidthFactor*videoInfo.width;
-	//console.log('srcWidth =', srcWidth);
+		src_width = src_container_width_factor*window.innerWidth;
+		//console.log('src_width =', src_width);
 
-	//srcHeight = containerHeightFactor*window.innerHeight;
-	srcHeight = containerHeightFactor*videoInfo.height;
-	//console.log('srcHeight =', srcWidth);
+		src_height = src_container_height_factor*window.innerHeight;
+		//console.log('src_height =', src_width);
 
-	//srcTop = 0.25*window.innerHeight;
-	srcTop = videoInfo.top + 0.02*videoInfo.height;
-	//console.log('srcTop =', srcTop);
+		src_top = 0.25*window.innerHeight;
+		//console.log('src_top =', src_top);
 
-	//srcLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//srcLeft = 0.5*(window.innerWidth-srcWidth);
-	srcLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('srcLeft =', srcLeft);
+		src_left = 0.5*(window.innerWidth-src_width);
+		//console.log('src_left =', src_left);
 
-	//dstWidth = containerWidthFactor*window.innerWidth;
-	dstWidth = containerWidthFactor*videoInfo.width;
-	//console.log('dstWidth =', dstWidth);
+		dst_width = dst_container_width_factor*window.innerWidth;
+		//console.log('dst_width =', dst_width);
 		
-	//dstHeight = containerHeightFactor*window.innerHeight;
-	dstHeight = containerHeightFactor*videoInfo.height;
-	//console.log('dstHeight =', dstHeight);
+		dst_height = dst_container_height_factor*window.innerHeight;
+		//console.log('dst_height =', dst_height);
 
-	//dstTop = 0.75*window.innerHeight;
-	dstTop = videoInfo.top + 0.6*videoInfo.height;
-	//console.log('dstTop =', dstTop);
+		dst_top = 0.75*window.innerHeight;
+		//console.log('dst_top =', dst_top);
 
-	//dstLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//dstLeft = 0.5*(window.innerWidth-dstWidth);
-	dstLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('dstLeft =', dstLeft);
+		dst_left = 0.5*(window.innerWidth-dst_width);
+		//console.log('dst_left =', dst_left);
+	}
 
 
 	if (document.querySelector("#src_textarea_container")) {
-		document.querySelector("#src_textarea_container").style.width = String(srcWidth)+'px';
-		document.querySelector("#src_textarea_container").style.height = String(srcHeight)+'px';
-		document.querySelector("#src_textarea_container").style.top = String(srcTop)+'px';
-		document.querySelector("#src_textarea_container").style.left = String(srcLeft)+'px';
+		document.querySelector("#src_textarea_container").style.fontFamily = src_selected_font + ", sans-serif";
+		document.querySelector("#src_textarea_container").style.width = String(src_width)+'px';
+		document.querySelector("#src_textarea_container").style.height = String(src_height)+'px';
+		document.querySelector("#src_textarea_container").style.top = String(src_top)+'px';
+		document.querySelector("#src_textarea_container").style.left = String(src_left)+'px';
 
 		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
-			.width(srcWidth)
-			.height(srcHeight)
+			.width(src_width)
+			.height(src_height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -686,31 +982,32 @@ document.addEventListener('fullscreenchange', function(event) {
 			})
 			.css({
 				'position': 'absolute',
-				'font': selectedFont,
-				'fontSize': fontSize,
-				'color': fontColor,
-				'background-color': 'rgba(0,0,0,0.3)',
+				'fontFamily': src_selected_font + ', sans-serif',
+				'fontSize': src_font_size,
+				'color': src_font_color,
+				'backgroundColor': hexToRgba(input_src_container_color.value, input_src_container_opacity.value),
 				'border': 'none',
 				'display': 'block',
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:srcTop, left:srcLeft})
+			.offset({top:src_top, left:src_left})
 
-		document.querySelector("#src_textarea").style.width = String(srcWidth)+'px';
-		document.querySelector("#src_textarea").style.height = String(srcHeight)+'px';
+		document.querySelector("#src_textarea").style.width = String(src_width)+'px';
+		document.querySelector("#src_textarea").style.height = String(src_height)+'px';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 		//document.querySelector("#src_textarea").style.color = 'yellow';
-		document.querySelector("#src_textarea").style.color = fontColor;
-		document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 		document.querySelector("#src_textarea").style.border = 'none';
 		document.querySelector("#src_textarea").style.display = 'inline-block';
 		document.querySelector("#src_textarea").style.overflow = 'hidden';
 
+		document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
+		document.querySelector("#src_textarea").style.color = src_font_color;
+		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(input_src_container_color.value, input_src_container_opacity.value);
 		//src_h0 = $('#src_textarea').height();
 		//document.querySelector("#src_textarea").style.fontSize=String(0.35*src_h0)+'px';
-		document.querySelector("#src_textarea").style.fontSize=String(fontSize)+'px';
+		document.querySelector("#src_textarea").style.fontSize=String(src_font_size)+'px';
 		if (document.querySelector("#src_textarea").offsetParent) {
 			document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 			//	src_h = $('#src_textarea').height();
@@ -719,20 +1016,37 @@ document.addEventListener('fullscreenchange', function(event) {
 				document.querySelector("#dst_textarea").style.width = '100%';
 				document.querySelector("#dst_textarea").style.height = '100%';
 				document.querySelector("#src_textarea").scrollTop=document.querySelector("#src_textarea").scrollHeight;
+
+/*
+				console.log('src_width = ', document.querySelector("#src_textarea").getBoundingClientRect().width);
+				console.log('video_info.width = ', video_info.width);
+				src_container_width_factor = document.querySelector("#src_textarea").getBoundingClientRect().width/video_info.width;
+				console.log('src_container_width_factor = ', src_container_width_factor);
+				input_src_container_width_factor.value = src_container_width_factor;
+				localStorage.setItem("src_container_width_factor", src_container_width_factor);
+
+				console.log('src_height = ', document.querySelector("#src_textarea").getBoundingClientRect().height);
+				console.log('video_info.height = ', video_info.height);
+				src_container_height_factor = document.querySelector("#src_textarea").getBoundingClientRect().height/video_info.height;
+				console.log('src_container_height_factor = ', src_container_height_factor);
+				input_src_container_height_factor.value = src_container_height_factor;
+				localStorage.setItem("src_container_height_factor", src_container_height_factor);
+*/
 			});
 		}
 	}
 
 
 	if (document.querySelector("#dst_textarea_container")) {
-		document.querySelector("#dst_textarea_container").style.width = String(dstWidth)+'px';
-		document.querySelector("#dst_textarea_container").style.height = String(dstHeight)+'px';
-		document.querySelector("#dst_textarea_container").style.top = String(dstTop)+'px';
-		document.querySelector("#dst_textarea_container").style.left = String(dstLeft)+'px';
+		document.querySelector("#dst_textarea_container").style.fontFamily = dst_selected_font + ", sans-serif";
+		document.querySelector("#dst_textarea_container").style.width = String(dst_width)+'px';
+		document.querySelector("#dst_textarea_container").style.height = String(dst_height)+'px';
+		document.querySelector("#dst_textarea_container").style.top = String(dst_top)+'px';
+		document.querySelector("#dst_textarea_container").style.left = String(dst_left)+'px';
 
 		var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
-			.width(dstWidth)
-			.height(dstHeight)
+			.width(dst_width)
+			.height(dst_height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -744,31 +1058,32 @@ document.addEventListener('fullscreenchange', function(event) {
 			})
 			.css({
 				'position': 'absolute',
-				'font': selectedFont,
-				'fontSize': fontSize,
-				'color': fontColor,
-				'background-color': 'rgba(0,0,0,0.3)',
+				'fontFamily': dst_selected_font + ', sans-serif',
+				'fontSize': dst_font_size,
+				'color': dst_font_color,
+				'backgroundColor': hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value),
 				'border': 'none',
 				'display': 'block',
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:dstTop, left:dstLeft})
+			.offset({top:dst_top, left:dst_left})
 
-		document.querySelector("#dst_textarea").style.width = String(dstWidth)+'px';
-		document.querySelector("#dst_textarea").style.height = String(dstHeight)+'px';
+		document.querySelector("#dst_textarea").style.width = String(dst_width)+'px';
+		document.querySelector("#dst_textarea").style.height = String(dst_height)+'px';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 		//document.querySelector("#dst_textarea").style.color = 'yellow';
-		document.querySelector("#dst_textarea").style.color = fontColor;
-		document.querySelector("#dst_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 		document.querySelector("#dst_textarea").style.border = 'none';
 		document.querySelector("#dst_textarea").style.display = 'inline-block';
 		document.querySelector("#dst_textarea").style.overflow = 'hidden';
 
+		document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
+		document.querySelector("#dst_textarea").style.color = dst_font_color;
+		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
 		//dst_h0 = $('#dst_textarea').height();
 		//document.querySelector("#dst_textarea").style.fontSize=String(0.35*src_h0)+'px';
-		document.querySelector("#dst_textarea").style.fontSize=String(fontSize)+'px';
+		document.querySelector("#dst_textarea").style.fontSize=String(src_font_size)+'px';
 		if (document.querySelector("#dst_textarea").offsetParent) {
 			document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 			//	dst_h = $('#dst_textarea').height();
@@ -777,14 +1092,25 @@ document.addEventListener('fullscreenchange', function(event) {
 				document.querySelector("#dst_textarea").style.width = '100%';
 				document.querySelector("#dst_textarea").style.height = '100%';
 				document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
+
+/*
+				console.log('dst_width = ', document.querySelector("#dst_textarea").getBoundingClientRect().width);
+				console.log('video_info.width = ', video_info.width);
+				dst_container_width_factor = document.querySelector("#dst_textarea").getBoundingClientRect().width/video_info.width;
+				console.log('dst_container_width_factor = ', dst_container_width_factor);
+				input_dst_container_width_factor.value = dst_container_width_factor;
+				localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
+
+				console.log('dst_height = ', document.querySelector("#dst_textarea").getBoundingClientRect().height);
+				console.log('video_info.height = ', video_info.height);
+				dst_container_height_factor = document.querySelector("#dst_textarea").getBoundingClientRect().height/video_info.height;
+				console.log('dst_container_height_factor = ', dst_container_height_factor);
+				input_dst_container_height_factor.value = dst_container_height_factor;
+				localStorage.setItem("dst_container_height_factor", dst_container_height_factor);
+*/
 			});
 		}
-
 	}
-
-	document.documentElement.scrollTop = videoInfo.top; // For modern browsers
-	document.body.scrollTop = videoInfo.top; // For older browsers
-
 });
 
 
@@ -1058,55 +1384,90 @@ function create_modal_text_area() {
 	document.documentElement.scrollTop = 0; // For modern browsers
 	document.body.scrollTop = 0; // For older browsers
 
-	videoInfo = getVideoPlayerInfo();
-	if (videoInfo) {
-		console.log("Video player found!");
-		console.log("Id:", videoInfo.id);
-		//console.log("Top:", videoInfo.top);
-		//console.log("Left:", videoInfo.left);
-		//console.log("Width:", videoInfo.width);
-		//console.log("Height:", videoInfo.height);
+	input_src_container_width_factor = document.getElementById("input_src_container_width_factor");
+	src_container_width_factor = input_src_container_width_factor.value;
+	input_src_container_height_factor = document.getElementById("input_src_container_height_factor");
+	src_container_height_factor = input_src_container_height_factor.value;
+
+	input_dst_container_width_factor = document.getElementById("input_dst_container_width_factor");
+	dst_container_width_factor = input_dst_container_width_factor.value;
+	input_dst_container_height_factor = document.getElementById("input_dst_container_height_factor");
+	dst_container_height_factor = input_dst_container_height_factor.value;
+
+	video_info = getVideoPlayerInfo();
+	if (video_info) {
+		console.log("Video player found");
+		console.log("Id:", video_info.id);
+		//console.log("Top:", video_info.top);
+		//console.log("Left:", video_info.left);
+		//console.log("Width:", video_info.width);
+		//console.log("Height:", video_info.height);
+
+		//src_width = src_container_width_factor*window.innerWidth;
+		src_width = src_container_width_factor*video_info.width;
+		//console.log('src_width =', src_width);
+
+		//src_height = src_container_height_factor*window.innerHeight;
+		src_height = src_container_height_factor*video_info.height;
+		//console.log('src_height =', src_width);
+
+		//src_top = 0.25*window.innerHeight;
+		src_top = video_info.top + 0.02*video_info.height;
+		//console.log('src_top =', src_top);
+
+		//src_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//src_left = 0.5*(window.innerWidth-src_width);
+		src_left = video_info.left + 0.5*(video_info.width-src_width);
+		//console.log('src_left =', src_left);
+
+		//dst_width = dst_container_width_factor*window.innerWidth;
+		dst_width = dst_container_width_factor*video_info.width;
+		//console.log('dst_width =', dst_width);
+		
+		//dst_height = dst_container_height_factor*window.innerHeight;
+		dst_height = dst_container_height_factor*video_info.height;
+		//console.log('dst_height =', dst_height);
+
+		//dst_top = 0.75*window.innerHeight;
+		dst_top = video_info.top + 0.6*video_info.height;
+		//console.log('dst_top =', dst_top);
+
+		//dst_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//dst_left = 0.5*(window.innerWidth-dst_width);
+		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+		//console.log('dst_left =', dst_left);
+
 	} else {
 		console.log("No video player found on this page.");
+
+		src_width = src_container_width_factor*window.innerWidth;
+		//console.log('src_width =', src_width);
+
+		src_height = src_container_height_factor*window.innerHeight;
+		//console.log('src_height =', src_width);
+
+		src_top = 0.25*window.innerHeight;
+		//console.log('src_top =', src_top);
+
+		src_left = 0.5*(window.innerWidth-src_width);
+		//console.log('src_left =', src_left);
+
+		dst_width = dst_container_width_factor*window.innerWidth;
+		//console.log('dst_width =', dst_width);
+		
+		dst_height = dst_container_height_factor*window.innerHeight;
+		//console.log('dst_height =', dst_height);
+
+		dst_top = 0.75*window.innerHeight;
+		//console.log('dst_top =', dst_top);
+
+		dst_left = 0.5*(window.innerWidth-dst_width);
+		//console.log('dst_left =', dst_left);
 	}
 
-	//srcWidth = containerWidthFactor*window.innerWidth;
-	srcWidth = containerWidthFactor*videoInfo.width;
-	//console.log('srcWidth =', srcWidth);
-
-	//srcHeight = containerHeightFactor*window.innerHeight;
-	srcHeight = containerHeightFactor*videoInfo.height;
-	//console.log('srcHeight =', srcWidth);
-
-	//srcTop = 0.25*window.innerHeight;
-	srcTop = videoInfo.top + 0.02*videoInfo.height;
-	//console.log('srcTop =', srcTop);
-
-	//srcLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//srcLeft = 0.5*(window.innerWidth-srcWidth);
-	srcLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('srcLeft =', srcLeft);
-
-	//dstWidth = containerWidthFactor*window.innerWidth;
-	dstWidth = containerWidthFactor*videoInfo.width;
-	//console.log('dstWidth =', dstWidth);
-		
-	//dstHeight = containerHeightFactor*window.innerHeight;
-	dstHeight = containerHeightFactor*videoInfo.height;
-	//console.log('dstHeight =', dstHeight);
-
-	//dstTop = 0.75*window.innerHeight;
-	dstTop = videoInfo.top + 0.6*videoInfo.height;
-	//console.log('dstTop =', dstTop);
-
-	//dstLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//dstLeft = 0.5*(window.innerWidth-dstWidth);
-	dstLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('dstLeft =', dstLeft);
-
 	var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
-		.width(srcWidth)
-		.height(srcHeight)
+		.width(src_width)
+		.height(src_height)
 		.resizable().draggable({
 			cancel: 'text',
 			start: function (){
@@ -1118,17 +1479,19 @@ function create_modal_text_area() {
 		})
 		.css({
 			'position': 'absolute',
-			'background-color': 'rgba(0,0,0,0.3)',
-			'color': fontColor,
+			'fontFamily': src_selected_font + ', sans-serif',
+			'fontSize': src_font_size,
+			'color': src_font_color,
+			'backgroundColor': hexToRgba(input_src_container_color.value, input_src_container_opacity.value),
 			'border': 'none',
 			'display': 'block',
 			'overflow': 'hidden',
 			'z-index': '2147483647'
 		})
-		//.offset({top:0.25*window.innerHeight, left:0.5*(window.innerWidth-containerWidthFactor*window.innerWidth)})
+		//.offset({top:0.25*window.innerHeight, left:0.5*(window.innerWidth-src_container_width_factor*window.innerWidth)})
 		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:document.querySelector("#yt_iframe").style.left + 0.5*(document.querySelector("#yt_iframe").style.width-0.5*document.querySelector("#yt_iframe").style.width)})
 		//.offset({top: document.querySelector("#yt_iframe").style.top + 0.15*document.querySelector("#yt_iframe").style.height, left:0.5*(window.innerWidth-0.5*window.innerWidth)})
-		.offset({top:srcTop, left:srcLeft})
+		.offset({top:src_top, left:src_left})
 
 	if (!document.querySelector("#src_textarea_container")) {
 		console.log('appending src_textarea_container to html body');
@@ -1139,30 +1502,44 @@ function create_modal_text_area() {
 
 	document.querySelector("#src_textarea").style.width = '100%';
 	document.querySelector("#src_textarea").style.height = '100%';
-	document.querySelector("#src_textarea").style.color = fontColor;
-	document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 	document.querySelector("#src_textarea").style.border = 'none';
 	document.querySelector("#src_textarea").style.display = 'inline-block';
 	document.querySelector("#src_textarea").style.overflow = 'hidden';
 	document.querySelector("#src_textarea").style.allow="fullscreen";
 
-	document.querySelector("#src_textarea").style.font=selectedFont;
+	document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
+	document.querySelector("#src_textarea").style.color = src_font_color;
+	document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(input_src_container_color.value, input_src_container_opacity.value);
 	//src_h0 = $('#src_textarea').height();
 	//document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h0)+'px';
-	document.querySelector("#src_textarea").style.fontSize=String(fontSize)+'px';
-
+	document.querySelector("#src_textarea").style.fontSize=String(src_font_size)+'px';
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 		//src_h = $('#src_textarea').height();
 		//document.querySelector("#src_textarea").style.fontSize=String(0.28*src_h)+'px';
 		document.querySelector("#src_textarea").style.position='absolute';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
+
+		console.log('src_width = ', document.querySelector("#src_textarea").getBoundingClientRect().width);
+		console.log('video_info.width = ', video_info.width);
+		src_container_width_factor = document.querySelector("#src_textarea").getBoundingClientRect().width/video_info.width;
+		console.log('src_container_width_factor = ', src_container_width_factor);
+		input_src_container_width_factor.value = src_container_width_factor;
+		localStorage.setItem("src_container_width_factor", src_container_width_factor);
+
+		console.log('src_height = ', document.querySelector("#src_textarea").getBoundingClientRect().height);
+		console.log('video_info.height = ', video_info.height);
+		src_container_height_factor = document.querySelector("#src_textarea").getBoundingClientRect().height/video_info.height;
+		console.log('src_container_height_factor = ', src_container_height_factor);
+		input_src_container_height_factor.value = src_container_height_factor;
+		localStorage.setItem("src_container_height_factor", src_container_height_factor);
+
 	});
 
 
 	var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
-		.width(dstWidth)
-		.height(dstHeight)
+		.width(dst_width)
+		.height(dst_height)
 		.resizable().draggable({
 			cancel: 'text',
 			start: function (){
@@ -1174,14 +1551,16 @@ function create_modal_text_area() {
 		})
 		.css({
 			'position': 'absolute',
-			'background-color': 'rgba(0,0,0,0.3)',
-			'color': fontColor,
+			'fontFamily': dst_selected_font + ', sans-serif',
+			'fontSize': dst_font_size,
+			'color': dst_font_color,
+			'backgroundColor': hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value),
 			'border': 'none',
 			'display': 'block',
 			'overflow': 'hidden',
 			'z-index': '2147483647'
 		})
-		.offset({top:dstTop, left:dstLeft})
+		.offset({top:dst_top, left:dst_left})
 
 	if (!document.querySelector("#dst_textarea_container")) {
 		console.log('appending dst_textarea_container to html body');
@@ -1192,28 +1571,62 @@ function create_modal_text_area() {
 
 	document.querySelector("#dst_textarea").style.width = '100%';
 	document.querySelector("#dst_textarea").style.height = '100%';
-	document.querySelector("#dst_textarea").style.color = fontColor;
-	document.querySelector("#dst_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 	document.querySelector("#dst_textarea").style.border = 'none';
 	document.querySelector("#dst_textarea").style.display = 'inline-block';
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
 	document.querySelector("#dst_textarea").style.allow="fullscreen";
 
+	document.querySelector("#src_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
+	document.querySelector("#dst_textarea").style.color = dst_font_color;
+	document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
+	document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
 	//dst_h0 = $('#dst_textarea').height();
-	document.querySelector("#dst_textarea").style.font=selectedFont;
-	document.querySelector("#dst_textarea").style.fontSize=String(fontSize)+'px';
-
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 		//dst_h = $('#dst_textarea').height();
 		//document.querySelector("#dst_textarea").style.fontSize=String(0.28*dst_h)+'px';
 		document.querySelector("#dst_textarea").style.position='absolute';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
+
+		console.log('dst_width = ', document.querySelector("#dst_textarea").getBoundingClientRect().width);
+		console.log('video_info.width = ', video_info.width);
+		dst_container_width_factor = document.querySelector("#dst_textarea").getBoundingClientRect().width/video_info.width;
+		console.log('dst_container_width_factor = ', dst_container_width_factor);
+		input_dst_container_width_factor.value = dst_container_width_factor;
+		localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
+
+		console.log('dst_height = ', document.querySelector("#dst_textarea").getBoundingClientRect().height);
+		console.log('video_info.height = ', video_info.height);
+		dst_container_height_factor = document.querySelector("#dst_textarea").getBoundingClientRect().height/video_info.height;
+		console.log('dst_container_height_factor = ', dst_container_height_factor);
+		input_dst_container_height_factor.value = dst_container_height_factor;
+		localStorage.setItem("dst_container_height_factor", input_dst_container_height_factor);
+
 	});
 
-	document.documentElement.scrollTop = videoInfo.top; // For modern browsers
-	document.body.scrollTop = videoInfo.top; // For older browsers
+	document.documentElement.scrollTop = video_info.top; // For modern browsers
+	document.body.scrollTop = video_info.top; // For older browsers
 
+}
+
+function hide_src_textarea() {
+	if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+	if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").style.display = 'none';
+}
+
+function show_src_textarea() {
+	if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
+	if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").style.display = 'inline-block';
+}
+
+function hide_dst_textarea() {
+	if (document.querySelector("#dst_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+	if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'none';
+}
+
+function show_dst_textarea() {
+	if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
+	if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
 }
 
 
@@ -1222,63 +1635,96 @@ window.addEventListener('resize', function(event){
 	document.documentElement.scrollTop = 0; // For modern browsers
 	document.body.scrollTop = 0; // For older browsers
 
-	videoInfo = getVideoPlayerInfo();
-	if (videoInfo) {
+	input_src_container_width_factor = document.getElementById("input_src_container_width_factor");
+	src_container_width_factor = input_src_container_width_factor.value;
+	input_src_container_height_factor = document.getElementById("input_src_container_height_factor");
+	src_container_height_factor = input_src_container_height_factor.value;
+
+	video_info = getVideoPlayerInfo();
+	if (video_info) {
 		console.log('Window is resized');
-		console.log("Video player found!");
-		console.log("Id:", videoInfo.id);
-		//console.log("Top:", videoInfo.top);
-		//console.log("Left:", videoInfo.left);
-		//console.log("Width:", videoInfo.width);
-		//console.log("Height:", videoInfo.height);
+		console.log("Video player found");
+		console.log("Id:", video_info.id);
+		//console.log("Top:", video_info.top);
+		//console.log("Left:", video_info.left);
+		//console.log("Width:", video_info.width);
+		//console.log("Height:", video_info.height);
+
+		//src_width = src_container_width_factor*window.innerWidth;
+		src_width = src_container_width_factor*video_info.width;
+		//console.log('src_width =', src_width);
+
+		//src_height = src_container_height_factor*window.innerHeight;
+		src_height = src_container_height_factor*video_info.height;
+		//console.log('src_height =', src_width);
+
+		//src_top = 0.25*window.innerHeight;
+		src_top = video_info.top + 0.02*video_info.height;
+		//console.log('src_top =', src_top);
+
+		//src_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//src_left = 0.5*(window.innerWidth-src_width);
+		src_left = video_info.left + 0.5*(video_info.width-src_width);
+		//console.log('src_left =', src_left);
+
+		//dst_width = dst_container_width_factor*window.innerWidth;
+		dst_width = dst_container_width_factor*video_info.width;
+		//console.log('dst_width =', dst_width);
+		
+		//dst_height = dst_container_height_factor*window.innerHeight;
+		dst_height = dst_container_height_factor*video_info.height;
+		//console.log('dst_height =', dst_height);
+
+		//dst_top = 0.75*window.innerHeight;
+		dst_top = video_info.top + 0.6*video_info.height;
+		//console.log('dst_top =', dst_top);
+
+		//dst_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		//dst_left = 0.5*(window.innerWidth-dst_width);
+		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+		//console.log('dst_left =', dst_left);
+
 	} else {
 		console.log("No video player found on this page.");
-	}
 
-	//srcWidth = containerWidthFactor*window.innerWidth;
-	srcWidth = containerWidthFactor*videoInfo.width;
-	//console.log('srcWidth =', srcWidth);
+		src_width = src_container_width_factor*window.innerWidth;
+		//console.log('src_width =', src_width);
 
-	//srcHeight = containerHeightFactor*window.innerHeight;
-	srcHeight = containerHeightFactor*videoInfo.height;
-	//console.log('srcHeight =', srcWidth);
+		src_height = src_container_height_factor*window.innerHeight;
+		//console.log('src_height =', src_width);
 
-	//srcTop = 0.25*window.innerHeight;
-	srcTop = videoInfo.top + 0.02*videoInfo.height;
-	//console.log('srcTop =', srcTop);
+		src_top = 0.25*window.innerHeight;
+		//console.log('src_top =', src_top);
 
-	//srcLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//srcLeft = 0.5*(window.innerWidth-srcWidth);
-	srcLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('srcLeft =', srcLeft);
+		//src_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		src_left = 0.5*(window.innerWidth-src_width);
+		//console.log('src_left =', src_left);
 
-	//dstWidth = containerWidthFactor*window.innerWidth;
-	dstWidth = containerWidthFactor*videoInfo.width;
-	//console.log('dstWidth =', dstWidth);
+		dst_width = dst_container_width_factor*window.innerWidth;
+		//console.log('dst_width =', dst_width);
 		
-	//dstHeight = containerHeightFactor*window.innerHeight;
-	dstHeight = containerHeightFactor*videoInfo.height;
-	//console.log('dstHeight =', dstHeight);
+		dst_height = dst_container_height_factor*window.innerHeight;
+		//console.log('dst_height =', dst_height);
 
-	//dstTop = 0.75*window.innerHeight;
-	dstTop = videoInfo.top + 0.6*videoInfo.height;
-	//console.log('dstTop =', dstTop);
+		dst_top = 0.75*window.innerHeight;
+		//console.log('dst_top =', dst_top);
 
-	//dstLeft = 0.2*(window.innerWidth-0.5*window.innerWidth);
-	//dstLeft = 0.5*(window.innerWidth-dstWidth);
-	dstLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('dstLeft =', dstLeft);
+		//dst_left = 0.2*(window.innerWidth-0.5*window.innerWidth);
+		dst_left = 0.5*(window.innerWidth-dst_width);
+		//console.log('dst_left =', dst_left);
+	}
 
 
 	if (document.querySelector("#src_textarea_container")) {
-		document.querySelector("#src_textarea_container").style.width = String(srcWidth)+'px';
-		document.querySelector("#src_textarea_container").style.height = String(srcHeight)+'px';
-		document.querySelector("#src_textarea_container").style.top = String(srcTop)+'px';
-		document.querySelector("#src_textarea_container").style.left = String(srcLeft)+'px';
+		document.querySelector("#src_textarea_container").style.fontFamily = src_selected_font + ", sans-serif";
+		document.querySelector("#src_textarea_container").style.width = String(src_width)+'px';
+		document.querySelector("#src_textarea_container").style.height = String(src_height)+'px';
+		document.querySelector("#src_textarea_container").style.top = String(src_top)+'px';
+		document.querySelector("#src_textarea_container").style.left = String(src_left)+'px';
 
 		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
-			.width(srcWidth)
-			.height(srcHeight)
+			.width(src_width)
+			.height(src_height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -1290,30 +1736,32 @@ window.addEventListener('resize', function(event){
 			})
 			.css({
 				'position': 'absolute',
-				'font': selectedFont,
-				'fontSize': fontSize,
-				'color': fontColor,
-				'background-color': 'rgba(0,0,0,0.3)',
+				'fontFamily': src_selected_font + ', sans-serif',
+				'fontSize': src_font_size,
+				'color': src_font_color,
+				'backgroundColor': hexToRgba(input_src_container_color.value, input_src_container_opacity.value),
 				'border': 'none',
 				'display': 'block',
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:srcTop, left:srcLeft})
+			.offset({top:src_top, left:src_left})
 
-		document.querySelector("#src_textarea").style.width = String(srcWidth)+'px';
-		document.querySelector("#src_textarea").style.height = String(srcHeight)+'px';
+		document.querySelector("#src_textarea").style.width = String(src_width)+'px';
+		document.querySelector("#src_textarea").style.height = String(src_height)+'px';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 		//document.querySelector("#src_textarea").style.color = 'yellow';
-		document.querySelector("#src_textarea").style.color = fontColor;
-		document.querySelector("#src_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 		document.querySelector("#src_textarea").style.border = 'none';
 		document.querySelector("#src_textarea").style.display = 'inline-block';
 		document.querySelector("#src_textarea").style.overflow = 'hidden';
 
+		document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
+		document.querySelector("#src_textarea").style.color = src_font_color;
+		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(input_src_container_color.value, input_src_container_opacity.value);
 		//src_h0 = $('#src_textarea').height();
 		//document.querySelector("#src_textarea").style.fontSize=String(0.35*src_h0)+'px';
+		document.querySelector("#src_textarea").style.fontSize=String(src_font_size)+'px';
 		//if (document.querySelector("#src_textarea").offsetParent) {
 			//document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 			//	src_h = $('#src_textarea').height();
@@ -1321,20 +1769,18 @@ window.addEventListener('resize', function(event){
 			//	document.querySelector("#src_textarea").scrollTop=document.querySelector("#src_textarea").scrollHeight;
 			//});
 		//}
-
-		document.querySelector("#src_textarea").style.fontSize=String(fontSize)+'px';
-
 	}
 
 	if (document.querySelector("#dst_textarea_container")) {
-		document.querySelector("#dst_textarea_container").style.width = String(dstWidth)+'px';
-		document.querySelector("#dst_textarea_container").style.height = String(dstHeight)+'px';
-		document.querySelector("#dst_textarea_container").style.top = String(dstTop)+'px';
-		document.querySelector("#dst_textarea_container").style.left = String(dstLeft)+'px';
+		document.querySelector("#dst_textarea_container").style.fontFamily = dst_selected_font + ", sans-serif";
+		document.querySelector("#dst_textarea_container").style.width = String(dst_width)+'px';
+		document.querySelector("#dst_textarea_container").style.height = String(dst_height)+'px';
+		document.querySelector("#dst_textarea_container").style.top = String(dst_top)+'px';
+		document.querySelector("#dst_textarea_container").style.left = String(dst_left)+'px';
 
 		var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
-			.width(dstWidth)
-			.height(dstHeight)
+			.width(dst_width)
+			.height(dst_height)
 			.resizable().draggable({
 				cancel: 'text',
 				start: function (){
@@ -1346,30 +1792,32 @@ window.addEventListener('resize', function(event){
 			})
 			.css({
 				'position': 'absolute',
-				'font': selectedFont,
-				'fontSize': fontSize,
-				'color': fontColor,
-				'background-color': 'rgba(0,0,0,0.3)',
+				'fontFamily': dst_selected_font + ', sans-serif',
+				'font-size': dst_font_size,
+				'color': dst_font_color,
+				'backgroundColor': hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value),
 				'border': 'none',
 				'display': 'block',
 				'overflow': 'hidden',
 				'z-index': '2147483647'
 			})
-			.offset({top:dstTop, left:dstLeft})
+			.offset({top:dst_top, left:dst_left})
 
-		document.querySelector("#dst_textarea").style.width = String(dstWidth)+'px';
-		document.querySelector("#dst_textarea").style.height = String(dstHeight)+'px';
+		document.querySelector("#dst_textarea").style.width = String(dst_width)+'px';
+		document.querySelector("#dst_textarea").style.height = String(dst_height)+'px';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 		//document.querySelector("#dst_textarea").style.color = 'yellow';
-		document.querySelector("#dst_textarea").style.color = fontColor;
-		document.querySelector("#dst_textarea").style.backgroundColor = 'rgba(0,0,0,0.3)';
 		document.querySelector("#dst_textarea").style.border = 'none';
 		document.querySelector("#dst_textarea").style.display = 'inline-block';
 		document.querySelector("#dst_textarea").style.overflow = 'hidden';
 
+		document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
+		document.querySelector("#dst_textarea").style.color = dst_font_color;
+		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(input_dst_container_color.value, input_dst_container_opacity.value);
 		//dst_h0 = $('#dst_textarea').height();
 		//document.querySelector("#dst_textarea").style.fontSize=String(0.35*src_h0)+'px';
+		document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
 		//if (document.querySelector("#dst_textarea").offsetParent) {
 			//document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 			//	dst_h = $('#dst_textarea').height();
@@ -1377,13 +1825,7 @@ window.addEventListener('resize', function(event){
 			//	document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 			//});
 		//}
-
-		document.querySelector("#dst_textarea").style.fontSize=String(fontSize)+'px';
 	}
-
-	document.documentElement.scrollTop = videoInfo.top; // For modern browsers
-	document.body.scrollTop = videoInfo.top; // For older browsers
-
 });
 
 
@@ -1393,12 +1835,19 @@ if (document.querySelector("#dst_textarea")) {
 			const value = document.querySelector("#dst_textarea").value;
 			if (value.includes('%20')) {
 				console.log('dst_textarea contains %20');
-				value = value.replace('\%20/g', ' ');
+				value = value.replace('\\%20/g', ' ');
 				document.querySelector("#dst_textarea").value = formattedText(value);
 			}
+			if (value.includes('%3E')) {
+				console.log('dst_textarea contains %3E');
+				value = value.replace('\\%3E/g', '>');
+				document.querySelector("#dst_textarea").value = formattedText(value);
+			}
+			value = value.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
 		});
 	});
-}
+};
+
 
 
 console.log('Initializing recognition: recognizing =', recognizing);
@@ -1422,6 +1871,11 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	recognition.onstart = function() {
 		final_transcript = '';
 		interim_transcript = '';
+		startTimestamp = formatTimestamp(new Date());
+		resetPauseTimeout();
+		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
+
 		if (!recognizing) {
 			recognizing = false;
 			document.querySelector("#start_img").src = 'images/mic.gif';
@@ -1433,14 +1887,15 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			console.log('recognition.onstart: recognizing =', recognizing);
 			recognition.lang = src_dialect;
 			document.querySelector("#start_img").src = 'images/mic-animate.gif';
-
-			document.documentElement.scrollTop = videoInfo.top; // For modern browsers
-			document.body.scrollTop = videoInfo.top; // For older browsers
 		}
 	};
 
 
 	recognition.onerror = function(event) {
+		resetPauseTimeout();
+		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
+
 		if (event.error == 'no-speech') {
             document.querySelector("#start_img").src = 'images/mic.gif';
 			console.log('recognition.no-speech: recognizing =', recognizing);
@@ -1468,28 +1923,88 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	recognition.onend = function() {
 		final_transcript='';
 		interim_transcript='';
+
+		session_end_time = formatTimestamp(new Date());
+		console.log('session_end_time =', session_end_time);
+
 		if (!recognizing) {
 			document.querySelector("#start_img").src = 'images/mic.gif';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			console.log('recognition.onend: stopping because recognizing =', recognizing);
-			saveTranscript(timestamped_final_and_interim_transcript);
-			console.log('timestamped_final_and_interim_transcript', timestamped_final_and_interim_transcript);
-			if (timestamped_final_and_interim_transcript) var tt=gtranslate(timestamped_final_and_interim_transcript,src,dst).then((result => {
-				result = result.replace(/(\d+),(\d+)/g, '$1.$2');
-				result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-				result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-				result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
-				result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
-				result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-				result = capitalizeSentences(result);
-				result = formatText(result);
-				result = result.replace(/\n\s*$/, '');
-				timestamped_translated_transcript = result + "\n";
-				console.log('timestamped_translated_transcript', timestamped_translated_transcript);
-				saveTranslatedTranscript(timestamped_translated_transcript);
-			}));
+
+			var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
+			if (t) {
+				// Split text into an array of lines
+				var lines = t.trim().split('\n');
+				// Use a Set to filter out duplicate lines
+				var uniqueLines = [...new Set(lines)];
+				//console.log('uniqueLines = ', uniqueLines);
+
+				// Join the unique lines back into a single string
+				var uniqueText;
+				var newUniqueLines = [];
+				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
+
+				if (uniqueLines.length===1 && uniqueLines[0] != '' && uniqueLines[0] != 'undefined') {
+					//console.log('uniqueLines.length===1');
+					const timestamps = uniqueLines[0].match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+					if (!timestamps) {
+						var lastUniqueLines = `${session_start_time} ${timestamp_separator} ${session_end_time} : ${uniqueLines[0]}`;
+						console.log('lastUniqueLines = ', lastUniqueLines);
+						uniqueLines[0] = lastUniqueLines;
+						uniqueText = newUniqueLines.join('\n');
+						uniqueText = uniqueText + '\n';
+					}
+				}
+				else if (uniqueLines.length>1 && uniqueLines[uniqueLines.length-1] != '' && !timestamps.test(uniqueLines[uniqueLines.length-1])) {
+					//console.log('uniqueLines.length>1');
+					var lastUniqueLines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${uniqueLines[uniqueLines.length-1]}`;
+					console.log('lastUniqueLines = ', lastUniqueLines);
+					uniqueLines[uniqueLines.length-1] = lastUniqueLines;
+					for (var i=0; i<uniqueLines.length; i++) {
+						newUniqueLines.push(uniqueLines[i]);
+					}
+					console.log('newUniqueLines = ', newUniqueLines);
+					uniqueText = newUniqueLines.join('\n');
+					uniqueText = uniqueText + '\n';
+				}
+				else if (uniqueLines.length>1 && uniqueLines[uniqueLines.length-1] != '' && timestamps.test(uniqueLines[uniqueLines.length-1])) {
+					//console.log('uniqueLines.length>1 && timestamps.test(uniqueLines[uniqueLines.length-1]');
+					uniqueText = uniqueLines.join('\n');
+					uniqueText = uniqueText + '\n';
+				}
+
+				if (uniqueText) saveTranscript(uniqueText);
+
+				formatted_all_final_transcripts = '';
+				all_final_transcripts = [];
+
+				if (uniqueText) var tt=gtranslate(uniqueText,src,dst).then((result => {
+					//console.log('1769:result = ', result);
+					result = result.replace();
+					result = result.replace(/(\d+),(\d+)/g, '$1.$2');
+					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+					result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+					result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
+					result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+					result = capitalizeSentences(result);
+					result = formatText(result);
+					result = result.replace(/\n\s*$/, '');
+					timestamped_translated_final_and_interim_transcript = result + "\n";
+					//console.log('818:timestamped_translated_final_and_interim_transcript = ', timestamped_translated_final_and_interim_transcript);
+					if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+					timestamped_translated_final_and_interim_transcript = '';
+					lines = '';
+					uniqueLines = [];
+					uniqueText = '';
+					t = '';
+				}));
+			}
+
 			return;
+
 		} else {
 			console.log('recognition.onend: keep recognizing because recognizing =', recognizing);
 			recognition.start();
@@ -1501,6 +2016,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	recognition.onresult = function(event) {
 		console.log('recognition.onresult: recognizing =', recognizing);
 		//console.log('document.querySelector("#src_textarea_container").style.display =', document.querySelector("#src_textarea_container").style.display);
+		resetPauseTimeout();
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
         update_src_country();
@@ -1519,6 +2035,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		} else {
 			recognition.lang=src_dialect;
 			var interim_transcript = '';
+
 			for (var i = event.resultIndex; i < event.results.length; ++i) {
 				if (event.results[i].isFinal) {
 					//final_transcript += event.results[i][0].transcript;
@@ -1530,45 +2047,70 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					endTimestamp = formatTimestamp(new Date());
 					final_transcript += `${startTimestamp} ${timestamp_separator} ${endTimestamp} : ${capitalize(event.results[i][0].transcript)}`;
 					final_transcript = final_transcript + '.\n'
+					all_final_transcripts.push(`${final_transcript}`);
+					//console.log('864:all_final_transcripts = ', all_final_transcripts);
+
+					formatted_all_final_transcripts = all_final_transcripts.join("");
+					console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
+
 				} else {
 					if (!interim_started) {
 						startTimestamp = formatTimestamp(new Date());
 						interim_started = true; // Set the flag to true
 					}
 					interim_transcript += event.results[i][0].transcript;
-					//interim_transcript = remove_linebreak(interim_transcript);
+					interim_transcript = remove_linebreak(interim_transcript);
 					interim_transcript = capitalize(interim_transcript);
 					//console.log('interim_transcript = ', interim_transcript);
 				}
 			}
 
 			timestamped_final_and_interim_transcript = final_transcript + interim_transcript;
-
 			if (containsColon(timestamped_final_and_interim_transcript)) {
 				timestamped_final_and_interim_transcript = capitalizeSentences(timestamped_final_and_interim_transcript);
-				console.log('capitalizeSentences(timestamped_final_and_interim_transcript) = ', timestamped_final_and_interim_transcript);
+				//console.log('capitalizeSentences(timestamped_final_and_interim_transcript) = ', timestamped_final_and_interim_transcript);
 			}
+
+			formatted_all_final_transcripts = all_final_transcripts.join("");
+			//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
+
 
 			//console.log('show_src =', show_src);
 			if (show_src) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
 				//if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").innerHTML = final_transcript + interim_transcript;
-				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = timestamped_final_and_interim_transcript;
+				//if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = timestamped_final_and_interim_transcript;
+
+				var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
+				//console.log('t = ', t);
+				if (t) {
+					// Split text into an array of lines
+					var lines = t.trim().split('\n');
+					// Use a Set to filter out duplicate lines
+					var uniqueLines = [...new Set(lines)];
+					// Join the unique lines back into a single string
+					var uniqueText = uniqueLines.join('\n');
+					//console.log('document.querySelector("#src_textarea").value = ', uniqueText);
+					uniqueText = uniqueText.replace('undefined', '');
+				}
+
+				if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
 				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").scrollTop = document.querySelector("#src_textarea").scrollHeight;
+
 			} else {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			}
 
-			timestamped_final_and_interim_transcript = document.querySelector("#src_textarea").value;
+			//timestamped_final_and_interim_transcript = document.querySelector("#src_textarea").value;
 			//timestamped_final_and_interim_transcript = timestamped_transcript+interim_transcript;
 
 			//console.log('show_dst =', show_dst);
 			if (show_dst) {
 				console.log('dst =', dst);
 				//var  t = final_transcript + interim_transcript;
-				var t = timestamped_final_and_interim_transcript;
+				//var t = timestamped_final_and_interim_transcript;
+				var t = uniqueText;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
-
 					if (t) var tt=gtranslate(t,src,dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
 						result = result.replace(/(\d+),(\d+)/g, '$1.$2');
@@ -1584,15 +2126,12 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 					}));
-
 					translate_time = Date.now();
 				};
-
-				timestamped_translated_transcript = document.querySelector("#dst_textarea").value;
-
 			} else {
 				if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			}
+			timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
 		}
 	};
 
@@ -1633,49 +2172,84 @@ function startButton(event) {
 	document.documentElement.scrollTop = 0; // For modern browsers
 	document.body.scrollTop = 0; // For older browsers
 
-	videoInfo = getVideoPlayerInfo();
-	if (videoInfo) {
-		console.log("Video player found!");
-		console.log("videoInfo.id = ", videoInfo.id);
-		//console.log("Top:", videoInfo.top);
-		//console.log("Left:", videoInfo.left);
-		//console.log("Width:", videoInfo.width);
-		//console.log("Height:", videoInfo.height);
+	input_src_container_width_factor = document.getElementById("input_src_container_width_factor");
+	src_container_width_factor = input_src_container_width_factor.value;
+	input_src_container_height_factor = document.getElementById("input_src_container_height_factor");
+	src_container_height_factor = input_src_container_height_factor.value;
+
+	input_dst_container_width_factor = document.getElementById("input_dst_container_width_factor");
+	dst_container_width_factor = input_dst_container_width_factor.value;
+	input_dst_container_height_factor = document.getElementById("input_dst_container_height_factor");
+	dst_container_height_factor = input_dst_container_height_factor.value;
+
+	video_info = getVideoPlayerInfo();
+	if (video_info) {
+		console.log("Video player found");
+		console.log("video_info.id = ", video_info.id);
+		//console.log("Top:", video_info.top);
+		//console.log("Left:", video_info.left);
+		//console.log("Width:", video_info.width);
+		//console.log("Height:", video_info.height);
+
+		//src_width = src_container_width_factor*window.innerWidth;
+		src_width = src_container_width_factor*video_info.width;
+		//console.log('src_width =', src_width);
+
+		//src_height = src_container_height_factor*window.innerHeight;
+		src_height = src_container_height_factor*video_info.height;
+		//console.log('src_height =', src_width);
+
+		//src_top = 0.25*window.innerHeight;
+		src_top = video_info.top + 0.02*video_info.height;
+		//console.log('src_top =', src_top);
+
+		//src_left = 0.5*(window.innerWidth-src_width);
+		src_left = video_info.left + 0.5*(video_info.width-src_width);
+		//console.log('src_left =', src_left);
+
+		//dst_width = dst_container_width_factor*window.innerWidth;
+		dst_width = dst_container_width_factor*video_info.width;
+		//console.log('dst_width =', dst_width);
+		
+		//dst_height = dst_container_height_factor*window.innerHeight;
+		dst_height = dst_container_height_factor*video_info.height;
+		//console.log('dst_height =', dst_height);
+
+		//dst_top = 0.75*window.innerHeight;
+		dst_top = video_info.top + 0.6*video_info.height;
+		//console.log('dst_top =', dst_top);
+
+		//dst_left = 0.5*(window.innerWidth-dst_width);
+		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+		//console.log('dst_left =', dst_left);
+
 	} else {
 		console.log("No video player found on this page.");
-	}
 
-	//srcWidth = containerWidthFactor*window.innerWidth;
-	srcWidth = containerWidthFactor*videoInfo.width;
-	//console.log('srcWidth =', srcWidth);
+		src_width = src_container_width_factor*window.innerWidth;
+		//console.log('src_width =', src_width);
 
-	//srcHeight = containerHeightFactor*window.innerHeight;
-	srcHeight = containerHeightFactor*videoInfo.height;
-	//console.log('srcHeight =', srcWidth);
+		src_height = src_container_height_factor*window.innerHeight;
+		//console.log('src_height =', src_width);
 
-	//srcTop = 0.25*window.innerHeight;
-	srcTop = videoInfo.top + 0.02*videoInfo.height;
-	//console.log('srcTop =', srcTop);
+		src_top = 0.25*window.innerHeight;
+		//console.log('src_top =', src_top);
 
-	//srcLeft = 0.5*(window.innerWidth-srcWidth);
-	srcLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('srcLeft =', srcLeft);
+		src_left = 0.5*(window.innerWidth-src_width);
+		//console.log('src_left =', src_left);
 
-	//dstWidth = containerWidthFactor*window.innerWidth;
-	dstWidth = containerWidthFactor*videoInfo.width;
-	//console.log('dstWidth =', dstWidth);
+		dst_width = dst_container_width_factor*window.innerWidth;
+		//console.log('dst_width =', dst_width);
 		
-	//dstHeight = containerHeightFactor*window.innerHeight;
-	dstHeight = containerHeightFactor*videoInfo.height;
-	//console.log('dstHeight =', dstHeight);
+		dst_height = dst_container_height_factor*window.innerHeight;
+		//console.log('dst_height =', dst_height);
 
-	//dstTop = 0.75*window.innerHeight;
-	dstTop = videoInfo.top + 0.6*videoInfo.height;
-	//console.log('dstTop =', dstTop);
+		dst_top = 0.75*window.innerHeight;
+		//console.log('dst_top =', dst_top);
 
-	//dstLeft = 0.5*(window.innerWidth-dstWidth);
-	dstLeft = videoInfo.left + 0.5*(videoInfo.width-srcWidth);
-	//console.log('dstLeft =', dstLeft);
+		dst_left = 0.5*(window.innerWidth-dst_width);
+		//console.log('dst_left =', dst_left);
+	}
 
 
 	show_src = document.querySelector("#checkbox_show_src").checked;
@@ -1710,6 +2284,7 @@ function startButton(event) {
 	}
 }
 
+/*
 var translate = async (t,src,dst) => {
 	var tt = new Promise(function(resolve) {
 		var i=0, len=0, r='', tt='';
@@ -1720,8 +2295,7 @@ var translate = async (t,src,dst) => {
 		xmlHttp.onreadystatechange = function(event) {
 			if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
 				response = JSON.parse(xmlHttp.responseText);
-				//for (var i = 0, len = response.sentences?.length; i < len; i++) {
-				for (var i = 0, len = response.sentences.length; i < len; i++) {
+				for (var i = 0, len = response.sentences?.length; i < len; i++) {
 					var r=((((response[i][0]).replace('}/g','')).replace(')/g','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 					r=(((r.replace('}','')).replace(')','')).replace('\\%20/g', ' ')).replace('\\%3E/g', '>');
 					tt += r;
@@ -1737,8 +2311,37 @@ var translate = async (t,src,dst) => {
 		xmlHttp.onreadystatechange();
 	});
 	return await tt;
-}
+};
+*/
 
+var translate = async (t, src, dst) => {
+	return new Promise((resolve, reject) => {
+		const url = 'https://clients5.google.com/translate_a/single?dj=1&dt=t&dt=sp&dt=ld&dt=bd&client=dict-chrome-ex&sl=' 
+					+ src + '&tl=' + dst + '&q=' + encodeURIComponent(t);
+		var xmlHttp = new XMLHttpRequest();
+
+		xmlHttp.onreadystatechange = function() {
+			if (xmlHttp.readyState === 4) {
+				if (xmlHttp.status === 200) {
+					try {
+						let response = JSON.parse(xmlHttp.responseText);
+						let translatedText = response.sentences.map(sentence => sentence.trans).join('');
+						resolve(translatedText);
+					} catch (e) {
+						reject('Error parsing response: ' + e.message);
+					}
+				} else {
+					reject('Request failed with status: ' + xmlHttp.status);
+				}
+			}
+		};
+		xmlHttp.open('GET', url, true);
+		xmlHttp.send();
+	});
+};
+
+
+/*
 var gtranslate = async (t,src,dst) => {
 	var tt = new Promise(function(resolve) {
 		var i=0, len=0, r='', tt='';
@@ -1766,6 +2369,32 @@ var gtranslate = async (t,src,dst) => {
 	});
 	return await tt;
 }
+*/
+
+var gtranslate = async (t, src, dst) => {
+	return new Promise((resolve, reject) => {
+		const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' + src + '&tl=' + dst + '&dt=t&q=' + encodeURIComponent(t);
+		var xmlHttp = new XMLHttpRequest();
+
+		xmlHttp.onreadystatechange = function() {
+			if (xmlHttp.readyState === 4) {
+				if (xmlHttp.status === 200) {
+					try {
+						let response = JSON.parse(xmlHttp.responseText)[0];
+						let translatedText = response.map(segment => segment[0]).join('');
+						resolve(translatedText);
+					} catch (e) {
+						reject('Error parsing response: ' + e.message);
+					}
+				} else {
+					reject('Request failed with status: ' + xmlHttp.status);
+				}
+			}
+		};
+		xmlHttp.open('GET', url, true);
+		xmlHttp.send();
+	});
+};
 
 
 function getPosition(target) {
@@ -1809,11 +2438,11 @@ function saveTranscript(timestamped_final_and_interim_transcript) {
 }
 
 
-function saveTranslatedTranscript(timestamped_translated_transcript) {
+function saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript) {
 	console.log('Saving translated transcriptions');
 
 	// Create a Blob with the transcript content
-	const blob = new Blob([timestamped_translated_transcript], { type: 'text/plain' });
+	const blob = new Blob([timestamped_translated_final_and_interim_transcript], { type: 'text/plain' });
 
 	// Create a URL for the Blob
 	const url = URL.createObjectURL(blob);
@@ -1858,13 +2487,13 @@ function containsSpaceCharacter(sentence) {
 
 function getVideoPlayerInfo() {
 	var elements = document.querySelectorAll('video, iframe');
-	console.log('elements = ',  elements);
+	//console.log('elements = ',  elements);
 	for (var i = 0; i < elements.length; i++) {
 		var rect = elements[i].getBoundingClientRect();
-		console.log('rect', rect);
+		//console.log('rect', rect);
 		if (rect.width > 0) {
 			var videoPlayerID = elements[i].id;
-			console.log('videoPlayerID = ',  videoPlayerID);
+			//console.log('videoPlayerID = ',  videoPlayerID);
 			return {
 				id: elements[i].id,
 				top: rect.top,
@@ -1874,7 +2503,7 @@ function getVideoPlayerInfo() {
 			};
 		}
 	}
-	console.log('No video player found');
+	//console.log('No video player found');
 	return null;
 }
 
@@ -1967,4 +2596,21 @@ function readTextFile(filename, callback) {
 
     // Send the request
     xhr.send();
+}
+
+
+function resetPauseTimeout() {
+	//all_final_transcripts += timestamped_final_and_interim_transcript;
+	clearTimeout(pause_timeout);
+	pause_timeout = setTimeout(function() {
+		console.log("No speech detected for " + pause_threshold / 1000 + " seconds, stopping recognition");
+		recognition.stop();
+	}, pause_threshold);
+}
+
+function hexToRgba(hex, opacity) {
+	let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }

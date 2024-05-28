@@ -14,6 +14,7 @@
 	body {
 		font-family: Arial, sans-serif;
 	}
+
 	.container {
 		width: 100%;
 		margin: 10px auto;
@@ -57,6 +58,14 @@
 		width: 56px; /* Adjust width as needed */
 		height: 16px; /* Adjust height as needed */
 	}
+	#input_src_container_top_factor {
+		width: 56px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
+	#input_src_container_left_factor {
+		width: 56px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
 	#input_src_container_color {
 		width: 56px; /* Adjust width as needed */
 		height: 16px; /* Adjust height as needed */
@@ -93,6 +102,14 @@
 		width: 56px; /* Adjust width as needed */
 		height: 16px; /* Adjust height as needed */
 	}
+	#input_dst_container_top_factor {
+		width: 56px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
+	#input_dst_container_left_factor {
+		width: 56px; /* Adjust width as needed */
+		height: 16px; /* Adjust height as needed */
+	}
 	#input_dst_container_color {
 		width: 56px; /* Adjust width as needed */
 		height: 16px; /* Adjust height as needed */
@@ -101,6 +118,7 @@
 		width: 80px; /* Adjust width as needed */
 		height: 4px; /* Adjust height as needed */
 	}
+
 	#start_button {
 		border: 0;
 		/*background-color:transparent;*/
@@ -115,7 +133,8 @@
 		width: 48px;
 		height: 48px;
 	}
-	.iframe_header_unit iframe_container iframe {
+
+	.iframe_header_unit iframe_container yt_iframe {
 		top: 0;
 		left: 0;
 		bottom: 0;
@@ -123,27 +142,16 @@
 		height: 100%;
 		text-align: center;
 		border: 0;
-		position: absolute;
+		//position: absolute;
 	}
-	#iframe_container {
-		width:100%;
-		height:100%;
-		position: relative;
-		overflow: hidden;
-	}
-	iframe {
-		width: 100%;
-		height: 100%;
-		position: absolute;
-		z-index: 0;
-	}
-	#yt_iframe {
+	#my_yt_iframe {
 		/*border: 0;*/
 		/*background-color:transparent;*/
 		position: absolute;
 		z-index: 1;
 		display: none;
 	}
+
 	.video_header_unit video_container video {
 		top: 0;
 		left: 0;
@@ -152,13 +160,7 @@
 		height: 100%;
 		text-align: center;
 		border: 0;
-		position: absolute;
-	}
-	#video_container {
-		height:100%;
-		width:100%;
-		position: relative;
-		overflow: hidden;
+		//position: absolute;
 	}
 	video {
 		width: 100%;
@@ -173,6 +175,34 @@
 		z-index: 1;
 		display: none;
 	}
+
+	.detail__media-video {
+		width: 100%;
+		height: 100%;
+		display: none;
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+		//background-color: green;
+	}
+	.ratiobox {
+		left:0%;
+		top:0%;
+		width: 100%;
+		height:100%;
+		overflow: hidden;
+		position: relative;
+		text-align: center;
+		//background-color: red;
+		padding-bottom: 56.25%; /* 16:9 ratio */
+	}
+	.ratiobox iframe {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+	}
 </style>
 <html lang="en">
 <head>
@@ -183,7 +213,9 @@
 </head>
 
 <body>
-	<label style="font-size: 12px">Live Audio/Video Translate v0.2.1</label> 
+	<br>
+	<h3 style="font-size: 12px">Live Audio/Video Translate v0.2.2</h3>
+
     <div class="container">
         <div class="two-column">
             <div class="column">
@@ -203,13 +235,26 @@
 				<input type="number" id="input_src_container_width_factor" min="0" max="1" step="0.001" value="0.8" style='font-size:12px'>
 				<label for="src_container_width_continuing_text" style="font-size: 12px" >x Video Width</label>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<br>
 				<label for="input_src_container_height_factor" style="font-size: 12px">Container Height&nbsp;&nbsp;&nbsp;</label>
 				<input type="number" id="input_src_container_height_factor" min="0" max="1" step="0.001" value="0.15" style='font-size:12px'>
-				<label for="src_container_height_continuing_text" style="font-size: 12px">x Video Height&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<label for="src_container_height_continuing_text" style="font-size: 12px">x Video Height</label>
 				<br>
-				<label for="input_src_container_color" style="font-size: 12px">Container Color&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<label for="input_src_container_top_factor" style="font-size: 12px">Container Top&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<input type="number" id="input_src_container_top_factor" min="0" max="1" step="0.01" value="0.01" style='font-size:12px'>
+				<label for="src_container_top_continuing_text" style="font-size: 12px">x Video Height</label>
+				<br>
+				<label for="input_src_container_left_factor" style="font-size: 12px">Container Left&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<input type="number" id="input_src_container_left_factor" min="0" max="1" step="0.01" value="0.1" style='font-size:12px'>
+				<label for="src_container_left_continuing_text" style="font-size: 12px">x Video Width</label>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<input type="checkbox" id="checkbox_centerize_src" name="checkbox_centerize_src" style='font-size: 12px' checked='true;'>
+				<label style='font-size: 12px'> Centerize Horizontally </label>
+				<br>
+				<label for="input_src_container_color" style="font-size: 12px">Container Color&nbsp;&nbsp;&nbsp;&nbsp;</label>
 				<input type="color" id="input_src_container_color" value="#000000" style='font-size:12px'>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<br>
 				<label for="input_src_container_opacity" style="font-size: 12px">Container Opacity&nbsp;</label>
 				<input type="range" id="input_src_container_opacity" min="0" max="1" step="0.01" value="0.3" style='font-size:12px'>
             </div>
@@ -221,7 +266,7 @@
 				<input type="checkbox" id="checkbox_show_dst" name="checkbox_show_dst" style='font-size:12px'>
 				<label style='font-size: 12px'> Show translation text</label>
 				<br>
-				<label for="select_dst_font" style="font-size: 12px">Subtitle Font&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<label for="select_dst_font" style="font-size: 12px">Subtitle Font&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 				<select id="select_dst_font" style="font-size: 12px"></select>
 				<input type="number" id="input_dst_font_size" min="1" value="18" style='font-size:12px'>
 				<input type="color" id="input_dst_font_color" value="#ffff00" style='font-size:12px'>
@@ -229,24 +274,38 @@
 				<label for="input_dst_container_width_factor" style="font-size: 12px">Container Width&nbsp;&nbsp;&nbsp;&nbsp;</label>
 				<input type="number" id="input_dst_container_width_factor" min="0" max="1" step="0.001" value="0.8" style='font-size:12px'>
 				<label for="dst_container_width_continuing_text" style="font-size: 12px">x Video Width</label>
-				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<br>
 				<label for="input_dst_container_height_factor" style="font-size: 12px">Container Height&nbsp;&nbsp;&nbsp;</label>
 				<input type="number" id="input_dst_container_height_factor" min="0" max="1" step="0.001" value="0.15" style='font-size:12px'>
 				<label for="dst_container_height_continuing_text" style="font-size: 12px">x Video Height</label>
 				<br>
-				<label for="input_dst_container_color" style="font-size: 12px">Container Color&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-				<input type="color" id="input_dst_container_color" value="#000000" style='font-size:12px'>
+				<label for="input_dst_container_top_factor" style="font-size: 12px">Container Top&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<input type="number" id="input_dst_container_top_factor" min="0" max="1" step="0.01" value="0.65" style='font-size:12px'>
+				<label for="dst_container_top_continuing_text" style="font-size: 12px">x Video Height</label>
+				<br>
+				<label for="input_dst_container_left_factor" style="font-size: 12px">Container Left&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<input type="number" id="input_dst_container_left_factor" min="0" max="1" step="0.01" value="0.1" style='font-size:12px'>
+				<label for="dst_container_left_continuing_text" style="font-size: 12px">x Video Width</label>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<input type="checkbox" id="checkbox_centerize_dst" name="checkbox_centerize_dst" style='font-size: 12px' checked='true;'>
+				<label style='font-size: 12px'> Centerize Horizontally </label>
+				<br>
+				<label for="input_dst_container_color" style="font-size: 12px">Container Color&nbsp;&nbsp;&nbsp;&nbsp;</label>
+				<input type="color" id="input_dst_container_color" value="#000000" style='font-size:12px'>
+				<br>
 				<label for="input_dst_container_opacity" style="font-size: 12px">Container Opacity&nbsp;</label>
 				<input type="range" id="input_dst_container_opacity" min="0" max="1" step="0.01" value="0.3" style='font-size:12px'>
 			</div>
 		</div>
 	</div>
-	<label style="font-size: 12px" for="pause_threshold">Pause Threshold&nbsp;</label>
+
+	<label style="font-size: 12px" for="pause_threshold">Pause Threshold&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 	<input style='width:60px' type="number" id="input_pause_threshold" min="0" step="1" value="2000">
-	<label for="pause_threshold_continuing_text" style="font-size: 12px"> (in miliseconds)</label>
+	<label for="pause_threshold_continuing_text" style="font-size: 12px"> (in miliseconds, silent duration that will trigger speech engine to restart)</label>
+
 	<br>
-	<label style="font-size: 12px">Video URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+
+	<label style="font-size: 12px">Video URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 	<input id="url_box" type="url"></input>
 	<button type="button" id="embed_button">Embed</button>
 
@@ -258,10 +317,11 @@
 
 	<br></br>
 
-	<div class="iframe_header_unit" id="yt_iframe_header_unit">
-		<div class="iframe_container" id="yt_iframe_container">
+
+	<div class="iframe_header_unit">
+		<div class="iframe_container">
 			<div class="yt_iframe">
-				<iframe id="yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen class="fillWidth"></iframe>
+				<iframe id="my_yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen="true" class="fillWidth"></iframe>
 			</div>
 		</div>
 	</div>
@@ -270,40 +330,25 @@
 		<div class="video_container">
 			<div class="video">
 				<video id="my_video" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
-					<!--source id="video_source" src="" type="" /-->
 					<source id="video_source" />
 				</video>
 			</div>
 		</div>
 	</div>
 
+	<div class="detail__media-video">
+		<div class="ratiobox" style="margin: 0 auto;">
+			<!--iframe id="cnnlive" width="960" height="540" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe-->
+			<iframe id="cnnlive" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe>
+		</div>
+	</div>
 
-	<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/themes/smoothness/jquery-ui.css" />
-	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.3/jquery-ui.min.js"></script-->
 
 	<script src="js/jquery.min.js"></script>
 	<link rel="stylesheet" href="css/jquery-ui.css">
 	<script src="js/jquery-ui.min.js"></script>
 
-<!--
-	<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" >
-	<script src="https://unpkg.com/video.js/dist/video.js"></script>
-	<script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
--->
-
-	<!--link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" >
-	<script src="https://unpkg.com/video.js/dist/video.js"></script>
-	<script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script-->
-	<!--link rel="stylesheet" href="js/video-js.css">
-	<script src="js/video.js"></script>
-	<script src="js/videojs-http-streaming.min.js"></script-->
-
 	<script type='text/javascript' src="js/index.js"></script>
-	<script>
-
-
-	</script>
 
 </body>
 </html>

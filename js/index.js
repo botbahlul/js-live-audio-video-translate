@@ -21,7 +21,10 @@ var session_start_time, session_end_time;
 var interim_started=false;
 var pause_timeout, pause_threshold;
 var all_final_transcripts = [], formatted_all_final_transcripts;
-var version = "0.2.2"
+var all_translated_transcripts = [], formatted_all_translated_transcripts;
+var transcript_is_final = false;
+
+var version = "0.2.3"
 
 
 var src_language =
@@ -713,6 +716,7 @@ window.addEventListener('resize', function(event) {
 	regenerate_textarea();
 });
 
+
 document.addEventListener('fullscreenchange', function(event) {
 	regenerate_textarea();
 });
@@ -746,9 +750,9 @@ if (document.querySelector("#my_video")) {
 }
 
 
-// Intercept for unwanted characters from gtranslate function return values
 if (document.querySelector("#dst_textarea")) {
 	document.addEventListener('DOMContentLoaded', (event) => {
+		// Intercept for unwanted characters from gtranslate function return values
 		document.querySelector("#dst_textarea").addEventListener('input', () => {
 			const value = document.querySelector("#dst_textarea").value;
 			if (value.includes('%20')) {
@@ -767,14 +771,13 @@ if (document.querySelector("#dst_textarea")) {
 };
 
 
-
 document.querySelector("#embed_button").addEventListener('click', function(){
 	embed();
 });
 
 document.querySelector("#start_button").addEventListener('click', function(){
 	session_start_time = formatTimestamp(new Date());
-	console.log('session_start_time =', session_start_time);
+	//console.log('session_start_time =', session_start_time);
 	startButton(event);
 });
 
@@ -855,7 +858,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		interim_transcript='';
 
 		session_end_time = formatTimestamp(new Date());
-		console.log('session_end_time =', session_end_time);
+		//console.log('session_end_time =', session_end_time);
 
 		if (!recognizing) {
 			document.querySelector("#start_img").src = 'images/mic.gif';
@@ -890,12 +893,12 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				else if (uniqueLines.length>1 && uniqueLines[uniqueLines.length-1] != '' && !timestamps.test(uniqueLines[uniqueLines.length-1])) {
 					//console.log('uniqueLines.length>1');
 					var lastUniqueLines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${uniqueLines[uniqueLines.length-1]}`;
-					console.log('lastUniqueLines = ', lastUniqueLines);
+					//console.log('lastUniqueLines = ', lastUniqueLines);
 					uniqueLines[uniqueLines.length-1] = lastUniqueLines;
 					for (var i=0; i<uniqueLines.length; i++) {
 						newUniqueLines.push(uniqueLines[i]);
 					}
-					console.log('newUniqueLines = ', newUniqueLines);
+					//console.log('newUniqueLines = ', newUniqueLines);
 					uniqueText = newUniqueLines.join('\n');
 					uniqueText = uniqueText + '\n';
 				}
@@ -925,6 +928,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					timestamped_translated_final_and_interim_transcript = result + "\n";
 					//console.log('timestamped_translated_final_and_interim_transcript = ', timestamped_translated_final_and_interim_transcript);
 					if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+					formatted_all_translated_transcripts = '';
+					all_translated_transcripts = [];
 					timestamped_translated_final_and_interim_transcript = '';
 					lines = '';
 					uniqueLines = [];
@@ -944,7 +949,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onresult = function(event) {
-		console.log('recognition.onresult: recognizing =', recognizing);
+		//console.log('recognition.onresult: recognizing =', recognizing);
 		//console.log('document.querySelector("#src_textarea_container").style.display =', document.querySelector("#src_textarea_container").style.display);
 		resetPauseTimeout();
 		show_src = document.querySelector("#checkbox_show_src").checked;
@@ -968,6 +973,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			for (var i = event.resultIndex; i < event.results.length; ++i) {
 				if (event.results[i].isFinal) {
+					transcript_is_final = true;
 					interim_transcript = '';
 					interim_started = false;
 					endTimestamp = formatTimestamp(new Date());
@@ -976,9 +982,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					all_final_transcripts.push(`${final_transcript}`);
 
 					formatted_all_final_transcripts = all_final_transcripts.join("");
-					console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
+					//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
 
 				} else {
+					transcript_is_final = false;
 					if (!interim_started) {
 						startTimestamp = formatTimestamp(new Date());
 						interim_started = true; // Set the flag to true
@@ -1013,7 +1020,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					// Join the unique lines back into a single string
 					var uniqueText = uniqueLines.join('\n');
 					//console.log('document.querySelector("#src_textarea").value = ', uniqueText);
-					uniqueText = uniqueText.replace('undefined', '');
+					if (getFirstWord(uniqueText).includes('undefined')) uniqueText = uniqueText.replace('undefined', '');
 				}
 
 				if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
@@ -1025,8 +1032,9 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			//console.log('show_dst =', show_dst);
 			if (show_dst) {
-				console.log('dst =', dst);
-				var t = uniqueText;
+				//console.log('dst =', dst);
+				//var t = uniqueText;
+				var t = timestamped_final_and_interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) var tt=gtranslate(t,src,dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
@@ -1041,7 +1049,33 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						result = formatText(result);
 						result = result.replace(/\n\s*$/, '');
 
-						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
+						const timestamps = result.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+						if (transcript_is_final) {
+							all_translated_transcripts.push(`${result}`);
+							//console.log('all_translated_transcripts = ', all_translated_transcripts);
+							formatted_all_translated_transcripts = all_translated_transcripts.join("");
+							//console.log('formatted_all_translated_transcripts = ', formatted_all_translated_transcripts);
+							var translated_lines = formatted_all_translated_transcripts.trim().split('\n');
+							var translated_uniqueLines = [...new Set(translated_lines)];
+							var translated_uniqueText = translated_uniqueLines.join('\n');
+						}
+						if (formatted_all_translated_transcripts) var tt = formatted_all_translated_transcripts;
+						//console.log('tt = ', tt);
+						if (tt) {
+							var translated_lines = tt.trim().split('\n');
+							var translated_uniqueLines = [...new Set(translated_lines)];
+							var translated_uniqueText = translated_uniqueLines.join('\n');
+							//console.log('translated_uniqueText = ', translated_uniqueText);
+						}
+						var displayed_translation = translated_uniqueText + result;
+						displayed_translation = formatText(displayed_translation);
+						if (getFirstWord(displayed_translation).includes('undefined')) displayed_translation = displayed_translation.replace('undefined', '');
+						if (all_translated_transcripts.length == 1) {
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = result;
+						} else {
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
+						}
+						//if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
 					}));
 					translate_time = Date.now();
@@ -1134,7 +1168,7 @@ function updateSubtitleText() {
 			src_container_left_factor = document.querySelector("#input_src_container_left_factor").value;
 			console.log('src_container_left_factor =', src_container_left_factor);
 		}
-	} else {
+	} else if (textarea_rect && !video_info) {
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_container_left_factor = (window.innerWidth - 2*textarea_rect.src_left)/window.innerWidth
 			console.log('src_container_left_factor =', src_container_left_factor);
@@ -1200,7 +1234,7 @@ function updateSubtitleText() {
 			dst_container_left_factor = document.querySelector("#input_dst_container_left_factor").value;
 			console.log('dst_container_left_factor =', dst_container_left_factor);
 		}
-	} else {
+	} else if (textarea_rect && !video_info) {
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_container_left_factor = (window.innerWidth - 2*textarea_rect.dst_left)/window.innerWidth
 			console.log('dst_container_left_factor =', dst_container_left_factor);
@@ -1276,7 +1310,7 @@ function update_src_country() {
 	} else {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
 	};
-	console.log('update_src_country(): src_dialect =', src_dialect);
+	//console.log('update_src_country(): src_dialect =', src_dialect);
 }
 
 
@@ -1323,7 +1357,7 @@ function update_dst_country() {
 	} else {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
 	};
-	console.log('update_dst_country(): dst_dialect =', dst_dialect);
+	//console.log('update_dst_country(): dst_dialect =', dst_dialect);
 }
 
 const URL_String = {
@@ -1479,9 +1513,6 @@ function embed(){
 function create_modal_text_area() {
 	console.log("Create modal text area");
 
-	document.documentElement.scrollTop = 0; // For modern browsers
-	document.body.scrollTop = 0; // For older browsers
-
 	src_container_width_factor = document.querySelector("#input_src_container_width_factor").value;
 	src_container_height_factor = document.querySelector("#input_src_container_height_factor").value;
 
@@ -1489,6 +1520,9 @@ function create_modal_text_area() {
 	dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
 
 	var textarea_rect = get_textarea_rect();
+	var vContainer = document.querySelector('#' + video_info.id).parentElement;
+	//console.log('vContainer = ', vContainer);
+
 
 	var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
 		.width(textarea_rect.src_width)
@@ -1517,7 +1551,8 @@ function create_modal_text_area() {
 
 	if (!document.querySelector("#src_textarea_container")) {
 		console.log('appending src_textarea_container to html body');
-		src_textarea_container$.appendTo('body');
+		//src_textarea_container$.appendTo('body');
+		src_textarea_container$.appendTo(vContainer);
 	} else {
 		console.log('src_textarea_container has already exist');
 	}
@@ -1533,22 +1568,47 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").style.color = src_font_color;
 	document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_src_container_color").value, document.querySelector("#input_src_container_opacity").value);
 	document.querySelector("#src_textarea").style.fontSize=String(src_font_size)+'px';
+
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 		document.querySelector("#src_textarea").style.position='absolute';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 
-		src_container_width_factor = document.querySelector("#src_textarea").getBoundingClientRect().width/video_info.width;
-		console.log('src_container_width_factor = ', src_container_width_factor);
+		src_container_width_factor = getRect(document.querySelector("#src_textarea")).width/video_info.width;
+		//console.log('src_container_width_factor = ', src_container_width_factor);
 		document.querySelector("#input_src_container_width_factor").value = src_container_width_factor;
 		localStorage.setItem("src_container_width_factor", src_container_width_factor);
 
-		src_container_height_factor = document.querySelector("#src_textarea").getBoundingClientRect().height/video_info.height;
-		console.log('src_container_height_factor = ', src_container_height_factor);
+		src_container_height_factor = getRect(document.querySelector("#src_textarea")).height/video_info.height;
+		//console.log('src_container_height_factor = ', src_container_height_factor);
 		document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
 		localStorage.setItem("src_container_height_factor", src_container_height_factor);
 	});
 
+	document.querySelector("#src_textarea").offsetParent.ondrag = (function(){
+		document.querySelector("#src_textarea").style.position='absolute';
+
+		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-src_width)) {
+			document.querySelector("#checkbox_centerize_src").checked = false;
+		}
+
+		video_info = getVideoPlayerInfo();
+		src_container_top_factor = (getRect(document.querySelector("#src_textarea_container")).top - video_info.top)/video_info.height;
+		if (src_container_top_factor <= 0) {
+			src_container_top_factor = 0;
+		}
+		document.querySelector("#input_src_container_top_factor").value = src_container_top_factor;
+		//console.log('src_container_top_factor = ', src_container_top_factor);
+		localStorage.setItem("src_container_top_factor", src_container_top_factor);
+
+		src_container_left_factor = (getRect(document.querySelector("#src_textarea_container")).left - video_info.left)/video_info.width;
+		if (src_container_left_factor <= 0) {
+			src_container_left_factor = 0;
+		}
+		document.querySelector("#input_src_container_left_factor").value = src_container_left_factor;
+		//console.log('src_container_left_factor = ', src_container_left_factor);
+		localStorage.setItem("src_container_left_factor", src_container_left_factor);
+	});
 
 	var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
 		.width(textarea_rect.dst_width)
@@ -1577,7 +1637,8 @@ function create_modal_text_area() {
 
 	if (!document.querySelector("#dst_textarea_container")) {
 		console.log('appending dst_textarea_container to html body');
-		dst_textarea_container$.appendTo('body');
+		//dst_textarea_container$.appendTo('body');
+		dst_textarea_container$.appendTo(vContainer);
 	} else {
 		console.log('src_textarea_container has already exist');
 	}
@@ -1593,26 +1654,50 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
 	document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_dst_container_color").value, document.querySelector("#input_dst_container_opacity").value);
 	document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
+
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 		document.querySelector("#dst_textarea").style.position='absolute';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 
-		dst_container_width_factor = document.querySelector("#dst_textarea").getBoundingClientRect().width/video_info.width;
-		console.log('dst_container_width_factor = ', dst_container_width_factor);
-		input_dst_container_width_factor.value = dst_container_width_factor;
+		dst_container_width_factor = getRect(document.querySelector("#dst_textarea")).width/video_info.width;
+		//console.log('dst_container_width_factor = ', dst_container_width_factor);
+		document.querySelector("#input_dst_container_width_factor").value = dst_container_width_factor;
 		localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
 
-		dst_container_height_factor = document.querySelector("#dst_textarea").getBoundingClientRect().height/video_info.height;
-		console.log('dst_container_height_factor = ', dst_container_height_factor);
-		input_dst_container_height_factor.value = dst_container_height_factor;
+		dst_container_height_factor = getRect(document.querySelector("#dst_textarea")).height/video_info.height;
+		//console.log('dst_container_height_factor = ', dst_container_height_factor);
+		document.querySelector("#input_dst_container_height_factor").value = dst_container_height_factor;
 		localStorage.setItem("dst_container_height_factor", dst_container_height_factor);
 	});
 
-	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
-	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
+	document.querySelector("#dst_textarea").offsetParent.ondrag = (function(){
+		document.querySelector("#dst_textarea").style.position='absolute';
 
+		if (getRect(document.querySelector("#dst_textarea_container")).left != video_info.left + 0.5*(video_info.width-dst_width)) {
+			document.querySelector("#checkbox_centerize_dst").checked = false;
+		}
+
+		video_info = getVideoPlayerInfo();
+		dst_container_top_factor = (getRect(document.querySelector("#dst_textarea_container")).top - video_info.top)/video_info.height;
+		if (dst_container_top_factor <= 0) {
+			dst_container_top_factor = 0;
+		}
+		document.querySelector("#input_dst_container_top_factor").value = dst_container_top_factor;
+		//console.log('dst_container_top_factor = ', dst_container_top_factor);
+		localStorage.setItem("dst_container_top_factor", dst_container_top_factor);
+
+		dst_container_left_factor = (getRect(document.querySelector("#dst_textarea_container")).left - video_info.left)/video_info.width;
+		if (dst_container_left_factor <= 0) {
+			dst_container_left_factor = 0;
+		}
+		document.querySelector("#input_dst_container_left_factor").value = dst_container_left_factor;
+		//console.log('dst_container_left_factor = ', dst_container_left_factor);
+		localStorage.setItem("dst_container_left_factor", dst_container_left_factor);
+	});
 }
+
+
 
 function remove_linebreak(s) {
 	var two_line = /\n\n/g;
@@ -1637,9 +1722,6 @@ function capitalize(s) {
 
 
 function startButton(event) {
-	document.documentElement.scrollTop = 0; // For modern browsers
-	document.body.scrollTop = 0; // For older browsers
-
 	src_container_width_factor = document.querySelector("#input_src_container_width_factor").value;
 	src_container_height_factor = document.querySelector("#input_src_container_height_factor").value;
 
@@ -1648,42 +1730,34 @@ function startButton(event) {
 
 	video_info = getVideoPlayerInfo();
 	if (video_info) {
-		console.log("Video player found");
-		console.log("video_info.id = ", video_info.id);
+		//console.log("Video player found");
+		//console.log("video_info.id = ", video_info.id);
 		//console.log("Top:", video_info.top);
 		//console.log("Left:", video_info.left);
 		//console.log("Width:", video_info.width);
 		//console.log("Height:", video_info.height);
 
-		//src_width = src_container_width_factor*window.innerWidth;
 		src_width = src_container_width_factor*video_info.width;
 		//console.log('src_width =', src_width);
 
-		//src_height = src_container_height_factor*window.innerHeight;
 		src_height = src_container_height_factor*video_info.height;
 		//console.log('src_height =', src_width);
 
-		//src_top = 0.25*window.innerHeight;
 		src_top = video_info.top + 0.02*video_info.height;
 		//console.log('src_top =', src_top);
 
-		//src_left = 0.5*(window.innerWidth-src_width);
 		src_left = video_info.left + 0.5*(video_info.width-src_width);
 		//console.log('src_left =', src_left);
 
-		//dst_width = dst_container_width_factor*window.innerWidth;
 		dst_width = dst_container_width_factor*video_info.width;
 		//console.log('dst_width =', dst_width);
 		
-		//dst_height = dst_container_height_factor*window.innerHeight;
 		dst_height = dst_container_height_factor*video_info.height;
 		//console.log('dst_height =', dst_height);
 
-		//dst_top = 0.75*window.innerHeight;
 		dst_top = video_info.top + 0.6*video_info.height;
 		//console.log('dst_top =', dst_top);
 
-		//dst_left = 0.5*(window.innerWidth-dst_width);
 		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
 		//console.log('dst_left =', dst_left);
 
@@ -1719,8 +1793,8 @@ function startButton(event) {
 	show_dst = document.querySelector("#checkbox_show_dst").checked;
 	src_dialect = document.querySelector("#select_src_dialect").value;
 	dst_dialect = document.querySelector("#select_dst_dialect").value;
-	console.log('src_dialect =', src_dialect);
-	console.log('dst_dialect =', dst_dialect);
+	//console.log('src_dialect =', src_dialect);
+	//console.log('dst_dialect =', dst_dialect);
 
 	recognizing=!recognizing;
 	console.log('startButton clicked recognizing =', recognizing);
@@ -1999,9 +2073,6 @@ function hexToRgba(hex, opacity) {
 
 
 function regenerate_textarea() {
-	document.documentElement.scrollTop = 0; // For modern browsers
-	document.body.scrollTop = 0; // For older browsers
-
 	var textarea_rect = get_textarea_rect();
 
 	if (document.querySelector("#src_textarea_container")) {
@@ -2048,14 +2119,6 @@ function regenerate_textarea() {
 		document.querySelector("#src_textarea").style.fontSize=String(document.querySelector("#input_src_font_size").value)+'px';
 		document.querySelector("#src_textarea").style.color = document.querySelector("#input_src_font_color").value;
 		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_src_container_color").value, document.querySelector("#input_src_container_opacity").value);
-		if (document.querySelector("#src_textarea").offsetParent) {
-			document.querySelector("#src_textarea").offsetParent.onresize = (function(){
-				document.querySelector("#src_textarea").style.position='absolute';
-				document.querySelector("#src_textarea").style.width = '100%';
-				document.querySelector("#src_textarea").style.height = '100%';
-				document.querySelector("#src_textarea").scrollTop=document.querySelector("#src_textarea").scrollHeight;
-			});
-		}
 
 	} else {
 		console.log('src_textarea_container has already exist');
@@ -2106,71 +2169,69 @@ function regenerate_textarea() {
 		document.querySelector("#dst_textarea").style.fontSize=String(document.querySelector("#input_dst_font_size").value)+'px';
 		document.querySelector("#dst_textarea").style.color = document.querySelector("#input_dst_font_color").value;
 		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_dst_container_color").value, document.querySelector("#input_dst_container_opacity").value);
-		if (document.querySelector("#dst_textarea").offsetParent) {
-			document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
-				document.querySelector("#dst_textarea").style.position='absolute';
-				document.querySelector("#dst_textarea").style.width = '100%';
-				document.querySelector("#dst_textarea").style.height = '100%';
-				document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
-			});
-		}
 
 	} else {
 		console.log('dst_textarea_container has already exist');
 	}
+}
 
-	var video_info = getVideoPlayerInfo();
-	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
-	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
 
+function getRect(element) {
+	const rect = element.getBoundingClientRect();
+    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+    return {
+		width: rect.width,
+		height: rect.height,
+		top: rect.top + scrollTop,
+		left: rect.left + scrollLeft
+	};
 }
 
 
 function get_textarea_rect() {
 
-	document.documentElement.scrollTop = 0; // For modern browsers
-	document.body.scrollTop = 0; // For older browsers
-
 	var video_info = getVideoPlayerInfo();
 	if (video_info) {
-		console.log("Video player found");
-		console.log("video_info.id = ", video_info.id);
+		//console.log("Video player found");
+		//console.log("video_info.id = ", video_info.id);
 		//console.log("Top:", video_info.top);
 		//console.log("Left:", video_info.left);
 		//console.log("Width:", video_info.width);
 		//console.log("Height:", video_info.height);
 
-		src_width = document.querySelector("#input_src_container_width_factor").value*video_info.width;
+		src_width = document.querySelector("#input_src_container_width_factor").value*getRect(video_info.element).width;
 		//console.log('src_width =', src_width);
 
-		src_height = document.querySelector("#input_src_container_height_factor").value*video_info.height;
+		src_height = document.querySelector("#input_src_container_height_factor").value*getRect(video_info.element).height;
 		//console.log('src_height =', src_width);
 
-		src_top = video_info.top + document.querySelector("#input_src_container_top_factor").value*video_info.height;
+		src_top = getRect(video_info.element).top + document.querySelector("#input_src_container_top_factor").value*getRect(video_info.element).height;
 		//console.log('src_top =', src_top);
 
 		if (document.querySelector("#checkbox_centerize_src").checked) {
-			src_left = video_info.left + 0.5*(video_info.width-src_width);
+			src_left = getRect(video_info.element).left + 0.5*(getRect(video_info.element).width-src_width);
 			//console.log('src_left =', src_left);
 		} else {
-			src_left = video_info.left + document.querySelector("#input_src_container_left_factor").value*video_info.width;
+			src_left = getRect(video_info.element).left + document.querySelector("#input_src_container_left_factor").value*getRect(video_info.element).width;
 			//console.log('src_left =', src_left);
 		}
 
-		dst_width = document.querySelector("#input_dst_container_width_factor").value*video_info.width;
+		dst_width = document.querySelector("#input_dst_container_width_factor").value*getRect(video_info.element).width;
 		//console.log('dst_width =', dst_width);
-		
-		dst_height = document.querySelector("#input_dst_container_height_factor").value*video_info.height;
-		//console.log('dst_height =', dst_height);
 
-		dst_top = video_info.top + document.querySelector("#input_dst_container_top_factor").value*video_info.height;
+		dst_height = document.querySelector("#input_dst_container_height_factor").value*getRect(video_info.element).height;
+		//console.log('dst_height =', dst_width);
+
+		dst_top = getRect(video_info.element).top + document.querySelector("#input_dst_container_top_factor").value*getRect(video_info.element).height;
 		//console.log('dst_top =', dst_top);
 
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
-			dst_left = video_info.left + 0.5*(video_info.width-dst_width);
+			dst_left = getRect(video_info.element).left + 0.5*(getRect(video_info.element).width-dst_width);
 			//console.log('dst_left =', dst_left);
 		} else {
-			dst_left = video_info.left + document.querySelector("#input_dst_container_left_factor").value*video_info.width;
+			dst_left = getRect(video_info.element).left + document.querySelector("#input_dst_container_left_factor").value*getRect(video_info.element).width;
 			//console.log('dst_left =', dst_left);
 		}
 
@@ -2233,7 +2294,7 @@ function getVideoPlayerInfo() {
 	var largestSize = 0;
 
 	for (var i=0; i<elements.length; i++) {
-		var rect = elements[i].getBoundingClientRect();
+		var rect = getRect(elements[i]);
 		//console.log('rect', rect);
 		if (rect.width > 0) {
 			var size = rect.width * rect.height;
@@ -2248,6 +2309,7 @@ function getVideoPlayerInfo() {
 			var zIndex = style.zIndex !== 'auto' && style.zIndex !== '0' ? parseInt(style.zIndex) : 1;
 
 			return {
+				element: elements[i],
 				id: elements[i].id,
 				top: rect.top,
 				left: rect.left,
@@ -2408,3 +2470,16 @@ function create_cnn_video_player() {
 
 	console.log(div_detail__media_video);
 }
+
+
+function getFirstWord(sentence) {
+    // Trim the sentence to remove any leading or trailing whitespace
+    let trimmedSentence = sentence.trim();
+
+    // Split the sentence into an array of words
+    let words = trimmedSentence.split(/\s+/);
+
+    // Return the first word
+    return words[0];
+}
+

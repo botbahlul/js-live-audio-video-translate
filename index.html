@@ -176,6 +176,33 @@
 		display: none;
 	}
 
+	.flv_video_header_unit flv_video_container flv_video {
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+		border: 0;
+		//position: absolute;
+	}
+
+	flv_video {
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		z-index: 0;
+	}
+
+	#videojs-flvjs-player {
+		/*border: 0;*/
+		/*background-color:transparent;*/
+		position: absolute;
+		z-index: 1;
+		display: none;
+	}
+
+
 	.detail__media-video {
 		width: 100%;
 		height: 100%;
@@ -203,18 +230,38 @@
 		width: 100%;
 		height: 100%;
 	}
+	#controls {
+		margin-top: 10px;
+		z-index: 10;
+	}
+	#timeSlider {
+		width: 960px;
+		position: absolute;
+		z-index: 111;
+	}
 </style>
 <html lang="en">
 <head>
 	<meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Live Audio/Video Translate v0.2.4</title>
+	<title>Live Audio/Video Translate v0.2.5</title>
+	<!--script src="https://cdn.jsdelivr.net/npm/flv.js@latest"></script-->
+	<!--link href="https://vjs.zencdn.net/7.15.4/video-js.css" rel="stylesheet">
+	<script src="https://vjs.zencdn.net/7.15.4/video.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/flv.js/1.5.0/flv.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-flvjs/1.4.1/videojs-flvjs.min.js"></script-->
+<!--
+	<link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/flv.js/1.6.2/flv.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-flvjs/1.4.1/videojs-flvjs.min.js"></script>
+-->
 </head>
 
 <body>
 	<br>
-	<h3 style="font-size: 12px">Live Audio/Video Translate v0.2.2</h3>
+	<h3 style="font-size: 12px">Live Audio/Video Translate v0.2.5</h3>
 
     <div class="container">
         <div class="two-column">
@@ -225,6 +272,9 @@
 				<br>
 				<input type="checkbox" id="checkbox_show_src" name="checkbox_show_src" style='font-size: 12px'>
 				<label style='font-size: 12px'> Show recognized audio text </label>
+				<br>
+				<input type="checkbox" id="checkbox_show_timestamp_src" name="checkbox_show_timestamp_src" style='font-size: 12px'>
+				<label style='font-size: 12px'> Show timestamps </label>
 				<br>
 				<label for="select_src_font" style="font-size: 12px">Subtitle Font&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 				<select id="select_src_font" style="font-size: 12px"></select>
@@ -265,6 +315,9 @@
 				<br>
 				<input type="checkbox" id="checkbox_show_dst" name="checkbox_show_dst" style='font-size:12px'>
 				<label style='font-size: 12px'> Show translation text</label>
+				<br>
+				<input type="checkbox" id="checkbox_show_timestamp_dst" name="checkbox_show_timestamp_dst" style='font-size: 12px'>
+				<label style='font-size: 12px'> Show timestamps </label>
 				<br>
 				<label for="select_dst_font" style="font-size: 12px">Subtitle Font&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
 				<select id="select_dst_font" style="font-size: 12px"></select>
@@ -336,13 +389,22 @@
 		</div>
 	</div>
 
+	<div class="flv_video_header_unit">
+		<div class="flv_video_container">
+			<div class="flv_video">
+				<video id="videojs-flvjs-player" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
+					<source src="" type='video/x-flv' />
+				</video>
+			</div>
+		</div>
+	</div>
+
 	<div class="detail__media-video">
 		<div class="ratiobox" style="margin: 0 auto;">
 			<!--iframe id="cnnlive" width="960" height="540" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe-->
 			<iframe id="cnnlive" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe>
 		</div>
 	</div>
-
 
 	<script src="js/jquery.min.js"></script>
 	<link rel="stylesheet" href="css/jquery-ui.css">

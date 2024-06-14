@@ -1,7 +1,7 @@
 var recognition, recognizing;
 var src, src_language, src_language_index, src_dialect, src_dialect_index, show_src;
 var dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
-
+var show_timestamp_src, show_timestamp_dst;
 var src_fonts, dst_fonts;
 
 var src_selected_font_index, src_selected_font, src_font_size, src_font_color;
@@ -24,7 +24,7 @@ var all_final_transcripts = [], formatted_all_final_transcripts;
 var all_translated_transcripts = [], formatted_all_translated_transcripts;
 var transcript_is_final = false;
 
-var version = "0.2.4"
+var version = "0.2.5"
 
 
 var src_language =
@@ -180,6 +180,15 @@ if (localStorage.getItem("show_src")) {
 } else {
 	show_src = true;
 	document.querySelector("#checkbox_show_src").checked = show_src;
+}
+
+if (localStorage.getItem("show_timestamp_src")) {
+	show_timestamp_src = localStorage.getItem("show_timestamp_src");
+	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
+	console.log('localStorage.getItem("show_timestamp_src") =', show_timestamp_src);
+} else {
+	show_timestamp_src = true;
+	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 }
 
 update_src_country();
@@ -340,6 +349,15 @@ if (localStorage.getItem("show_dst")) {
 	document.querySelector("#checkbox_show_dst").checked = show_dst;
 }
 
+if (localStorage.getItem("show_timestamp_dst")) {
+	show_timestamp_dst = localStorage.getItem("show_timestamp_dst");
+	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
+	console.log('localStorage.getItem("show_timestamp_dst") =', show_timestamp_dst);
+} else {
+	show_timestamp_dst = true;
+	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
+}
+
 update_dst_country();
 //console.log('after update_dst_country(): dst_dialect =', dst_dialect);
 
@@ -348,6 +366,9 @@ recognizing = false;
 
 show_src = document.querySelector("#checkbox_show_src").checked;
 show_dst = document.querySelector("#checkbox_show_dst").checked;
+
+show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
+show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
 
 src_selected_font = document.querySelector("#select_src_font").value;
 src_font_size = document.querySelector("#input_src_font_size").value;
@@ -651,6 +672,34 @@ document.querySelector("#checkbox_show_dst").addEventListener('change', function
 	localStorage.setItem("show_dst", show_dst);
 });
 
+document.querySelector("#checkbox_show_timestamp_src").addEventListener('change', function(){
+	show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
+	console.log('document.querySelector("#checkbox_show_timestamp_src") on change: show_timestamp_src =', show_timestamp_src);
+	if (!show_timestamp_src) {
+		if (document.querySelector("#src_textarea_container")) {
+			var src_text = document.querySelector("#src_textarea").value;
+			if (src_text) {
+				document.querySelector("#src_textarea").value = removeTimestamps(src_text);
+			}
+		}
+	}
+	localStorage.setItem("show_timestamp_src", show_timestamp_src);
+});
+
+document.querySelector("#checkbox_show_timestamp_dst").addEventListener('change', function(){
+	show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
+	console.log('document.querySelector("#checkbox_show_timestamp_dst") on change: show_timestamp_dst =', show_timestamp_dst);
+	if (!show_timestamp_dst) {
+		if (document.querySelector("#dst_textarea_container")) {
+			var dst_text = document.querySelector("#dst_textarea").value;
+			if (dst_text) {
+				document.querySelector("#dst_textarea").value = removeTimestamps(dst_text);
+			}
+		}
+	}
+	localStorage.setItem("show_timestamp_dst", show_timestamp_dst);
+});
+
 
 // Add event listeners for changes in font select and font size input
 document.querySelector("#select_src_font").addEventListener("change", updateSubtitleText);
@@ -749,6 +798,20 @@ if (document.querySelector("#my_video")) {
 	});
 }
 
+if (document.querySelector("#videojs-flvjs-player")) {
+	document.querySelector("#videojs-flvjs-player").style.width = '100%';
+	document.querySelector("#videojs-flvjs-player").style.height = '100%';
+
+	window.onresize = (function(){
+		if (document.querySelector("#videojs-flvjs-player")) {
+			document.querySelector("#videojs-flvjs-player").style.position='absolute';
+			document.querySelector("#videojs-flvjs-player").style.width = '100%';
+			document.querySelector("#videojs-flvjs-player").style.height = '100%';
+		}
+	});
+}
+
+
 
 if (document.querySelector("#dst_textarea")) {
 	document.addEventListener('DOMContentLoaded', (event) => {
@@ -780,6 +843,7 @@ document.querySelector("#start_button").addEventListener('click', function(){
 	//console.log('session_start_time =', session_start_time);
 	startButton(event);
 });
+
 
 
 // RECOGNITION CORE
@@ -908,7 +972,12 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					uniqueText = uniqueText + '\n';
 				}
 
-				if (uniqueText) saveTranscript(uniqueText);
+				//if (uniqueText) saveTranscript(uniqueText);
+				if (show_timestamp_src) {
+					if (uniqueText) saveTranscript(uniqueText);
+				} else {
+					if (uniqueText) saveTranscript(removeTimestamps(uniqueText));
+				}
 
 				formatted_all_final_transcripts = '';
 				all_final_transcripts = [];
@@ -927,7 +996,14 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					result = result.replace(/\n\s*$/, '');
 					timestamped_translated_final_and_interim_transcript = result + "\n";
 					//console.log('timestamped_translated_final_and_interim_transcript = ', timestamped_translated_final_and_interim_transcript);
-					if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+
+					//if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+					if (show_timestamp_dst) {
+						if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+					} else {
+						if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+					}
+					
 					formatted_all_translated_transcripts = '';
 					all_translated_transcripts = [];
 					timestamped_translated_final_and_interim_transcript = '';
@@ -954,6 +1030,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		resetPauseTimeout();
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
+		show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
+		show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
         update_src_country();
         update_dst_country();
 
@@ -1023,7 +1101,13 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					if (getFirstWord(uniqueText).includes('undefined')) uniqueText = uniqueText.replace('undefined', '');
 				}
 
-				if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
+				//if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
+				if (show_timestamp_src) {
+					if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
+				} else {
+					if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = removeTimestamps(uniqueText);
+				}
+
 				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").scrollTop = document.querySelector("#src_textarea").scrollHeight;
 
 			} else {
@@ -1067,16 +1151,27 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 							var translated_uniqueText = translated_uniqueLines.join('\n');
 							//console.log('translated_uniqueText = ', translated_uniqueText);
 						}
+
 						var displayed_translation = translated_uniqueText + result;
 						displayed_translation = formatText(displayed_translation);
+
 						if (getFirstWord(displayed_translation).includes('undefined')) displayed_translation = displayed_translation.replace('undefined', '');
+
 						if (all_translated_transcripts.length == 1) {
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = result;
+							if (show_timestamp_dst) {
+								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = result;
+							} else {
+								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(result);
+							}
 						} else {
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
+							if (show_timestamp_dst) {
+								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
+							} else {
+								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
+							}
 						}
 						//if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
-						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
+						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop = document.querySelector("#dst_textarea").scrollHeight;
 					}));
 					translate_time = Date.now();
 				};
@@ -1451,19 +1546,45 @@ function getYoutubePlayerID(url) {
 }
 
 
+function preload(elem, time){
+	elem.setAttribute('preload', 'auto');
+	elem.addEventListener('canplaythrough', setCurrentTime);
+	function setCurrentTime(){
+		elem.currentTime  = time;
+		elem.setAttribute('preload','none');
+		elem.removeEventListener('canplaythrough', setCurrentTime);
+	}
+}
+
 function insert_videojs_script() {
 	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>');
-	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
+	video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
 	//video_script$=$('<link href="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelementplayer.min.css" rel="stylesheet"> <script src="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelement-and-player.min.js"></script>');
-	video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
+	//video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
 	console.log('appending video_script to html body');
 	video_script$.appendTo('body');
 }
 
+function insert_flvjs_script() {
+	video_script$=$('<link href="https://vjs.zencdn.net/7.15.4/video-js.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/7.15.4/video.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/flv.js/1.5.0/flv.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-flvjs/1.4.1/videojs-flvjs.min.js"></script>');
+	console.log('appending flvjs_script to html head');
+	video_script$.appendTo('head');
+}
+
+function loadScript(src, callback) {
+	var script = document.createElement('script');
+    script.src = src;
+    script.onload = callback;
+    script.onerror = function() {
+		console.error('Failed to load script: ' + src);
+	};
+	document.head.appendChild(script);
+}
 
 function embed(){
 	var url = url_box.value;
 	var original_url = url_box.value;
+	var isSeeking = false;
 
 	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
 		//if (!document.querySelector(".iframe_header_unit")) create_iframe_video_player();
@@ -1481,12 +1602,38 @@ function embed(){
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
 		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
-		insert_videojs_script();
+		if (document.querySelector(".flv_video_header_unit")) document.body.removeChild(document.querySelector(".flv_video_header_unit"));
+		//insert_videojs_script();
 		console.log(document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
 		document.querySelector("#video_source").src = url;
 		document.querySelector("#video_source").type = "video/mp4";
+        document.querySelector("#my_video").load();
+		document.querySelector("#my_video").play();
+		//console.log('document.querySelector("#my_video").duration = ', document.querySelector("#my_video").duration);
 	}
+
+	if (url.includes(".flv")) {
+		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
+		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
+		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		if (document.querySelector(".video_header_unit")) document.body.removeChild(document.querySelector(".video_header_unit"));
+		console.log(document.querySelector("#videojs-flvjs-player"));
+		document.querySelector("#videojs-flvjs-player").style.display = "block";
+
+		loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
+			if (flvjs.isSupported()) {
+				var flvPlayer = flvjs.createPlayer({
+					type: 'flv',
+					url: url
+				});
+				flvPlayer.attachMediaElement(document.querySelector("#videojs-flvjs-player"));
+				flvPlayer.load();
+				flvPlayer.play();
+			}
+		});
+	}
+
 	if (url.includes(".m3u8")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
@@ -1511,7 +1658,6 @@ function embed(){
 	var video_info = getVideoPlayerInfo();
 	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
 	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
-
 }
 
 
@@ -2554,3 +2700,9 @@ function getFirstWord(sentence) {
     return words[0];
 }
 
+function removeTimestamps(transcript) {
+    var timestampPattern = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : /;
+    var lines = transcript.split('\n');
+    var cleanedLines = lines.map(line => line.replace(timestampPattern, ''));
+    return cleanedLines.join('\n');
+}

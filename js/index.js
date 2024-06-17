@@ -18,13 +18,13 @@ var video_info, src_width, src_height, src_top, src_left, dst_width, dst_height,
 var startTimestamp, endTimestamp, timestamped_final_and_interim_transcript, timestamped_translated_final_and_interim_transcript;
 var timestamp_separator = "-->";
 var session_start_time, session_end_time;
-var interim_started=false;
+var interim_started = false;
 var pause_timeout, pause_threshold;
 var all_final_transcripts = [], formatted_all_final_transcripts;
 var all_translated_transcripts = [], formatted_all_translated_transcripts;
 var transcript_is_final = false;
 
-var version = "0.2.5"
+var version = "0.2.6"
 
 
 var src_language =
@@ -155,7 +155,7 @@ for (var i = 0; i < src_language.length; i++) {
 if (localStorage.getItem("src_language_index")) {
 	src_language_index = localStorage.getItem("src_language_index");
 	document.querySelector("#select_src_language").selectedIndex = src_language_index;
-	console.log('localStorage.getItem("src_language_index") =', src_language_index);
+	console.log('localStorage.getItem("src_language_index") = ', src_language_index);
 } else {
 	src_language_index = 26;
 	document.querySelector("#select_src_language").selectedIndex = src_language_index;
@@ -163,7 +163,7 @@ if (localStorage.getItem("src_language_index")) {
 
 if (localStorage.getItem("src_dialect")) {
 	src_dialect = localStorage.getItem("src_dialect");
-	console.log('localStorage.getItem("src_dialect") =', src_dialect);
+	console.log('localStorage.getItem("src_dialect") = ', src_dialect);
 } else {
 	//src_dialect = "id-ID";
 	if (src_language[src_language_index].length>2) {
@@ -176,7 +176,7 @@ if (localStorage.getItem("src_dialect")) {
 if (localStorage.getItem("show_src")) {
 	show_src = localStorage.getItem("show_src");
 	document.querySelector("#checkbox_show_src").checked = show_src;
-	console.log('localStorage.getItem("show_src") =', show_src);
+	console.log('localStorage.getItem("show_src") = ', show_src);
 } else {
 	show_src = true;
 	document.querySelector("#checkbox_show_src").checked = show_src;
@@ -185,14 +185,14 @@ if (localStorage.getItem("show_src")) {
 if (localStorage.getItem("show_timestamp_src")) {
 	show_timestamp_src = localStorage.getItem("show_timestamp_src");
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
-	console.log('localStorage.getItem("show_timestamp_src") =', show_timestamp_src);
+	console.log('localStorage.getItem("show_timestamp_src") = ', show_timestamp_src);
 } else {
 	show_timestamp_src = true;
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 }
 
 update_src_country();
-//console.log('after update_src_country(): src_dialect =', src_dialect);
+//console.log('after update_src_country(): src_dialect = ', src_dialect);
 
 
 var dst_language =
@@ -323,7 +323,7 @@ for (var j = 0; j < dst_language.length; j++) {
 if (localStorage.getItem("dst_language_index")) {
 	dst_language_index = localStorage.getItem("dst_language_index");
 	document.querySelector("#select_dst_language").selectedIndex = dst_language_index;
-	console.log('localStorage.getItem("dst_language_index") =', dst_language_index);
+	console.log('localStorage.getItem("dst_language_index") = ', dst_language_index);
 } else {
 	dst_language_index = 15;
 	document.querySelector("#select_dst_language").selectedIndex = dst_language_index;
@@ -331,7 +331,7 @@ if (localStorage.getItem("dst_language_index")) {
 
 if (localStorage.getItem("dst_dialect")) {
 	dst_dialect = localStorage.getItem("dst_dialect");
-	console.log('localStorage.getItem("dst_dialect") =', dst_dialect);
+	console.log('localStorage.getItem("dst_dialect") = ', dst_dialect);
 } else {
 	if (dst_language[dst_language_index].length>2) {
 		dst_dialect = document.querySelector("#select_dst_dialect").value;
@@ -343,7 +343,7 @@ if (localStorage.getItem("dst_dialect")) {
 if (localStorage.getItem("show_dst")) {
 	show_dst = localStorage.getItem("show_dst");
 	document.querySelector("#checkbox_show_dst").checked = show_dst;
-	console.log('localStorage.getItem("show_dst") =', show_dst);
+	console.log('localStorage.getItem("show_dst") = ', show_dst);
 } else {
 	show_dst = true;
 	document.querySelector("#checkbox_show_dst").checked = show_dst;
@@ -352,14 +352,14 @@ if (localStorage.getItem("show_dst")) {
 if (localStorage.getItem("show_timestamp_dst")) {
 	show_timestamp_dst = localStorage.getItem("show_timestamp_dst");
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
-	console.log('localStorage.getItem("show_timestamp_dst") =', show_timestamp_dst);
+	console.log('localStorage.getItem("show_timestamp_dst") = ', show_timestamp_dst);
 } else {
 	show_timestamp_dst = true;
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
 }
 
 update_dst_country();
-//console.log('after update_dst_country(): dst_dialect =', dst_dialect);
+//console.log('after update_dst_country(): dst_dialect = ', dst_dialect);
 
 
 recognizing = false;
@@ -413,9 +413,9 @@ pause_threshold = document.querySelector("#input_pause_threshold").value;
 // Load saved values from localStorage if they were there
 if (localStorage.getItem("src_selected_font_index")) {
 	src_selected_font_index = localStorage.getItem("src_selected_font_index");
-	console.log('localStorage.getItem("src_selected_font_index") =', src_selected_font_index);
+	console.log('localStorage.getItem("src_selected_font_index") = ', src_selected_font_index);
 	document.querySelector("#select_src_font").selectedIndex = src_selected_font_index;
-	console.log('select_src_font.selectedIndex =', select_src_font.selectedIndex);
+	console.log('select_src_font.selectedIndex = ', select_src_font.selectedIndex);
 } else {
 	src_selected_font_index = 0;
 	document.querySelector("#select_src_font").selectedIndex = src_selected_font_index;
@@ -423,7 +423,7 @@ if (localStorage.getItem("src_selected_font_index")) {
 
 if (localStorage.getItem("src_selected_font")) {
     src_selected_font = localStorage.getItem("src_selected_font");
-	console.log('localStorage.getItem("src_selected_font") =', src_selected_font);
+	console.log('localStorage.getItem("src_selected_font") = ', src_selected_font);
 	document.querySelector("#select_src_font").value = src_selected_font;
 } else {
 	src_selected_font = "Arial";
@@ -432,7 +432,7 @@ if (localStorage.getItem("src_selected_font")) {
 
 if (localStorage.getItem("src_font_size")) {
     src_font_size = localStorage.getItem("src_font_size");
-	console.log('localStorage.getItem("src_font_size") =', src_font_size);
+	console.log('localStorage.getItem("src_font_size") = ', src_font_size);
 	document.querySelector("#input_src_font_size").value = src_font_size;
 } else {
 	src_font_size = 18;
@@ -441,7 +441,7 @@ if (localStorage.getItem("src_font_size")) {
 
 if (localStorage.getItem("src_font_color")) {
 	src_font_color = localStorage.getItem("src_font_color");
-	console.log('localStorage.getItem("src_font_color") =', src_font_color);
+	console.log('localStorage.getItem("src_font_color") = ', src_font_color);
 	document.querySelector("#input_src_font_color").value = src_font_color;
 } else {
 	src_font_color = "#ffff00";
@@ -450,7 +450,7 @@ if (localStorage.getItem("src_font_color")) {
 
 if (localStorage.getItem("src_container_width_factor")) {
 	src_container_width_factor = localStorage.getItem("src_container_width_factor");
-	console.log('localStorage.getItem("src_container_width_factor") =', src_container_width_factor);
+	console.log('localStorage.getItem("src_container_width_factor") = ', src_container_width_factor);
 	document.querySelector("#input_src_container_width_factor").value = src_container_width_factor;
 } else {
 	src_container_width_factor = 0.8;
@@ -459,7 +459,7 @@ if (localStorage.getItem("src_container_width_factor")) {
 
 if (localStorage.getItem("src_container_height_factor")) {
 	src_container_height_factor = localStorage.getItem("src_container_height_factor");
-	console.log('localStorage.getItem("src_container_height_factor") =', src_container_height_factor);
+	console.log('localStorage.getItem("src_container_height_factor") = ', src_container_height_factor);
 	document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
 } else {
 	src_container_height_factor = 0.15;
@@ -468,7 +468,7 @@ if (localStorage.getItem("src_container_height_factor")) {
 
 if (localStorage.getItem("src_container_top_factor")) {
 	src_container_top_factor = localStorage.getItem("src_container_top_factor");
-	console.log('localStorage.getItem("src_container_top_factor") =', src_container_top_factor);
+	console.log('localStorage.getItem("src_container_top_factor") = ', src_container_top_factor);
 	document.querySelector("#input_src_container_top_factor").value = src_container_top_factor;
 } else {
 	src_container_top_factor = 0.02;
@@ -478,7 +478,7 @@ if (localStorage.getItem("src_container_top_factor")) {
 if (localStorage.getItem("centerize_src")) {
 	centerize_src = localStorage.getItem("centerize_src");
 	document.querySelector("#checkbox_centerize_src").checked = centerize_src;
-	console.log('localStorage.getItem("centerize_src") =', centerize_src);
+	console.log('localStorage.getItem("centerize_src") = ', centerize_src);
 } else {
 	centerize_src = true;
 	document.querySelector("#checkbox_centerize_src").checked = centerize_src;
@@ -486,7 +486,7 @@ if (localStorage.getItem("centerize_src")) {
 
 if (localStorage.getItem("src_container_left_factor")) {
 	src_container_left_factor = localStorage.getItem("src_container_left_factor");
-	console.log('localStorage.getItem("src_container_left_factor") =', src_container_left_factor);
+	console.log('localStorage.getItem("src_container_left_factor") = ', src_container_left_factor);
 	document.querySelector("#input_src_container_left_factor").value = src_container_left_factor;
 } else {
 	src_container_left_factor = 0.1;
@@ -495,7 +495,7 @@ if (localStorage.getItem("src_container_left_factor")) {
 
 if (localStorage.getItem("src_container_color")) {
 	src_container_color = localStorage.getItem("src_container_color");
-	console.log('localStorage.getItem("src_container_color") =', src_container_color);
+	console.log('localStorage.getItem("src_container_color") = ', src_container_color);
 	document.querySelector("#input_src_container_color").value = src_container_color;
 } else {
 	src_container_color = "#000000";
@@ -504,7 +504,7 @@ if (localStorage.getItem("src_container_color")) {
 
 if (localStorage.getItem("src_container_opacity")) {
 	src_container_opacity = localStorage.getItem("src_container_opacity");
-	console.log('localStorage.getItem("src_container_opacity") =', src_container_opacity);
+	console.log('localStorage.getItem("src_container_opacity") = ', src_container_opacity);
 	document.querySelector("#input_src_container_opacity").value = src_container_opacity;
 } else {
 	src_container_opacity = "0.3";
@@ -514,9 +514,9 @@ if (localStorage.getItem("src_container_opacity")) {
 
 if (localStorage.getItem("dst_selected_font_index")) {
 	dst_selected_font_index = localStorage.getItem("dst_selected_font_index");
-	console.log('localStorage.getItem("dst_selected_font_index") =', dst_selected_font_index);
+	console.log('localStorage.getItem("dst_selected_font_index") = ', dst_selected_font_index);
 	document.querySelector("#select_dst_font").selectedIndex = dst_selected_font_index;
-	console.log('select_dst_font.selectedIndex =', document.querySelector("#select_dst_font").selectedIndex);
+	console.log('select_dst_font.selectedIndex = ', document.querySelector("#select_dst_font").selectedIndex);
 } else {
 	dst_selected_font_index = 0;
 	document.querySelector("#select_dst_font").selectedIndex = dst_selected_font_index;
@@ -524,7 +524,7 @@ if (localStorage.getItem("dst_selected_font_index")) {
 
 if (localStorage.getItem("dst_selected_font")) {
     dst_selected_font = localStorage.getItem("dst_selected_font");
-	console.log('localStorage.getItem("dst_selected_font") =', dst_selected_font);
+	console.log('localStorage.getItem("dst_selected_font") = ', dst_selected_font);
 	document.querySelector("#select_dst_font").value = dst_selected_font;
 } else {
 	dst_selected_font = "Arial";
@@ -533,7 +533,7 @@ if (localStorage.getItem("dst_selected_font")) {
 
 if (localStorage.getItem("dst_font_size")) {
     dst_font_size = localStorage.getItem("dst_font_size");
-	console.log('localStorage.getItem("dst_font_size") =', dst_font_size);
+	console.log('localStorage.getItem("dst_font_size") = ', dst_font_size);
 	document.querySelector("#input_dst_font_size").value = dst_font_size;
 } else {
 	dst_font_size = 18;
@@ -542,7 +542,7 @@ if (localStorage.getItem("dst_font_size")) {
 
 if (localStorage.getItem("dst_font_color")) {
 	dst_font_color = localStorage.getItem("dst_font_color");
-	console.log('localStorage.getItem("dst_font_color") =', dst_font_color);
+	console.log('localStorage.getItem("dst_font_color") = ', dst_font_color);
 	document.querySelector("#input_dst_font_color").value = dst_font_color;
 } else {
 	dst_font_color = "#ffff00";
@@ -551,7 +551,7 @@ if (localStorage.getItem("dst_font_color")) {
 
 if (localStorage.getItem("dst_container_width_factor")) {
 	dst_container_width_factor = localStorage.getItem("dst_container_width_factor");
-	console.log('localStorage.getItem("dst_container_width_factor") =', dst_container_width_factor);
+	console.log('localStorage.getItem("dst_container_width_factor") = ', dst_container_width_factor);
 	document.querySelector("#input_dst_container_width_factor").value = dst_container_width_factor;
 } else {
 	dst_container_width_factor = 0.8;
@@ -560,7 +560,7 @@ if (localStorage.getItem("dst_container_width_factor")) {
 
 if (localStorage.getItem("dst_container_height_factor")) {
 	dst_container_height_factor = localStorage.getItem("dst_container_height_factor");
-	console.log('localStorage.getItem("dst_container_height_factor") =', dst_container_height_factor);
+	console.log('localStorage.getItem("dst_container_height_factor") = ', dst_container_height_factor);
 	document.querySelector("#input_dst_container_height_factor").value = dst_container_height_factor;
 } else {
 	dst_container_height_factor = 0.15;
@@ -569,7 +569,7 @@ if (localStorage.getItem("dst_container_height_factor")) {
 
 if (localStorage.getItem("dst_container_top_factor")) {
 	dst_container_top_factor = localStorage.getItem("dst_container_top_factor");
-	console.log('localStorage.getItem("dst_container_top_factor") =', dst_container_top_factor);
+	console.log('localStorage.getItem("dst_container_top_factor") = ', dst_container_top_factor);
 	document.querySelector("#input_dst_container_top_factor").value = dst_container_top_factor;
 } else {
 	dst_container_top_factor = 0.65;
@@ -579,7 +579,7 @@ if (localStorage.getItem("dst_container_top_factor")) {
 if (localStorage.getItem("centerize_dst")) {
 	centerize_dst = localStorage.getItem("centerize_dst");
 	document.querySelector("#checkbox_centerize_dst").checked = centerize_dst;
-	console.log('localStorage.getItem("centerize_dst") =', centerize_dst);
+	console.log('localStorage.getItem("centerize_dst") = ', centerize_dst);
 } else {
 	centerize_dst = true;
 	document.querySelector("#checkbox_centerize_dst").checked = centerize_dst;
@@ -587,7 +587,7 @@ if (localStorage.getItem("centerize_dst")) {
 
 if (localStorage.getItem("dst_container_left_factor")) {
 	dst_container_left_factor = localStorage.getItem("dst_container_left_factor");
-	console.log('localStorage.getItem("dst_container_left_factor") =', dst_container_left_factor);
+	console.log('localStorage.getItem("dst_container_left_factor") = ', dst_container_left_factor);
 	document.querySelector("#input_dst_container_left_factor").value = dst_container_left_factor;
 } else {
 	dst_container_left_factor = 0.1;
@@ -596,7 +596,7 @@ if (localStorage.getItem("dst_container_left_factor")) {
 
 if (localStorage.getItem("dst_container_color")) {
 	dst_container_color = localStorage.getItem("dst_container_color");
-	console.log('localStorage.getItem("dst_container_color") =', dst_container_color);
+	console.log('localStorage.getItem("dst_container_color") = ', dst_container_color);
 	document.querySelector("#input_dst_container_color").value = dst_container_color;
 } else {
 	dst_container_color = "#000000";
@@ -605,7 +605,7 @@ if (localStorage.getItem("dst_container_color")) {
 
 if (localStorage.getItem("dst_container_opacity")) {
 	dst_container_opacity = localStorage.getItem("dst_container_opacity");
-	console.log('localStorage.getItem("dst_container_opacity") =', dst_container_opacity);
+	console.log('localStorage.getItem("dst_container_opacity") = ', dst_container_opacity);
 	document.querySelector("#input_dst_container_opacity").value = dst_container_opacity;
 } else {
 	dst_container_opacity = "0.3";
@@ -614,7 +614,7 @@ if (localStorage.getItem("dst_container_opacity")) {
 
 if (localStorage.getItem("pause_threshold")) {
 	pause_threshold = localStorage.getItem("pause_threshold");
-	console.log('localStorage.getItem("pause_threshold") =', pause_threshold);
+	console.log('localStorage.getItem("pause_threshold") = ', pause_threshold);
     document.querySelector("#input_pause_threshold").value = pause_threshold;
 } else {
 	document.querySelector("#input_pause_threshold").value = 5000;
@@ -625,38 +625,38 @@ if (localStorage.getItem("pause_threshold")) {
 // Add event listeners for changes in languages and translation select input
 document.querySelector("#select_src_language").addEventListener('change', function(){
 	update_src_country()
-	console.log('document.querySelector("#select_src_language") on change: src =', src);
-	//console.log('document.querySelector("#select_src_language") on change: src_language_index =', src_language_index);
+	console.log('document.querySelector("#select_src_language") on change: src = ', src);
+	//console.log('document.querySelector("#select_src_language") on change: src_language_index = ', src_language_index);
 	localStorage.setItem("src_language_index", src_language_index);
 });
 
 document.querySelector("#select_src_dialect").addEventListener('change', function(){
 	src_dialect = document.querySelector("#select_src_dialect").value;
-	//console.log('document.querySelector("#select_src_dialect") on change: document.querySelector("#select_src_dialect").value =', document.querySelector("#select_src_dialect").value);
-	console.log('document.querySelector("#select_src_dialect") on change: src_dialect =', src_dialect);
+	//console.log('document.querySelector("#select_src_dialect") on change: document.querySelector("#select_src_dialect").value = ', document.querySelector("#select_src_dialect").value);
+	console.log('document.querySelector("#select_src_dialect") on change: src_dialect = ', src_dialect);
 	localStorage.setItem("src_dialect", src_dialect);
 	localStorage.setItem("src_dialect_index", src_dialect_index);
 });
 
 document.querySelector("#select_dst_language").addEventListener('change', function(){
 	update_dst_country();
-	console.log('document.querySelector("#select_dst_language") on change: dst =', dst);
-	//console.log('document.querySelector("#select_dst_language") on change:dst_language_index =', dst_language_index);
+	console.log('document.querySelector("#select_dst_language") on change: dst = ', dst);
+	//console.log('document.querySelector("#select_dst_language") on change:dst_language_index = ', dst_language_index);
 	localStorage.setItem("dst_language_index", dst_language_index);
 });
 
 document.querySelector("#select_dst_dialect").addEventListener('change', function(){
-	console.log('document.querySelector("#select_dst_dialect") on change: dst =', dst);
+	console.log('document.querySelector("#select_dst_dialect") on change: dst = ', dst);
 	dst_dialect = document.querySelector("#select_dst_dialect").value;
-	console.log('document.querySelector("#select_dst_dialect") on change: document.querySelector("#select_dst_dialect").value =', document.querySelector("#select_dst_dialect").value);
-	console.log('document.querySelector("#select_dst_dialect") on change: dst_dialect =', dst_dialect);
+	console.log('document.querySelector("#select_dst_dialect") on change: document.querySelector("#select_dst_dialect").value = ', document.querySelector("#select_dst_dialect").value);
+	console.log('document.querySelector("#select_dst_dialect") on change: dst_dialect = ', dst_dialect);
 	localStorage.setItem("dst_dialect", dst_dialect);
 	localStorage.setItem("dst_dialect_index", dst_dialect_index);
 });
 
 document.querySelector("#checkbox_show_src").addEventListener('change', function(){
 	show_src = document.querySelector("#checkbox_show_src").checked;
-	console.log('document.querySelector("#checkbox_show_src") on change: show_src =', show_src);
+	console.log('document.querySelector("#checkbox_show_src") on change: show_src = ', show_src);
 	if (!show_src) {
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 	}
@@ -665,7 +665,7 @@ document.querySelector("#checkbox_show_src").addEventListener('change', function
 
 document.querySelector("#checkbox_show_dst").addEventListener('change', function(){
 	show_dst = document.querySelector("#checkbox_show_dst").checked;
-	console.log('document.querySelector("#checkbox_show_dst") on change: show_dst =', show_dst);
+	console.log('document.querySelector("#checkbox_show_dst") on change: show_dst = ', show_dst);
 	if (!show_dst) {
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 	}
@@ -674,7 +674,7 @@ document.querySelector("#checkbox_show_dst").addEventListener('change', function
 
 document.querySelector("#checkbox_show_timestamp_src").addEventListener('change', function(){
 	show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
-	console.log('document.querySelector("#checkbox_show_timestamp_src") on change: show_timestamp_src =', show_timestamp_src);
+	console.log('document.querySelector("#checkbox_show_timestamp_src") on change: show_timestamp_src = ', show_timestamp_src);
 	if (!show_timestamp_src) {
 		if (document.querySelector("#src_textarea_container")) {
 			var src_text = document.querySelector("#src_textarea").value;
@@ -688,7 +688,7 @@ document.querySelector("#checkbox_show_timestamp_src").addEventListener('change'
 
 document.querySelector("#checkbox_show_timestamp_dst").addEventListener('change', function(){
 	show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
-	console.log('document.querySelector("#checkbox_show_timestamp_dst") on change: show_timestamp_dst =', show_timestamp_dst);
+	console.log('document.querySelector("#checkbox_show_timestamp_dst") on change: show_timestamp_dst = ', show_timestamp_dst);
 	if (!show_timestamp_dst) {
 		if (document.querySelector("#dst_textarea_container")) {
 			var dst_text = document.querySelector("#dst_textarea").value;
@@ -756,7 +756,7 @@ document.querySelector("#input_dst_container_opacity").addEventListener("change"
 // Add event listeners for changes in pause threshold input
 document.querySelector("#input_pause_threshold").addEventListener('change', function(){
 	pause_threshold = document.querySelector("#input_pause_threshold").value;
-	console.log('document.querySelector("#input_pause_threshold") on change: pause_threshold =', pause_threshold);
+	console.log('document.querySelector("#input_pause_threshold") on change: pause_threshold = ', pause_threshold);
 	localStorage.setItem("pause_threshold", pause_threshold);
 });
 
@@ -778,7 +778,7 @@ if (document.querySelector("#my_yt_iframe")) {
 
 	window.onresize = (function(){
 		if (document.querySelector("#my_yt_iframe")) {
-			document.querySelector("#my_yt_iframe").style.position='absolute';
+			document.querySelector("#my_yt_iframe").style.position = 'absolute';
 			document.querySelector("#my_yt_iframe").style.width = '100%';
 			document.querySelector("#my_yt_iframe").style.height = '100%';
 		}
@@ -791,7 +791,7 @@ if (document.querySelector("#my_video")) {
 
 	window.onresize = (function(){
 		if (document.querySelector("#my_video")) {
-			document.querySelector("#my_video").style.position='absolute';
+			document.querySelector("#my_video").style.position = 'absolute';
 			document.querySelector("#my_video").style.width = '100%';
 			document.querySelector("#my_video").style.height = '100%';
 		}
@@ -804,7 +804,7 @@ if (document.querySelector("#videojs-flvjs-player")) {
 
 	window.onresize = (function(){
 		if (document.querySelector("#videojs-flvjs-player")) {
-			document.querySelector("#videojs-flvjs-player").style.position='absolute';
+			document.querySelector("#videojs-flvjs-player").style.position = 'absolute';
 			document.querySelector("#videojs-flvjs-player").style.width = '100%';
 			document.querySelector("#videojs-flvjs-player").style.height = '100%';
 		}
@@ -840,14 +840,14 @@ document.querySelector("#embed_button").addEventListener('click', function(){
 
 document.querySelector("#start_button").addEventListener('click', function(){
 	session_start_time = formatTimestamp(new Date());
-	//console.log('session_start_time =', session_start_time);
+	//console.log('session_start_time = ', session_start_time);
 	startButton(event);
 });
 
 
 
 // RECOGNITION CORE
-console.log('Initializing recognition: recognizing =', recognizing);
+console.log('Initializing recognition: recognizing = ', recognizing);
 var final_transcript = '';
 var interim_transcript = '';
 if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
@@ -862,8 +862,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
     recognition.continuous = true;
     recognition.interimResults = true;
 	recognition.lang = src_dialect;
-	console.log('Initializing recognition: src_dialect =', src_dialect);
-	console.log('Initializing recognition: recognition.lang =', recognition.lang);
+	console.log('Initializing recognition: src_dialect = ', src_dialect);
+	console.log('Initializing recognition: recognition.lang = ', recognition.lang);
 
 	recognition.onstart = function() {
 		final_transcript = '';
@@ -878,10 +878,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			document.querySelector("#start_img").src = 'images/mic.gif';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
-			console.log('recognition.onstart: stopping because recognizing =', recognizing);
+			console.log('recognition.onstart: stopping because recognizing = ', recognizing);
 			return;
 		} else {
-			console.log('recognition.onstart: recognizing =', recognizing);
+			console.log('recognition.onstart: recognizing = ', recognizing);
 			recognition.lang = src_dialect;
 			document.querySelector("#start_img").src = 'images/mic-animate.gif';
 		}
@@ -893,19 +893,19 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 
-		if (event.error == 'no-speech') {
+		if (event.error === 'no-speech') {
             document.querySelector("#start_img").src = 'images/mic.gif';
-			console.log('recognition.no-speech: recognizing =', recognizing);
+			console.log('recognition.no-speech: recognizing = ', recognizing);
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 		}
-		if (event.error == 'audio-capture') {
+		if (event.error === 'audio-capture') {
             document.querySelector("#start_img").src = 'images/mic.gif';
 			alert('No microphone was found, ensure that a microphone is installed and that microphone settings are configured correctly');
-			console.log('recognition.audio-capture: recognizing =', recognizing);
+			console.log('recognition.audio-capture: recognizing = ', recognizing);
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 		}
-		if (event.error == 'not-allowed') {
+		if (event.error === 'not-allowed') {
 			if (Date.now() - start_timestamp < 100) {
 				alert('Permission to use microphone is blocked, go to chrome://settings/contentExceptions#media-stream to change it');
 			} else {
@@ -913,22 +913,24 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			}
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
-			console.log('recognition.not-allowed: recognizing =', recognizing);
+			console.log('recognition.not-allowed: recognizing = ', recognizing);
 		}
 	};
 
 	recognition.onend = function() {
+		session_end_time = formatTimestamp(new Date());
+		//console.log('session_end_time = ', session_end_time);
 		final_transcript='';
 		interim_transcript='';
 
-		session_end_time = formatTimestamp(new Date());
-		//console.log('session_end_time =', session_end_time);
-
 		if (!recognizing) {
+			final_transcript = '';
+			interim_transcript = '';
+
 			document.querySelector("#start_img").src = 'images/mic.gif';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
-			console.log('recognition.onend: stopping because recognizing =', recognizing);
+			console.log('recognition.onend: stopping because recognizing = ', recognizing);
 
 			var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
 			if (t) {
@@ -941,11 +943,16 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				// Join the unique lines back into a single string
 				var uniqueText;
 				var newUniqueLines = [];
-				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
+				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s*: /g;
 
-				if (uniqueLines.length===1 && uniqueLines[0] != '' && uniqueLines[0] != 'undefined') {
-					//console.log('uniqueLines.length===1');
-					const timestamps = uniqueLines[0].match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+				console.log('uniqueLines.length = ', uniqueLines.length);
+				console.log('uniqueLines[0] = ', uniqueLines[0]);
+				console.log('uniqueLines[uniqueLines.length - 1] = ', uniqueLines[uniqueLines.length - 1]);
+				console.log('timestamps.test(uniqueLines[uniqueLines.length - 1] = ', timestamps.test(uniqueLines[uniqueLines.length - 1]));
+
+				if (uniqueLines.length === 1 && uniqueLines[0] != '' && uniqueLines[0] != 'undefined') {
+					console.log('uniqueLines.length === 1');
+					//const timestamps = uniqueLines[0].match(/\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}/g);
 					if (!timestamps) {
 						var lastUniqueLines = `${session_start_time} ${timestamp_separator} ${session_end_time} : ${uniqueLines[0]}`;
 						console.log('lastUniqueLines = ', lastUniqueLines);
@@ -954,56 +961,86 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						uniqueText = uniqueText + '\n';
 					}
 				}
-				else if (uniqueLines.length>1 && uniqueLines[uniqueLines.length-1] != '' && !timestamps.test(uniqueLines[uniqueLines.length-1])) {
-					//console.log('uniqueLines.length>1');
-					var lastUniqueLines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${uniqueLines[uniqueLines.length-1]}`;
+				else if (uniqueLines.length > 1 && uniqueLines[uniqueLines.length - 1] != '' && !timestamps.test(uniqueLines[uniqueLines.length - 1])) {
+					console.log('uniqueLines.length > 1');
+					var lastUniqueLines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${uniqueLines[uniqueLines.length - 1]}`;
 					//console.log('lastUniqueLines = ', lastUniqueLines);
-					uniqueLines[uniqueLines.length-1] = lastUniqueLines;
-					for (var i=0; i<uniqueLines.length; i++) {
+					uniqueLines[uniqueLines.length - 1] = lastUniqueLines;
+					for (var i = 0; i < uniqueLines.length; i++) {
 						newUniqueLines.push(uniqueLines[i]);
 					}
 					//console.log('newUniqueLines = ', newUniqueLines);
 					uniqueText = newUniqueLines.join('\n');
 					uniqueText = uniqueText + '\n';
 				}
-				else if (uniqueLines.length>1 && uniqueLines[uniqueLines.length-1] != '' && timestamps.test(uniqueLines[uniqueLines.length-1])) {
-					//console.log('uniqueLines.length>1 && timestamps.test(uniqueLines[uniqueLines.length-1]');
+				else if (uniqueLines.length > 1 && uniqueLines[uniqueLines.length - 1] != '' && timestamps.test(uniqueLines[uniqueLines.length - 1])) {
+					console.log('uniqueLines.length > 1 && timestamps.test(uniqueLines[uniqueLines.length - 1] === true');
 					uniqueText = uniqueLines.join('\n');
 					uniqueText = uniqueText + '\n';
 				}
 
-				//if (uniqueText) saveTranscript(uniqueText);
-				if (show_timestamp_src) {
-					if (uniqueText) saveTranscript(uniqueText);
-				} else {
-					if (uniqueText) saveTranscript(removeTimestamps(uniqueText));
+				// SAVING TRANSCRIPTIONS
+				if (uniqueText) {
+					uniqueText = uniqueText.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+					uniqueText = removeEmptySentences(uniqueText);
+					uniqueText = uniqueText + '\n';
+					//console.log('uniqueText = ', uniqueText);
+
+					if (show_timestamp_src) {
+						saveTranscript(uniqueText);
+					} else {
+						saveTranscript(removeTimestamps(uniqueText));
+					}
 				}
 
-				formatted_all_final_transcripts = '';
-				all_final_transcripts = [];
 
-				if (uniqueText) var tt=gtranslate(uniqueText,src,dst).then((result => {
+				// SAVING TRANSLATIONS
+				if (uniqueText) var tt = gtranslate(uniqueText, src, dst).then((result => {
 					//console.log('result = ', result);
-					result = result.replace();
 					result = result.replace(/(\d+),(\d+)/g, '$1.$2');
+
 					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+					result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+
 					result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+					result = result.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
+
 					result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
+					result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
+
 					result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+
 					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+					result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+
+					result = result.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+					result = result.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+					result = result.replace('.,', '.');
+					result = result.replace(',.', ',');
+					result = result.replace('. .', '.');
+
 					result = capitalizeSentences(result);
 					result = formatText(result);
+
 					result = result.replace(/\n\s*$/, '');
+
 					timestamped_translated_final_and_interim_transcript = result + "\n";
 					//console.log('timestamped_translated_final_and_interim_transcript = ', timestamped_translated_final_and_interim_transcript);
 
-					//if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
-					if (show_timestamp_dst) {
-						if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
-					} else {
-						if (timestamped_translated_final_and_interim_transcript) saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+					if (timestamped_translated_final_and_interim_transcript) {
+						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+						timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
+						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript + "\n"
+
+						if (show_timestamp_dst) {
+							saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+						} else {
+							saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+						}
 					}
-					
+
 					formatted_all_translated_transcripts = '';
 					all_translated_transcripts = [];
 					timestamped_translated_final_and_interim_transcript = '';
@@ -1017,7 +1054,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			return;
 
 		} else {
-			console.log('recognition.onend: keep recognizing because recognizing =', recognizing);
+			console.log('recognition.onend: keep recognizing because recognizing = ', recognizing);
 			recognition.start();
 			start_timestamp = Date.now();
 			translate_time =  Date.now();
@@ -1025,8 +1062,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onresult = function(event) {
-		//console.log('recognition.onresult: recognizing =', recognizing);
-		//console.log('document.querySelector("#src_textarea_container").style.display =', document.querySelector("#src_textarea_container").style.display);
+		//console.log('recognition.onresult: recognizing = ', recognizing);
+		//console.log('document.querySelector("#src_textarea_container").style.display = ', document.querySelector("#src_textarea_container").style.display);
 		resetPauseTimeout();
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
@@ -1035,18 +1072,18 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
         update_src_country();
         update_dst_country();
 
-        var interim_transcript = '';
+        //var interim_transcript = '';
 
 		if (!recognizing) {
-			final_transcript='';
-			interim_transcript='';
+			final_transcript = '';
+			interim_transcript = '';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
-			console.log('recognition.onresult: stopping because recognizing =', recognizing);
+			console.log('recognition.onresult: stopping because recognizing = ', recognizing);
 			return;
 
 		} else {
-			recognition.lang=src_dialect;
+			recognition.lang = src_dialect;
 			var interim_transcript = '';
 
 			for (var i = event.resultIndex; i < event.results.length; ++i) {
@@ -1084,15 +1121,21 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
 
 
-			//console.log('show_src =', show_src);
+			//console.log('show_src = ', show_src);
 			if (show_src) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
 
-				var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
-				//console.log('t = ', t);
-				if (t) {
+				//var displayed_transcript = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
+				var displayed_transcript;
+				if (formatted_all_final_transcripts) {
+					displayed_transcript = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
+				} else {
+					displayed_transcript = timestamped_final_and_interim_transcript;
+				}
+				//console.log('displayed_transcript = ', displayed_transcript);
+				if (displayed_transcript) {
 					// Split text into an array of lines
-					var lines = t.trim().split('\n');
+					var lines = displayed_transcript.trim().split('\n');
 					// Use a Set to filter out duplicate lines
 					var uniqueLines = [...new Set(lines)];
 					// Join the unique lines back into a single string
@@ -1114,62 +1157,100 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			}
 
-			//console.log('show_dst =', show_dst);
+			//console.log('show_dst = ', show_dst);
 			if (show_dst) {
-				//console.log('dst =', dst);
+				//console.log('dst = ', dst);
 				//var t = uniqueText;
 				var t = timestamped_final_and_interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
-					if (t) var tt=gtranslate(t,src,dst).then((result => {
+					//console.log('t = ', t);
+					if (t) var tt = gtranslate(t,src,dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
+
 						result = result.replace(/(\d+),(\d+)/g, '$1.$2');
+
 						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+
 						result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-						result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+						result = result.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
+
 						result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
+						result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{4})/g, '$1-$2-$3');
+
 						result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+
 						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+
+						result = result.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
+
+						result = result.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+						result = result.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+						result = result.replace(/ (\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/g, /(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/);
+						result = result.replace(/ (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/g, /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/);
+
+						result = result.replace('.,', '.');
+						result = result.replace(',.', ',');
+						result = result.replace('. .', '.');
+
 						result = capitalizeSentences(result);
 						result = formatText(result);
+
 						result = result.replace(/\n\s*$/, '');
 
-						const timestamps = result.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+						var timestamps = result.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
+						//console.log('transcript_is_final = ', transcript_is_final);
 						if (transcript_is_final) {
+						//if (result.includes(timestamps) && result.includes('.\n')) {
+							//console.log('transcript_is_final');
 							all_translated_transcripts.push(`${result}`);
 							//console.log('all_translated_transcripts = ', all_translated_transcripts);
 							formatted_all_translated_transcripts = all_translated_transcripts.join("");
 							//console.log('formatted_all_translated_transcripts = ', formatted_all_translated_transcripts);
-							var translated_lines = formatted_all_translated_transcripts.trim().split('\n');
-							var translated_uniqueLines = [...new Set(translated_lines)];
-							var translated_uniqueText = translated_uniqueLines.join('\n');
 						}
-						if (formatted_all_translated_transcripts) var tt = formatted_all_translated_transcripts;
-						//console.log('tt = ', tt);
-						if (tt) {
-							var translated_lines = tt.trim().split('\n');
+
+						//console.log('formatted_all_translated_transcripts = ', formatted_all_translated_transcripts);
+						if (formatted_all_translated_transcripts) {
+							var translated_lines = formatted_all_translated_transcripts.trim().split('\n');
 							var translated_uniqueLines = [...new Set(translated_lines)];
 							var translated_uniqueText = translated_uniqueLines.join('\n');
 							//console.log('translated_uniqueText = ', translated_uniqueText);
 						}
 
-						var displayed_translation = translated_uniqueText + result;
-						displayed_translation = formatText(displayed_translation);
+						var displayed_translation;
+						if (translated_uniqueText) {
+							displayed_translation = translated_uniqueText + result;
+						} else {
+							displayed_translation = result;
+						}
 
 						if (getFirstWord(displayed_translation).includes('undefined')) displayed_translation = displayed_translation.replace('undefined', '');
+						//console.log('displayed_translation = ', displayed_translation);
 
-						if (all_translated_transcripts.length == 1) {
-							if (show_timestamp_dst) {
-								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = result;
-							} else {
-								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(result);
-							}
+						var displayed_translation_lines = displayed_translation.trim().split('\n');
+						var displayed_translation_uniqueLines = [...new Set(displayed_translation_lines)];
+						var displayed_translation_uniqueText = displayed_translation_uniqueLines.join('\n');
+						displayed_translation = displayed_translation_uniqueText;
+						displayed_translation = capitalizeSentences(displayed_translation);
+						displayed_translation = formatText(displayed_translation);
+
+						var displayed_translation_lines = displayed_translation.trim().split('\n');
+						var displayed_translation_uniqueLines = [...new Set(displayed_translation_lines)];
+						var displayed_translation_uniqueText = displayed_translation_uniqueLines.join('\n');
+						displayed_translation = displayed_translation_uniqueText;
+
+						//displayed_translation = removeDuplicateLines(displayed_translation);
+
+						if (show_timestamp_dst) {
+							//console.log('displayed_translation = ', displayed_translation);
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
 						} else {
-							if (show_timestamp_dst) {
-								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
-							} else {
-								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
-							}
+							//console.log('removeTimestamps(displayed_translation) = ', removeTimestamps(displayed_translation));
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
 						}
+
 						//if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop = document.querySelector("#dst_textarea").scrollHeight;
 					}));
@@ -1178,12 +1259,12 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			} else {
 				if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			}
-			timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
+			if (document.querySelector("#dst_textarea")) timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
 		}
 	};
 
 	if (recognizing) {
-		console.log('starting recognition: recognizing =', recognizing);
+		console.log('starting recognition: recognizing = ', recognizing);
 		recognition.start();
 		start_timestamp = Date.now();
 		translate_time =  Date.now();
@@ -1227,58 +1308,58 @@ function getAvailableFonts() {
 
 function updateSubtitleText() {
 	src_selected_font_index = document.querySelector("#select_src_font").selectedIndex;
-	console.log('src_selected_font_index =', src_selected_font_index);
+	console.log('src_selected_font_index = ', src_selected_font_index);
 
     src_selected_font = document.querySelector("#select_src_font").value;
-	console.log('src_selected_font =', src_selected_font);
+	console.log('src_selected_font = ', src_selected_font);
 
     src_font_size = document.querySelector("#input_src_font_size").value;
-	console.log('src_font_size =', src_font_size);
+	console.log('src_font_size = ', src_font_size);
 
 	src_font_color = document.querySelector("#input_src_font_color").value;
-	console.log('src_font_color =', src_font_color);
+	console.log('src_font_color = ', src_font_color);
 
 	src_container_width_factor = document.querySelector("#input_src_container_width_factor").value;
-	console.log('src_container_width_factor =', src_container_width_factor);
+	console.log('src_container_width_factor = ', src_container_width_factor);
 
 	src_container_height_factor = document.querySelector("#input_src_container_height_factor").value;
-	console.log('src_container_height_factor =', src_container_height_factor);
+	console.log('src_container_height_factor = ', src_container_height_factor);
 
 	src_container_top_factor = document.querySelector("#input_src_container_top_factor").value;
-	console.log('src_container_top_factor =', src_container_top_factor);
+	console.log('src_container_top_factor = ', src_container_top_factor);
 
 	centerize_src = document.querySelector("#checkbox_centerize_src").checked;
-	console.log('centerize_src =', centerize_src);
+	console.log('centerize_src = ', centerize_src);
 
 	var textarea_rect = get_textarea_rect();
 	var video_info = getVideoPlayerInfo();
 	if (textarea_rect && video_info) {
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_left = textarea_rect.src_left;
-			console.log('textarea_rect.src_left =', textarea_rect.src_left);
+			console.log('textarea_rect.src_left = ', textarea_rect.src_left);
 			src_container_left_factor = (src_left - video_info.left)/video_info.width;
- 			console.log('src_container_left_factor =', src_container_left_factor);
+ 			console.log('src_container_left_factor = ', src_container_left_factor);
 			document.querySelector("#input_src_container_left_factor").value = src_container_left_factor;
 		} else {
 			src_container_left_factor = document.querySelector("#input_src_container_left_factor").value;
-			console.log('src_container_left_factor =', src_container_left_factor);
+			console.log('src_container_left_factor = ', src_container_left_factor);
 		}
 	} else if (textarea_rect && !video_info) {
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_container_left_factor = (window.innerWidth - 2*textarea_rect.src_left)/window.innerWidth
-			console.log('src_container_left_factor =', src_container_left_factor);
+			console.log('src_container_left_factor = ', src_container_left_factor);
 			document.querySelector("#input_src_container_left_factor").value = src_container_left_factor;
 		} else {
 			src_container_left_factor = document.querySelector("#input_src_container_left_factor").value;
-			console.log('src_container_left_factor =', src_container_left_factor);
+			console.log('src_container_left_factor = ', src_container_left_factor);
 		}
 	}
 
 	src_container_color = document.querySelector("#input_src_container_color").value;
-	console.log('src_container_color =', src_container_color);
+	console.log('src_container_color = ', src_container_color);
 
 	src_container_opacity = document.querySelector("#input_src_container_opacity").value;
-	console.log('src_container_opacity =', src_container_opacity);
+	console.log('src_container_opacity = ', src_container_opacity);
 
     localStorage.setItem("src_selected_font_index", src_selected_font_index);
 	localStorage.setItem("src_selected_font", src_selected_font);
@@ -1293,58 +1374,58 @@ function updateSubtitleText() {
 	localStorage.setItem("src_container_opacity", src_container_opacity);
 
 	dst_selected_font_index = document.querySelector("#select_dst_font").selectedIndex;
-	console.log('dst_selected_font_index =', dst_selected_font_index);
+	console.log('dst_selected_font_index = ', dst_selected_font_index);
 
     dst_selected_font = document.querySelector("#select_dst_font").value;
-	console.log('dst_selected_font =', dst_selected_font);
+	console.log('dst_selected_font = ', dst_selected_font);
 
     dst_font_size = document.querySelector("#input_dst_font_size").value;
-	console.log('dst_font_size =', dst_font_size);
+	console.log('dst_font_size = ', dst_font_size);
 
 	dst_font_color = document.querySelector("#input_dst_font_color").value;
-	console.log('dst_font_color =', dst_font_color);
+	console.log('dst_font_color = ', dst_font_color);
 
 	dst_container_width_factor = document.querySelector("#input_dst_container_width_factor").value;
-	console.log('dst_container_width_factor =', dst_container_width_factor);
+	console.log('dst_container_width_factor = ', dst_container_width_factor);
 
 	dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
-	console.log('dst_container_height_factor =', dst_container_height_factor);
+	console.log('dst_container_height_factor = ', dst_container_height_factor);
 
 	dst_container_top_factor = document.querySelector("#input_dst_container_top_factor").value;
-	console.log('dst_container_top_factor =', dst_container_top_factor);
+	console.log('dst_container_top_factor = ', dst_container_top_factor);
 
 	centerize_dst = document.querySelector("#checkbox_centerize_dst").checked;
-	console.log('centerize_dst =', centerize_dst);
+	console.log('centerize_dst = ', centerize_dst);
 
 	var textarea_rect = get_textarea_rect();
 	var video_info = getVideoPlayerInfo();
 	if (textarea_rect && video_info) {
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_left = textarea_rect.dst_left;
-			console.log('textarea_rect.dst_left =', textarea_rect.dst_left);
+			console.log('textarea_rect.dst_left = ', textarea_rect.dst_left);
 			dst_container_left_factor = (dst_left - video_info.left)/video_info.width;
-			console.log('dst_container_left_factor =', dst_container_left_factor);
+			console.log('dst_container_left_factor = ', dst_container_left_factor);
 			document.querySelector("#input_dst_container_left_factor").value = dst_container_left_factor;
 		} else {
 			dst_container_left_factor = document.querySelector("#input_dst_container_left_factor").value;
-			console.log('dst_container_left_factor =', dst_container_left_factor);
+			console.log('dst_container_left_factor = ', dst_container_left_factor);
 		}
 	} else if (textarea_rect && !video_info) {
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_container_left_factor = (window.innerWidth - 2*textarea_rect.dst_left)/window.innerWidth
-			console.log('dst_container_left_factor =', dst_container_left_factor);
+			console.log('dst_container_left_factor = ', dst_container_left_factor);
 			document.querySelector("#input_dst_container_left_factor").value = dst_container_left_factor;
 		} else {
 			dst_container_left_factor = document.querySelector("#input_dst_container_left_factor").value;
-			console.log('dst_container_left_factor =', dst_container_left_factor);
+			console.log('dst_container_left_factor = ', dst_container_left_factor);
 		}
 	}
 
 	dst_container_color = document.querySelector("#input_dst_container_color").value;
-	console.log('dst_container_color =', dst_container_color);
+	console.log('dst_container_color = ', dst_container_color);
 
 	dst_container_opacity = document.querySelector("#input_dst_container_opacity").value;
-	console.log('dst_container_opacity =', dst_container_opacity);
+	console.log('dst_container_opacity = ', dst_container_opacity);
 
     localStorage.setItem("dst_selected_font_index", dst_selected_font_index);
 	localStorage.setItem("dst_selected_font", dst_selected_font);
@@ -1366,33 +1447,33 @@ function update_src_country() {
     for (var i = document.querySelector("#select_src_dialect").options.length - 1; i >= 0; i--) {
         document.querySelector("#select_src_dialect").remove(i);
     }
-	//console.log('update_src_country(): document.querySelector("#select_src_language").selectedIndex =', document.querySelector("#select_src_language").selectedIndex);
+	//console.log('update_src_country(): document.querySelector("#select_src_language").selectedIndex = ', document.querySelector("#select_src_language").selectedIndex);
     var list = src_language[document.querySelector("#select_src_language").selectedIndex];
-	//console.log('src_language[document.querySelector("#select_src_language").selectedIndex]) =', src_language[document.querySelector("#select_src_language").selectedIndex]);
+	//console.log('src_language[document.querySelector("#select_src_language").selectedIndex]) = ', src_language[document.querySelector("#select_src_language").selectedIndex]);
     for (var i = 1; i < list.length; i++) {
         document.querySelector("#select_src_dialect").options.add(new Option(list[i][1], list[i][0]));
     }
-    document.querySelector("#select_src_dialect").style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
+    document.querySelector("#select_src_dialect").style.visibility = list[1].length === 1 ? 'hidden' : 'visible';
     src = document.querySelector("#select_src_dialect").value.split('-')[0];
 
-	if (src_dialect == "yue-Hant-HK") {
+	if (src_dialect === "yue-Hant-HK") {
 		src = "zh-TW";
 	}
-	if (src_dialect == "cmn-Hans-CN") {
+	if (src_dialect === "cmn-Hans-CN") {
 		src = "zh-CN";
 	}
-	if (src_dialect == "cmn-Hans-HK") {
+	if (src_dialect === "cmn-Hans-HK") {
 		src = "zh-CN";
 	}
-	if (src_dialect == "cmn-Hant-TW") {
+	if (src_dialect === "cmn-Hant-TW") {
 		src = "zh-TW";
 	}
 
 	src_language_index = document.querySelector("#select_src_language").selectedIndex;
 	//localStorage.setItem("src_language_index", src_language_index);
 	if (src_language[src_language_index].length>2) {
-		for (var j=0;j<document.querySelector("#select_src_dialect").length;j++) {
-			if (document.querySelector("#select_src_dialect")[j].value===src_dialect) {
+		for (var j = 0; j < document.querySelector("#select_src_dialect").length; j++) {
+			if (document.querySelector("#select_src_dialect")[j].value === src_dialect) {
 				src_dialect_index = j;
 				document.querySelector("#select_src_dialect").selectedIndex = src_dialect_index;
 				//localStorage.setItem("src_dialect_index", src_dialect_index);
@@ -1405,7 +1486,7 @@ function update_src_country() {
 	} else {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
 	};
-	//console.log('update_src_country(): src_dialect =', src_dialect);
+	//console.log('update_src_country(): src_dialect = ', src_dialect);
 }
 
 
@@ -1413,32 +1494,32 @@ function update_dst_country() {
     for (var j = document.querySelector("#select_dst_dialect").options.length - 1; j >= 0; j--) {
         document.querySelector("#select_dst_dialect").remove(j);
     }
-	//console.log('update_dst_country(): document.querySelector("#select_dst_language").selectedIndex =', document.querySelector("#select_dst_language").selectedIndex);
+	//console.log('update_dst_country(): document.querySelector("#select_dst_language").selectedIndex = ', document.querySelector("#select_dst_language").selectedIndex);
     var list = dst_language[document.querySelector("#select_dst_language").selectedIndex];
-	//console.log('dst_language[document.querySelector("#select_dst_language").selectedIndex]) =', dst_language[document.querySelector("#select_dst_language").selectedIndex]);
+	//console.log('dst_language[document.querySelector("#select_dst_language").selectedIndex]) = ', dst_language[document.querySelector("#select_dst_language").selectedIndex]);
     for (var j = 1; j < list.length; j++) {
         document.querySelector("#select_dst_dialect").options.add(new Option(list[j][1], list[j][0]));
     }
-    document.querySelector("#select_dst_dialect").style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
+    document.querySelector("#select_dst_dialect").style.visibility = list[1].length === 1 ? 'hidden' : 'visible';
     dst = document.querySelector("#select_dst_dialect").value.split('-')[0];
 
-	if (dst_dialect == "yue-Hant-HK") {
+	if (dst_dialect === "yue-Hant-HK") {
 		dst = "zh-TW";
 	}
-	if (dst_dialect == "cmn-Hans-CN") {
+	if (dst_dialect === "cmn-Hans-CN") {
 		dst = "zh-CN";
 	}
-	if (dst_dialect == "cmn-Hans-HK") {
+	if (dst_dialect === "cmn-Hans-HK") {
 		dst = "zh-CN";
 	}
-	if (dst_dialect == "cmn-Hant-TW") {
+	if (dst_dialect === "cmn-Hant-TW") {
 		dst = "zh-TW";
 	}
 
 	dst_language_index = document.querySelector("#select_dst_language").selectedIndex;
 	//localStorage.setItem("dst_language_index", dst_language_index);
 	if (dst_language[dst_language_index].length>2) {
-		for (var j=0;j<document.querySelector("#select_dst_dialect").length;j++) {
+		for (var j = 0; j<document.querySelector("#select_dst_dialect").length; j++) {
 			if (document.querySelector("#select_dst_dialect")[j].value===dst_dialect) {
 				dst_dialect_index = j;
 				document.querySelector("#select_dst_dialect").selectedIndex = dst_dialect_index;
@@ -1452,7 +1533,7 @@ function update_dst_country() {
 	} else {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
 	};
-	//console.log('update_dst_country(): dst_dialect =', dst_dialect);
+	//console.log('update_dst_country(): dst_dialect = ', dst_dialect);
 }
 
 const URL_String = {
@@ -1723,7 +1804,7 @@ function create_modal_text_area() {
 			document.querySelector("#checkbox_centerize_src").checked = false;
 		}
 
-		document.querySelector("#src_textarea").style.position='absolute';
+		document.querySelector("#src_textarea").style.position = 'absolute';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 
@@ -1756,7 +1837,7 @@ function create_modal_text_area() {
 			document.querySelector("#checkbox_centerize_src").checked = false;
 		}
 
-		document.querySelector("#src_textarea").style.position='absolute';
+		document.querySelector("#src_textarea").style.position = 'absolute';
 
 		video_info = getVideoPlayerInfo();
 		if (video_info) {
@@ -1839,7 +1920,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
 
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
-		document.querySelector("#dst_textarea").style.position='absolute';
+		document.querySelector("#dst_textarea").style.position = 'absolute';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 
@@ -1872,7 +1953,7 @@ function create_modal_text_area() {
 	});
 
 	document.querySelector("#dst_textarea").offsetParent.ondrag = (function(){
-		document.querySelector("#dst_textarea").style.position='absolute';
+		document.querySelector("#dst_textarea").style.position = 'absolute';
 
 		if (getRect(document.querySelector("#dst_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#dst_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_dst").checked = false;
@@ -1955,66 +2036,66 @@ function startButton(event) {
 		//console.log("Height:", video_info.height);
 
 		src_width = src_container_width_factor*video_info.width;
-		//console.log('src_width =', src_width);
+		//console.log('src_width = ', src_width);
 
 		src_height = src_container_height_factor*video_info.height;
-		//console.log('src_height =', src_width);
+		//console.log('src_height = ', src_width);
 
 		src_top = video_info.top + 0.02*video_info.height;
-		//console.log('src_top =', src_top);
+		//console.log('src_top = ', src_top);
 
 		src_left = video_info.left + 0.5*(video_info.width-src_width);
-		//console.log('src_left =', src_left);
+		//console.log('src_left = ', src_left);
 
 		dst_width = dst_container_width_factor*video_info.width;
-		//console.log('dst_width =', dst_width);
+		//console.log('dst_width = ', dst_width);
 		
 		dst_height = dst_container_height_factor*video_info.height;
-		//console.log('dst_height =', dst_height);
+		//console.log('dst_height = ', dst_height);
 
 		dst_top = video_info.top + 0.6*video_info.height;
-		//console.log('dst_top =', dst_top);
+		//console.log('dst_top = ', dst_top);
 
 		dst_left = video_info.left + 0.5*(video_info.width-dst_width);
-		//console.log('dst_left =', dst_left);
+		//console.log('dst_left = ', dst_left);
 
 	} else {
 		console.log("No video player found on this page.");
 
 		src_width = src_container_width_factor*window.innerWidth;
-		//console.log('src_width =', src_width);
+		//console.log('src_width = ', src_width);
 
 		src_height = src_container_height_factor*window.innerHeight;
-		//console.log('src_height =', src_width);
+		//console.log('src_height = ', src_width);
 
 		src_top = 0.25*window.innerHeight;
-		//console.log('src_top =', src_top);
+		//console.log('src_top = ', src_top);
 
 		src_left = 0.5*(window.innerWidth-src_width);
-		//console.log('src_left =', src_left);
+		//console.log('src_left = ', src_left);
 
 		dst_width = dst_container_width_factor*window.innerWidth;
-		//console.log('dst_width =', dst_width);
+		//console.log('dst_width = ', dst_width);
 		
 		dst_height = dst_container_height_factor*window.innerHeight;
-		//console.log('dst_height =', dst_height);
+		//console.log('dst_height = ', dst_height);
 
 		dst_top = 0.75*window.innerHeight;
-		//console.log('dst_top =', dst_top);
+		//console.log('dst_top = ', dst_top);
 
 		dst_left = 0.5*(window.innerWidth-dst_width);
-		//console.log('dst_left =', dst_left);
+		//console.log('dst_left = ', dst_left);
 	}
 
 	show_src = document.querySelector("#checkbox_show_src").checked;
 	show_dst = document.querySelector("#checkbox_show_dst").checked;
 	src_dialect = document.querySelector("#select_src_dialect").value;
 	dst_dialect = document.querySelector("#select_dst_dialect").value;
-	//console.log('src_dialect =', src_dialect);
-	//console.log('dst_dialect =', dst_dialect);
+	//console.log('src_dialect = ', src_dialect);
+	//console.log('dst_dialect = ', dst_dialect);
 
 	recognizing=!recognizing;
-	console.log('startButton clicked recognizing =', recognizing);
+	console.log('startButton clicked recognizing = ', recognizing);
 
 	if (!recognizing) {
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").parentElement.removeChild(document.querySelector("#src_textarea_container"));
@@ -2026,8 +2107,13 @@ function startButton(event) {
 
 	} else {
 		create_modal_text_area();
-		final_transcript='';
-		interim_transcript='';
+		final_transcript = '';
+		interim_transcript = '';
+		all_final_transcripts = []
+		formatted_all_final_transcripts = '';
+		all_translated_transcripts = []
+		formatted_all_translated_transcripts = '';
+		transcript_is_final = false;
 		recognition.lang = src_dialect;
 		start_timestamp = event.timeStamp;
 		translate_time = event.timeStamp;
@@ -2179,64 +2265,6 @@ function containsColon(sentence) {
 function containsSpaceCharacter(sentence) {
     // Check if the sentence includes the colon character
     return sentence.includes('\%20');
-}
-
-
-function capitalizeSentences(transcription) {
-	//console.log('transcription = ', transcription);
-
-    // Split the transcription into individual lines
-    const lines = transcription.split('\n');
-    
-    // Iterate over each line
-    for (let i = 0; i < lines.length; i++) {
-        // Split each line by colon to separate startTimestamp and sentence
-        const parts = lines[i].split(' : ');
-		//console.log('parts[0] = ', parts[0]);
-		//console.log('parts[1] = ', parts[1]);
-
-        // If the line is in the correct format (startTimestamp : sentence)
-        if (parts.length === 2) {
-            // Capitalize the first character of the sentence
-            const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
-
-            // Replace the original sentence with the capitalized one
-            lines[i] = parts[0] + ' : ' + capitalizedSentence;
-			//console.log('i = ', i );
-			//console.log('lines[i] = ', lines[i] );
-        }
-    }
-    
-    // Join the lines back into a single string and return
-	//console.log('lines.join("\n") = ', lines.join('\n'));
-    return lines.join('\n');
-}
-
-
-function formatText(text) {
-    // Replace URL-encoded spaces with regular spaces
-    text = text.replace(/%20/g, ' ');
-
-    // Match timestamps in the text
-    const timestamps = text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
-
-    if (timestamps) {
-        // Split the text based on timestamps
-        const lines = text.split(/(?=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/);
-
-        let formattedText = "";
-        for (let line of lines) {
-            // Replace the separator format in the timestamps
-            line = line.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) *--> *(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/, '$1 --> $2');
-            
-            // Add the formatted line to the result
-            formattedText += line.trim() + "\n";
-        }
-        
-        return formattedText.trim(); // Trim any leading/trailing whitespace from the final result
-    } else {
-        return text;
-    }
 }
 
 
@@ -2419,75 +2447,75 @@ function get_textarea_rect() {
 		//console.log("Height:", video_info.height);
 
 		src_width = document.querySelector("#input_src_container_width_factor").value*getRect(video_info.element).width;
-		//console.log('src_width =', src_width);
+		//console.log('src_width = ', src_width);
 
 		src_height = document.querySelector("#input_src_container_height_factor").value*getRect(video_info.element).height;
-		//console.log('src_height =', src_width);
+		//console.log('src_height = ', src_width);
 
 		src_top = getRect(video_info.element).top + document.querySelector("#input_src_container_top_factor").value*getRect(video_info.element).height;
-		//console.log('src_top =', src_top);
+		//console.log('src_top = ', src_top);
 
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_left = getRect(video_info.element).left + 0.5*(getRect(video_info.element).width-src_width);
-			//console.log('src_left =', src_left);
+			//console.log('src_left = ', src_left);
 		} else {
 			src_left = getRect(video_info.element).left + document.querySelector("#input_src_container_left_factor").value*getRect(video_info.element).width;
-			//console.log('src_left =', src_left);
+			//console.log('src_left = ', src_left);
 		}
 
 		dst_width = document.querySelector("#input_dst_container_width_factor").value*getRect(video_info.element).width;
-		//console.log('dst_width =', dst_width);
+		//console.log('dst_width = ', dst_width);
 
 		dst_height = document.querySelector("#input_dst_container_height_factor").value*getRect(video_info.element).height;
-		//console.log('dst_height =', dst_width);
+		//console.log('dst_height = ', dst_width);
 
 		dst_top = getRect(video_info.element).top + document.querySelector("#input_dst_container_top_factor").value*getRect(video_info.element).height;
-		//console.log('dst_top =', dst_top);
+		//console.log('dst_top = ', dst_top);
 
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_left = getRect(video_info.element).left + 0.5*(getRect(video_info.element).width-dst_width);
-			//console.log('dst_left =', dst_left);
+			//console.log('dst_left = ', dst_left);
 		} else {
 			dst_left = getRect(video_info.element).left + document.querySelector("#input_dst_container_left_factor").value*getRect(video_info.element).width;
-			//console.log('dst_left =', dst_left);
+			//console.log('dst_left = ', dst_left);
 		}
 
 	} else {
 		console.log("No video player found on this page");
 
 		src_width = document.querySelector("#input_src_container_width_factor").value*window.innerWidth;
-		//console.log('src_width =', src_width);
+		//console.log('src_width = ', src_width);
 
 		src_height = document.querySelector("#input_src_container_height_factor").value*window.innerHeight;
-		//console.log('src_height =', src_width);
+		//console.log('src_height = ', src_width);
 
 		src_top = document.querySelector("#input_src_container_top_factor").value*window.innerHeight;
-		//console.log('src_top =', src_top);
+		//console.log('src_top = ', src_top);
 
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_left = 0.5*(window.innerWidth-src_width);
-			//console.log('src_left =', src_left);
+			//console.log('src_left = ', src_left);
 		} else {
 			src_left = document.querySelector("#input_src_container_left_factor").value*window.innerWidth;
-			//console.log('src_left =', src_left);
+			//console.log('src_left = ', src_left);
 		}
 
 
 		dst_width = document.querySelector("#input_dst_container_width_factor").value*window.innerWidth;
-		//console.log('dst_width =', dst_width);
+		//console.log('dst_width = ', dst_width);
 
 		dst_height = document.querySelector("#input_dst_container_height_factor").value*window.innerHeight;
-		//console.log('dst_height =', dst_height);
+		//console.log('dst_height = ', dst_height);
 
 		dst_top = document.querySelector("#input_dst_container_top_factor").value*window.innerHeight;
-		//console.log('dst_top =', dst_top);
+		//console.log('dst_top = ', dst_top);
 
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_left = 0.5*(window.innerWidth-dst_width);
-			//console.log('dst_left =', dst_left);
+			//console.log('dst_left = ', dst_left);
 		} else {
 			dst_left = document.querySelector("#input_dst_container_left_factor").value*window.innerWidth;
-			//console.log('dst_left =', dst_left);
+			//console.log('dst_left = ', dst_left);
 		}
 	}
 
@@ -2510,7 +2538,7 @@ function getVideoPlayerInfo() {
 	var largestVideoElement = null;
 	var largestSize = 0;
 
-	for (var i=0; i<elements.length; i++) {
+	for (var i = 0; i<elements.length; i++) {
 		var rect = getRect(elements[i]);
 		//console.log('rect', rect);
 		if (rect.width > 0) {
@@ -2700,9 +2728,122 @@ function getFirstWord(sentence) {
     return words[0];
 }
 
+
 function removeTimestamps(transcript) {
-    var timestampPattern = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : /;
+    var timestampPattern = /(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /;
     var lines = transcript.split('\n');
     var cleanedLines = lines.map(line => line.replace(timestampPattern, ''));
     return cleanedLines.join('\n');
+}
+
+
+function capitalizeSentences(transcription) {
+	//console.log('transcription = ', transcription);
+
+    // Split the transcription into individual lines
+    const lines = transcription.split('\n');
+    
+    // Iterate over each line
+    for (let i = 0; i < lines.length; i++) {
+        lines[i] = lines[i].trim();
+		// Split each line by colon to separate startTimestamp and sentence
+        //const parts = lines[i].split(' : ');
+		const colon = lines[i].match(/\s*: /);
+		const parts = lines[i].split(colon);
+		//console.log('parts[0] = ', parts[0]);
+		//console.log('parts[1] = ', parts[1]);
+
+        // If the line is in the correct format (startTimestamp : sentence)
+        if (parts.length === 2) {
+            // Capitalize the first character of the sentence
+            const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
+
+            // Replace the original sentence with the capitalized one
+            //lines[i] = parts[0] + ' : ' + capitalizedSentence;
+			lines[i] = parts[0] + colon + capitalizedSentence;
+			//console.log('i = ', i );
+			//console.log('lines[i] = ', lines[i] );
+        }
+    }
+    
+    // Join the lines back into a single string and return
+	//console.log('lines.join("\n") = ', lines.join('\n'));
+    return lines.join('\n');
+}
+
+
+function formatText(text) {
+    // Replace URL-encoded spaces with regular spaces
+    text = text.replace(/%20/g, ' ');
+	text = text.trim();
+	text = text.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
+	text = text.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+	text = text.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+    // Match timestamps in the text
+    //const timestamps = text.match(/\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+	//const timestamps = text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+	const timestamps = text.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
+
+    if (timestamps) {
+        // Split the text based on timestamps
+        //const lines = text.split(/(?=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/);
+		const lines = text.split(timestamps);
+
+        let formattedText = "";
+        for (let line of lines) {
+            // Replace the separator format in the timestamps
+            //line = line.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) *--> *(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/, '$1 --> $2');
+			line = line.replace(timestamps, '$1 --> $2');
+            
+            // Add the formatted line to the result
+            formattedText += line.trim() + "\n";
+        }
+        
+        return formattedText.trim(); // Trim any leading/trailing whitespace from the final result
+    } else {
+        return text.trim();
+    }
+}
+
+
+function removeDuplicateLines(transcript) {
+    const lines = transcript.split('\n'); // Split the input into individual lines
+    const seen = {}; // Object to track unique lines
+    const result = [];
+
+    lines.forEach(line => {
+        const parts = line.split(' : '); // Split line into timestamp and sentence
+        if (parts.length === 2) {
+            const timestamp = parts[0].trim(); // Extract and trim the timestamp
+            const sentence = parts[1].trim(); // Extract and trim the sentence
+            const key = `${timestamp} : ${sentence}`; // Create a unique key
+
+            if (!seen[key]) { // Check if the key is already seen
+                seen[key] = true; // Mark the key as seen
+                result.push(line); // Add the unique line to the result
+            }
+        }
+    });
+
+    return result.join('\n'); // Join the unique lines back into a single string
+}
+
+
+function removeEmptyLines(transcript) {
+    // Split the transcript into individual lines
+    const lines = transcript.split('\n');
+    // Filter out empty lines and join the remaining lines back into a single string
+    const nonEmptyLines = lines.filter(line => line.trim() !== '');
+    return nonEmptyLines.join('\n');
+}
+
+
+function removeEmptySentences(transcript) {
+    const lines = transcript.split('\n'); // Split the input into individual lines
+    const result = lines.filter(line => {
+        const parts = line.split(' : '); // Split line into timestamp and sentence
+        return parts.length === 2 && parts[1].trim() !== ''; // Keep lines with non-empty sentences
+    });
+    return result.join('\n'); // Join the remaining lines back into a single string
 }

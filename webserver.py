@@ -2,85 +2,91 @@ import http.server
 import argparse
 import os
 import urllib.parse
+import json
+from PIL import Image
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Accept-Ranges', 'bytes')
         super().end_headers()
 
-    def send_head(self):
+    def do_GET(self):
         path = self.translate_path(self.path)
-        print(f"Translated path: {path}")  # Debug print
-        f = None
-        if 'Range' in self.headers:
-            self.range_request = True
-            self.range_header = self.headers['Range']
-            self.bytes_range = self.range_header.replace('bytes=', '').split('-')
-            self.start_byte = int(self.bytes_range[0])
-            self.end_byte = int(self.bytes_range[1]) if self.bytes_range[1] else None
-        else:
-            self.range_request = False
-
         if os.path.isdir(path):
-            # Serve index.html if it exists
-            index_path = os.path.join(path, 'index.html')
-            if os.path.exists(index_path):
-                path = index_path
+            if self.path.endswith('/jav'):
+                return self.list_directory_json(path)
             else:
-                print(f"Directory requested, serving directory listing: {path}")  # Debug print
-                return self.list_directory(path)
+                return self.serve_index(path)
+        else:
+            return super().do_GET()
 
-        ctype = self.guess_type(path)
+    def serve_index(self, path):
+        index_path = os.path.join(path, 'index.html')
+        if os.path.exists(index_path):
+            self.path = 'index.html'
+            return super().do_GET()
+        else:
+            return self.list_directory_json(path)
+
+    def list_directory_json(self, path):
+        if not os.path.isdir(path):
+            path += os.sep + 'jav'
         try:
-            f = open(path, 'rb')
-            fs = self.send_range(f) if self.range_request else self.send_file(f)
-            return fs
-        except OSError as e:
-            print(f"Error opening file: {e}")  # Debug print
-            self.send_error(404, "File not found")
+            directory_items = os.listdir(path)
+        except OSError:
+            self.send_error(404, "No permission to list directory")
             return None
-
-    def send_file(self, f):
+        directory_items.sort(key=lambda a: a.lower())
+        entries = []
+        for item in directory_items:
+            full_path = os.path.join(path, item)
+            if os.path.isdir(full_path):
+                item_type = "directory"
+                thumbnail_url = None
+            else:
+                item_type = "file"
+                if self.is_image_or_video(item):
+                    thumbnail_url = os.path.join('thumbnails', urllib.parse.quote(item) + '.thumbnail')
+                    self.generate_thumbnail(full_path, thumbnail_url)
+                else:
+                    thumbnail_url = None
+            entries.append({
+                "name": item,
+                "type": item_type,
+                "url": 'jav/' + urllib.parse.quote(item),
+                "thumbnail_url": thumbnail_url
+            })
         self.send_response(200)
-        self.send_header("Content-type", self.guess_type(f.name))
-        self.send_header("Content-Length", str(self.get_file_size(f)))
+        self.send_header("Content-type", "application/json")
         self.end_headers()
-        return f
+        response = json.dumps(entries).encode('utf-8')
+        self.wfile.write(response)
 
-    def send_range(self, f):
-        self.send_response(206)
-        self.send_header("Content-type", self.guess_type(f.name))
-        file_size = self.get_file_size(f)
-        if self.end_byte is None or self.end_byte >= file_size:
-            self.end_byte = file_size - 1
-        self.send_header("Content-Range", f"bytes {self.start_byte}-{self.end_byte}/{file_size}")
-        self.send_header("Content-Length", str(self.end_byte - self.start_byte + 1))
-        self.end_headers()
-        f.seek(self.start_byte)
-        return f
+    def is_image_or_video(self, filename):
+        image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
+        video_extensions = ('.mpg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi')
+        return filename.lower().endswith(image_extensions + video_extensions)
 
-    def get_file_size(self, f):
-        f.seek(0, 2)
-        file_size = f.tell()
-        f.seek(0)
-        return file_size
+    def generate_thumbnail(self, filepath, thumbnail_url):
+        thumbnail_path = os.path.join(self.directory, thumbnail_url)
+        os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+        try:
+            with Image.open(filepath) as img:
+                img.thumbnail((100, 100))
+                img.save(thumbnail_path)
+        except OSError:
+            pass  # Error handling for unsupported image types or corrupted files
 
     def translate_path(self, path):
-        # Decode the URL-encoded path
         path = urllib.parse.unquote(path)
-        # Get the directory this handler is set to serve
         directory = self.directory
-        # Remove the leading slash to prevent issues with os.path.join
         path = path.lstrip('/')
-        # Join the directory and the path
         full_path = os.path.join(directory, path)
-        # Normalize the path for Windows
         full_path = os.path.normpath(full_path)
-        print(f"Full path after normalization: {full_path}")  # Debug print
         return full_path
 
 def run(server_class=http.server.HTTPServer, handler_class=CustomHTTPRequestHandler, port=8080, directory='.'):
-    os.chdir(directory)  # Change the working directory to the specified directory
+    os.chdir(directory)
     handler_class.directory = directory
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
@@ -93,7 +99,6 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--directory', type=str, default='.', help='Directory to serve (default: current directory)')
     args = parser.parse_args()
 
-    # Verify the directory exists
     if not os.path.isdir(args.directory):
         print(f"Error: The directory '{args.directory}' does not exist.")
         exit(1)

@@ -22,8 +22,8 @@ var interim_started = false;
 var pause_timeout, pause_threshold;
 var all_final_transcripts = [], formatted_all_final_transcripts;
 var all_translated_transcripts = [], formatted_all_translated_transcripts;
+var displayed_transcript, displayed_translation;
 var transcript_is_final = false;
-
 var version = "0.2.6"
 
 
@@ -839,7 +839,7 @@ document.querySelector("#embed_button").addEventListener('click', function(){
 });
 
 document.querySelector("#start_button").addEventListener('click', function(){
-	session_start_time = formatTimestamp(new Date());
+	session_start_time = formatTimestampToISOLocalString(new Date());
 	//console.log('session_start_time = ', session_start_time);
 	startButton(event);
 });
@@ -868,7 +868,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	recognition.onstart = function() {
 		final_transcript = '';
 		interim_transcript = '';
-		startTimestamp = formatTimestamp(new Date());
+		startTimestamp = formatTimestampToISOLocalString(new Date());
 		resetPauseTimeout();
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
@@ -918,10 +918,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onend = function() {
-		session_end_time = formatTimestamp(new Date());
+		//final_transcript='';
+		//interim_transcript='';
+		session_end_time = formatTimestampToISOLocalString(new Date());
 		//console.log('session_end_time = ', session_end_time);
-		final_transcript='';
-		interim_transcript='';
 
 		if (!recognizing) {
 			final_transcript = '';
@@ -934,69 +934,63 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
 			if (t) {
+				t = formatTranscript(t);
+				//console.log('t =', t);
 				// Split text into an array of lines
 				var lines = t.trim().split('\n');
 				// Use a Set to filter out duplicate lines
-				var uniqueLines = [...new Set(lines)];
-				//console.log('uniqueLines = ', uniqueLines);
+				var unique_lines = [...new Set(lines)];
+				unique_lines = removeDuplicates(unique_lines);
+				//console.log('unique_lines =', unique_lines);
 
 				// Join the unique lines back into a single string
-				var uniqueText;
-				var newUniqueLines = [];
-				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s*: /g;
+				var unique_text;
+				var newunique_lines = [];
+				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
 
-				console.log('uniqueLines.length = ', uniqueLines.length);
-				console.log('uniqueLines[0] = ', uniqueLines[0]);
-				console.log('uniqueLines[uniqueLines.length - 1] = ', uniqueLines[uniqueLines.length - 1]);
-				console.log('timestamps.test(uniqueLines[uniqueLines.length - 1] = ', timestamps.test(uniqueLines[uniqueLines.length - 1]));
-
-				if (uniqueLines.length === 1 && uniqueLines[0] != '' && uniqueLines[0] != 'undefined') {
-					console.log('uniqueLines.length === 1');
-					//const timestamps = uniqueLines[0].match(/\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}/g);
+				if (unique_lines.length === 1 && unique_lines[0] != '' && unique_lines[0] != 'undefined') {
+					const timestamps = unique_lines[0].match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
 					if (!timestamps) {
-						var lastUniqueLines = `${session_start_time} ${timestamp_separator} ${session_end_time} : ${uniqueLines[0]}`;
-						console.log('lastUniqueLines = ', lastUniqueLines);
-						uniqueLines[0] = lastUniqueLines;
-						uniqueText = newUniqueLines.join('\n');
-						uniqueText = uniqueText + '\n';
+						var lastunique_lines = `${session_start_time} ${timestamp_separator} ${session_end_time} : ${unique_lines[0]}`;
+						//console.log('lastunique_lines =', lastunique_lines);
+						unique_lines[0] = lastunique_lines;
+						unique_text = newunique_lines.join('\n');
+						unique_text = unique_text + '\n';
 					}
 				}
-				else if (uniqueLines.length > 1 && uniqueLines[uniqueLines.length - 1] != '' && !timestamps.test(uniqueLines[uniqueLines.length - 1])) {
-					console.log('uniqueLines.length > 1');
-					var lastUniqueLines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${uniqueLines[uniqueLines.length - 1]}`;
-					//console.log('lastUniqueLines = ', lastUniqueLines);
-					uniqueLines[uniqueLines.length - 1] = lastUniqueLines;
-					for (var i = 0; i < uniqueLines.length; i++) {
-						newUniqueLines.push(uniqueLines[i]);
+				else if (unique_lines.length>1 && unique_lines[unique_lines.length-1] != '' && !timestamps.test(unique_lines[unique_lines.length-1])) {
+					var lastunique_lines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${unique_lines[unique_lines.length-1]}`;
+					//console.log('lastunique_lines =', lastunique_lines);
+					unique_lines[unique_lines.length-1] = lastunique_lines;
+					for (var i = 0; i < unique_lines.length; i++) {
+						newunique_lines.push(unique_lines[i]);
 					}
-					//console.log('newUniqueLines = ', newUniqueLines);
-					uniqueText = newUniqueLines.join('\n');
-					uniqueText = uniqueText + '\n';
+					//console.log('newunique_lines =', newunique_lines);
+					unique_text = newunique_lines.join('\n');
+					unique_text = unique_text + '\n';
 				}
-				else if (uniqueLines.length > 1 && uniqueLines[uniqueLines.length - 1] != '' && timestamps.test(uniqueLines[uniqueLines.length - 1])) {
-					console.log('uniqueLines.length > 1 && timestamps.test(uniqueLines[uniqueLines.length - 1] === true');
-					uniqueText = uniqueLines.join('\n');
-					uniqueText = uniqueText + '\n';
+				else if (unique_lines.length>1 && unique_lines[unique_lines.length-1] != '' && timestamps.test(unique_lines[unique_lines.length-1])) {
+					unique_text = unique_lines.join('\n');
+					unique_text = unique_text + '\n';
 				}
 
 				// SAVING TRANSCRIPTIONS
-				if (uniqueText) {
-					uniqueText = uniqueText.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-					uniqueText = removeEmptySentences(uniqueText);
-					uniqueText = uniqueText + '\n';
-					//console.log('uniqueText = ', uniqueText);
+				if (unique_text) {
+					unique_text = unique_text.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+					unique_text = removeEmptySentences(unique_text);
+					unique_text = removePeriodOnlySentences(unique_text);
+					//console.log('unique_text =', unique_text);
 
 					if (show_timestamp_src) {
-						saveTranscript(uniqueText);
+						saveTranscript(unique_text);
 					} else {
-						saveTranscript(removeTimestamps(uniqueText));
+						saveTranscript(removeTimestamps(unique_text));
 					}
 				}
 
 
 				// SAVING TRANSLATIONS
-				if (uniqueText) var tt = gtranslate(uniqueText, src, dst).then((result => {
-					//console.log('result = ', result);
+				if (unique_text) var tt = gtranslate(unique_text, src, dst).then((result => {
 					result = result.replace(/(\d+),(\d+)/g, '$1.$2');
 
 					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
@@ -1020,19 +1014,19 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					result = result.replace(',.', ',');
 					result = result.replace('. .', '.');
 
-					result = capitalizeSentences(result);
-					result = formatText(result);
+					result = convertDatesToISOFormat(result);
+					result = formatTranscript(result);
 
 					result = result.replace(/\n\s*$/, '');
 
 					timestamped_translated_final_and_interim_transcript = result + "\n";
-					//console.log('timestamped_translated_final_and_interim_transcript = ', timestamped_translated_final_and_interim_transcript);
+					//console.log('timestamped_translated_final_and_interim_transcript =', timestamped_translated_final_and_interim_transcript);
 
 					if (timestamped_translated_final_and_interim_transcript) {
 						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 						timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
-						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript + "\n"
+						timestamped_translated_final_and_interim_transcript = removePeriodOnlySentences(timestamped_translated_final_and_interim_transcript);
 
 						if (show_timestamp_dst) {
 							saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
@@ -1045,12 +1039,11 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					all_translated_transcripts = [];
 					timestamped_translated_final_and_interim_transcript = '';
 					lines = '';
-					uniqueLines = [];
-					uniqueText = '';
+					unique_lines = [];
+					unique_text = '';
 					t = '';
 				}));
 			}
-
 			return;
 
 		} else {
@@ -1065,6 +1058,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		//console.log('recognition.onresult: recognizing = ', recognizing);
 		//console.log('document.querySelector("#src_textarea_container").style.display = ', document.querySelector("#src_textarea_container").style.display);
 		resetPauseTimeout();
+
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
 		show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
@@ -1091,18 +1085,18 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					transcript_is_final = true;
 					interim_transcript = '';
 					interim_started = false;
-					endTimestamp = formatTimestamp(new Date());
+					endTimestamp = formatTimestampToISOLocalString(new Date());
 					final_transcript += `${startTimestamp} ${timestamp_separator} ${endTimestamp} : ${capitalize(event.results[i][0].transcript)}`;
 					final_transcript = final_transcript + '.\n'
 					all_final_transcripts.push(`${final_transcript}`);
 
-					formatted_all_final_transcripts = all_final_transcripts.join("");
+					//formatted_all_final_transcripts = all_final_transcripts.join("");
 					//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
 
 				} else {
 					transcript_is_final = false;
 					if (!interim_started) {
-						startTimestamp = formatTimestamp(new Date());
+						startTimestamp = formatTimestampToISOLocalString(new Date());
 						interim_started = true; // Set the flag to true
 					}
 					interim_transcript += event.results[i][0].transcript;
@@ -1111,61 +1105,62 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				}
 			}
 
-			timestamped_final_and_interim_transcript = final_transcript + interim_transcript;
+			timestamped_final_and_interim_transcript = final_transcript + '\n' + interim_transcript;
+
 			if (containsColon(timestamped_final_and_interim_transcript)) {
-				timestamped_final_and_interim_transcript = capitalizeSentences(timestamped_final_and_interim_transcript);
-				//console.log('capitalizeSentences(timestamped_final_and_interim_transcript) = ', timestamped_final_and_interim_transcript);
+				timestamped_final_and_interim_transcript = formatTranscript(timestamped_final_and_interim_transcript);
+				timestamped_final_and_interim_transcript = removeEmptyLines(timestamped_final_and_interim_transcript);
+				//console.log('formatTranscript(timestamped_final_and_interim_transcript) =', timestamped_final_and_interim_transcript);
 			}
 
-			formatted_all_final_transcripts = all_final_transcripts.join("");
-			//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
+			if (all_final_transcripts.length > 0) {
+				all_final_transcripts = removeDuplicates(all_final_transcripts);
+				formatted_all_final_transcripts = all_final_transcripts.join("\n");
+				//console.log('formatted_all_final_transcripts =', formatted_all_final_transcripts);
+			}
 
+			if (formatted_all_final_transcripts) {
+				displayed_transcript = formatted_all_final_transcripts + '\n' + interim_transcript;
+				//console.log('formatted_all_final_transcripts: displayed_transcript =', displayed_transcript);
+			} else {
+				displayed_transcript = timestamped_final_and_interim_transcript;
+				//console.log('!formatted_all_final_transcripts: displayed_transcript =', displayed_transcript);
+			}
+			displayed_transcript = formatTranscript(displayed_transcript);
 
-			//console.log('show_src = ', show_src);
+			//console.log('displayed_transcript =', displayed_transcript);
+			if (displayed_transcript) {
+				// Split text into an array of lines
+				var lines = displayed_transcript.trim().split('\n');
+				// Use a Set to filter out duplicate lines
+				var unique_lines = [...new Set(lines)];
+				// Join the unique lines back into a single string
+				var unique_text = unique_lines.join('\n');
+				//console.log('unique_text =', unique_text);
+			}
+
+			if (unique_text && getFirstWord(unique_text).includes('undefined')) unique_text = unique_text.replace('undefined', '');
+			if (unique_text) unique_text = removeEmptyLines(unique_text);
+
 			if (show_src) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
-
-				//var displayed_transcript = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
-				var displayed_transcript;
-				if (formatted_all_final_transcripts) {
-					displayed_transcript = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
-				} else {
-					displayed_transcript = timestamped_final_and_interim_transcript;
-				}
-				//console.log('displayed_transcript = ', displayed_transcript);
-				if (displayed_transcript) {
-					// Split text into an array of lines
-					var lines = displayed_transcript.trim().split('\n');
-					// Use a Set to filter out duplicate lines
-					var uniqueLines = [...new Set(lines)];
-					// Join the unique lines back into a single string
-					var uniqueText = uniqueLines.join('\n');
-					//console.log('document.querySelector("#src_textarea").value = ', uniqueText);
-					if (getFirstWord(uniqueText).includes('undefined')) uniqueText = uniqueText.replace('undefined', '');
-				}
-
-				//if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
 				if (show_timestamp_src) {
-					if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = uniqueText;
+					if (unique_text && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = unique_text;
 				} else {
-					if (uniqueText && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = removeTimestamps(uniqueText);
+					if (unique_text && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = removeTimestamps(unique_text);
 				}
-
 				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").scrollTop = document.querySelector("#src_textarea").scrollHeight;
-
 			} else {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			}
 
-			//console.log('show_dst = ', show_dst);
 			if (show_dst) {
-				//console.log('dst = ', dst);
-				//var t = uniqueText;
+				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 403 AFTER SOME REQUESTS
 				var t = timestamped_final_and_interim_transcript;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
-					//console.log('t = ', t);
-					if (t) var tt = gtranslate(t,src,dst).then((result => {
+					if (t) var tt = gtranslate(t, src, dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
+						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
 
 						result = result.replace(/(\d+),(\d+)/g, '$1.$2');
 
@@ -1195,71 +1190,62 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						result = result.replace(',.', ',');
 						result = result.replace('. .', '.');
 
-						result = capitalizeSentences(result);
-						result = formatText(result);
+						result = convertDatesToISOFormat(result);
+						result = formatTranscript(result);
 
 						result = result.replace(/\n\s*$/, '');
 
+						result = removeEmptyLines(result);
+
 						var timestamps = result.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
-						//console.log('transcript_is_final = ', transcript_is_final);
+
+						//console.log('transcript_is_final =', transcript_is_final);
 						if (transcript_is_final) {
-						//if (result.includes(timestamps) && result.includes('.\n')) {
 							//console.log('transcript_is_final');
 							all_translated_transcripts.push(`${result}`);
-							//console.log('all_translated_transcripts = ', all_translated_transcripts);
+							all_translated_transcripts = removeDuplicates(all_translated_transcripts);
+							//console.log('all_translated_transcripts =', all_translated_transcripts);
 							formatted_all_translated_transcripts = all_translated_transcripts.join("");
-							//console.log('formatted_all_translated_transcripts = ', formatted_all_translated_transcripts);
+							//console.log('formatted_all_translated_transcripts =', formatted_all_translated_transcripts);
 						}
 
-						//console.log('formatted_all_translated_transcripts = ', formatted_all_translated_transcripts);
-						if (formatted_all_translated_transcripts) {
-							var translated_lines = formatted_all_translated_transcripts.trim().split('\n');
-							var translated_uniqueLines = [...new Set(translated_lines)];
-							var translated_uniqueText = translated_uniqueLines.join('\n');
-							//console.log('translated_uniqueText = ', translated_uniqueText);
+						//console.log('formatted_all_translated_transcripts =', formatted_all_translated_transcripts);
+						var translated_unique_text;
+						if (all_translated_transcripts.length > 0) {
+							all_translated_transcripts = removeDuplicates(all_translated_transcripts);
+							translated_unique_text = all_translated_transcripts.join('\n');
+							//console.log('translated_unique_text =', translated_unique_text);
 						}
 
-						var displayed_translation;
-						if (translated_uniqueText) {
-							displayed_translation = translated_uniqueText + result;
-						} else {
-							displayed_translation = result;
-						}
+						displayed_translation = translated_unique_text + '\n' + result;
+						displayed_translation = formatTranscript(displayed_translation);
 
 						if (getFirstWord(displayed_translation).includes('undefined')) displayed_translation = displayed_translation.replace('undefined', '');
-						//console.log('displayed_translation = ', displayed_translation);
 
 						var displayed_translation_lines = displayed_translation.trim().split('\n');
-						var displayed_translation_uniqueLines = [...new Set(displayed_translation_lines)];
-						var displayed_translation_uniqueText = displayed_translation_uniqueLines.join('\n');
-						displayed_translation = displayed_translation_uniqueText;
-						displayed_translation = capitalizeSentences(displayed_translation);
-						displayed_translation = formatText(displayed_translation);
-
-						var displayed_translation_lines = displayed_translation.trim().split('\n');
-						var displayed_translation_uniqueLines = [...new Set(displayed_translation_lines)];
-						var displayed_translation_uniqueText = displayed_translation_uniqueLines.join('\n');
-						displayed_translation = displayed_translation_uniqueText;
-
-						//displayed_translation = removeDuplicateLines(displayed_translation);
+						var displayed_translation_unique_lines = [...new Set(displayed_translation_lines)];
+						displayed_translation_unique_lines = removeDuplicates(displayed_translation_unique_lines);
+						displayed_translation= displayed_translation_unique_lines.join('\n');
 
 						if (show_timestamp_dst) {
-							//console.log('displayed_translation = ', displayed_translation);
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
+							//console.log('displayed_translation =', displayed_translation);
+							if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
 						} else {
-							//console.log('removeTimestamps(displayed_translation) = ', removeTimestamps(displayed_translation));
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
+							//console.log('removeTimestamps(displayed_translation) =', removeTimestamps(displayed_translation));
+							if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
 						}
 
-						//if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value=result;
-						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop = document.querySelector("#dst_textarea").scrollHeight;
+						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
+
 					}));
 					translate_time = Date.now();
 				};
+
 			} else {
 				if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			}
-			if (document.querySelector("#dst_textarea")) timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
+
+			timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
 		}
 	};
 
@@ -1997,28 +1983,6 @@ function create_modal_text_area() {
 }
 
 
-function remove_linebreak(s) {
-	var two_line = /\n\n/g;
-	var one_line = /\n/g;
-	return s.replace(two_line, '').replace(one_line, '');
-}
-
-
-function capitalize(s) {
-	var first_char = /\S/;
-    //return s.replace(first_char, function(m) { return m.toUpperCase(); });
-
-    // Check if the sentence is not empty
-    if (s && s.length > 0) {
-        // Capitalize the first character and concatenate it with the rest of the sentence
-        return (s.trimLeft()).charAt(0).toUpperCase() + (s.trimLeft()).slice(1);
-    } else {
-        // If the sentence is empty, return it as is
-        return s;
-    }
-}
-
-
 function startButton(event) {
 	src_container_width_factor = document.querySelector("#input_src_container_width_factor").value;
 	src_container_height_factor = document.querySelector("#input_src_container_height_factor").value;
@@ -2114,6 +2078,7 @@ function startButton(event) {
 		all_translated_transcripts = []
 		formatted_all_translated_transcripts = '';
 		transcript_is_final = false;
+		displayed_translation = '';
 		recognition.lang = src_dialect;
 		start_timestamp = event.timeStamp;
 		translate_time = event.timeStamp;
@@ -2200,6 +2165,293 @@ function getPosition(target) {
 }
 
 
+function readTextFile(filename, callback) {
+    // Create a new XMLHttpRequest object
+    var xhr = new XMLHttpRequest();
+    // Configure it to fetch the file
+    xhr.open("GET", filename, true);
+    // Set the response type to text
+    xhr.responseType = "text";
+
+    // When the request is loaded
+    xhr.onload = function() {
+        // Check if the request was successful
+        if (xhr.status === 200) {
+            // Invoke the callback with the file contents
+            callback(xhr.response);
+        } else {
+            // If there was an error, log it
+            console.error("Failed to load file: " + filename);
+        }
+    };
+
+    // When an error occurs during the request
+    xhr.onerror = function() {
+        // Log the error
+        console.error("Failed to load file: " + filename);
+    };
+
+    // Send the request
+    xhr.send();
+}
+
+
+function remove_linebreak(s) {
+	var two_line = /\n\n/g;
+	var one_line = /\n/g;
+	return s.replace(two_line, '').replace(one_line, '');
+}
+
+
+function capitalize(s) {
+	var first_char = /\S/;
+    //return s.replace(first_char, function(m) { return m.toUpperCase(); });
+
+    // Check if the sentence is not empty
+    if (s && s.length > 0) {
+        // Capitalize the first character and concatenate it with the rest of the sentence
+        return (s.trimLeft()).charAt(0).toUpperCase() + (s.trimLeft()).slice(1);
+    } else {
+        // If the sentence is empty, return it as is
+        return s;
+    }
+}
+
+
+function containsColon(sentence) {
+	const colon = sentence.match(/\s*: /);
+	// Check if the sentence includes the colon character
+	return sentence.includes(colon);
+}
+
+
+function formatTimestampToISOLocalString(timestamp_value) {
+	// Function to convert a single timestamp from GMT to local time
+	function convertTimestamp(timestamp) {
+		// Create a Date object from the GMT timestamp
+		let date = new Date(timestamp + ' GMT');
+		// Return the local time in the same format as the original
+		return date.getFullYear() + '-' +
+			String(date.getMonth() + 1).padStart(2, '0') + '-' +
+			String(date.getDate()).padStart(2, '0') + ' ' +
+			String(date.getHours()).padStart(2, '0') + ':' +
+			String(date.getMinutes()).padStart(2, '0') + ':' +
+			String(date.getSeconds()).padStart(2, '0') + '.' +
+			String(date.getMilliseconds()).padStart(3, '0');
+	}
+
+	// Convert timestamp_value to string
+	const timestamp_string = timestamp_value.toISOString();
+
+	// Extract date and time parts
+	const date_part = timestamp_string.slice(0, 10);
+	const time_part = timestamp_string.slice(11, 23);
+	const timestamp_ISO_String = `${date_part} ${time_part}`;
+
+	// Regular expression to match the timestamps in the string
+	const time_regex = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g;
+	const local_timestamp_string = timestamp_ISO_String.replace(time_regex, match => convertTimestamp(match));
+
+	// Concatenate date and time parts with a space in between
+	return local_timestamp_string.trim();
+}
+
+
+function getFirstWord(sentence) {
+    // Trim the sentence to remove any leading or trailing whitespace
+    let trimmedSentence = sentence.trim();
+
+    // Split the sentence into an array of words
+    let words = trimmedSentence.split(/\s+/);
+
+    // Return the first word
+    return words[0];
+}
+
+
+function removeTimestamps(transcript) {
+    var timestampPattern = /(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /;
+    var lines = transcript.split('\n');
+    var cleanedLines = lines.map(line => line.replace(timestampPattern, ''));
+    return cleanedLines.join('\n');
+}
+
+
+function formatTranscript(transcript) {
+	// Replace URL-encoded spaces with regular spaces
+	transcript = transcript.replace(/%20/g, ' ');
+	transcript = transcript.trim();
+	transcript = transcript.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
+	transcript = transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+	transcript = transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+	// Match timestamps in the transcript
+	const timestamps = transcript.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
+
+	if (timestamps) {
+		// Split the transcript based on timestamps
+		const lines = transcript.split(timestamps);
+
+		let formattedTranscript = "";
+		for (let line of lines) {
+			line = line.trim();
+			// Replace the separator format in the timestamps
+			line = line.replace(timestamps, '$1 --> $2');
+
+			const colon = line.match(/\s*: /);
+			const parts = line.split(colon);
+			if (parts.length === 2) {
+				const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
+				line = parts[0] + colon + capitalizedSentence;
+			}
+
+			// Add the formatted line to the result
+			if (line !== '') formattedTranscript += line.trim() + "\n";
+		}
+        
+		const regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : [^]+?)(?=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} -->|\s*$)/g;
+		const matches = formattedTranscript.match(regex);
+		if (regex && formattedTranscript) formattedTranscript = matches.join('');
+
+		return formattedTranscript.trim(); // Trim any leading/trailing whitespace from the final result
+
+	} else {
+		return transcript.trim();
+	}
+}
+
+
+function removeDuplicateLines(transcript) {
+	const lines = transcript.split('\n'); // Split the input into individual lines
+	const seen = {}; // Object to track unique lines
+	const result = [];
+
+	lines.forEach(line => {
+		const parts = line.split(' : '); // Split line into timestamp and sentence
+		if (parts.length === 2) {
+			const timestamp = parts[0].trim(); // Extract and trim the timestamp
+			const sentence = parts[1].trim(); // Extract and trim the sentence
+			const key = `${timestamp} : ${sentence}`; // Create a unique key
+
+			if (!seen[key]) { // Check if the key is already seen
+				seen[key] = true; // Mark the key as seen
+				result.push(line); // Add the unique line to the result
+			}
+		}
+	});
+
+	return result.join('\n'); // Join the unique lines back into a single string
+}
+
+
+function removeEmptyLines(transcript) {
+    // Split the transcript into individual lines
+    const lines = transcript.split('\n');
+    // Filter out empty lines and join the remaining lines back into a single string
+    const nonEmptyLines = lines.filter(line => line.trim() !== '');
+    return nonEmptyLines.join('\n');
+}
+
+
+function removeEmptySentences(transcript) {
+    const lines = transcript.split('\n'); // Split the input into individual lines
+    const result = lines.filter(line => {
+        //const parts = line.split(' : '); // Split line into timestamp and sentence
+        //return parts.length === 2 && parts[1].trim() !== ''; // Keep lines with non-empty sentences
+		const parts = line.split(' : ');
+		if (parts.length === 2) {
+			const sentence = parts[1].trim().replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove zero-width characters
+			//console.log(`Sentence: "${sentence}" Length: ${sentence.length}`);
+			return sentence !== '';
+		}
+		return true;
+    });
+    return result.join('\n'); // Join the remaining lines back into a single string
+}
+
+
+function removePeriodOnlySentences(transcript) {
+	// Split the transcript into individual lines
+	const lines = transcript.split('\n');
+    
+	// Filter out lines where the sentence part contains only a period character
+	const result = lines.filter(line => {
+		const parts = line.split(' : ');
+		if (parts.length === 2) {
+			const sentence = parts[1].trim().replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove zero-width characters
+			//console.log(`Sentence: "${sentence}" Length: ${sentence.length}`);
+			return sentence !== '.';
+		}
+		return true;
+	});
+	return result.join('\n'); // Join the remaining lines back into a single string
+}
+
+
+function removeDuplicates(transcript_array) {
+	// Create a Set to store unique entries
+	let unique_transcript_array = new Set();
+
+	// Iterate through each transcript
+	transcript_array.forEach(transcript => {
+		// Split the transcript by newline to get individual lines
+		let lines = transcript.split('\n');
+
+		// Add each line to the Set (Sets automatically handle duplicates)
+		lines.forEach(line => {
+			if (line !== '') {
+				unique_transcript_array.add(line.trim());
+			}
+		});
+	});
+
+	// Convert the Set back to an array and return it
+	return Array.from(unique_transcript_array);
+}
+
+
+function convertTimestampsToLocal(transcript) {
+    // Function to convert a single timestamp from GMT to local time
+    function convertTimestamp(timestamp) {
+        // Create a Date object from the GMT timestamp
+        let date = new Date(timestamp + ' GMT');
+        // Return the local time in the same format as the original
+        return date.getFullYear() + '-' +
+               String(date.getMonth() + 1).padStart(2, '0') + '-' +
+               String(date.getDate()).padStart(2, '0') + ' ' +
+               String(date.getHours()).padStart(2, '0') + ':' +
+               String(date.getMinutes()).padStart(2, '0') + ':' +
+               String(date.getSeconds()).padStart(2, '0') + '.' +
+               String(date.getMilliseconds()).padStart(3, '0');
+    }
+
+    // Regular expression to match the timestamps in the transcript
+    const timestampRegex = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g;
+
+    // Replace each timestamp in the transcript with its local time equivalent
+    const modifiedTranscript = transcript.replace(timestampRegex, match => convertTimestamp(match));
+
+    return modifiedTranscript;
+}
+
+
+function convertDatesToISOFormat(transcript) {
+    // Function to convert a single date from "dd-mm-yyyy" to "yyyy-mm-dd" format
+    function convertDate(date) {
+        const [day, month, year] = date.split('-');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Regular expression to match the dates in the transcript
+    const dateRegex = /\b(\d{2})-(\d{2})-(\d{4})\b/g;
+
+    // Replace each date in the transcript with its ISO format equivalent
+    const modifiedTranscript = transcript.replace(dateRegex, match => convertDate(match));
+
+    return modifiedTranscript;
+}
+
+
 function saveTranscript(timestamped_final_and_interim_transcript) {
   // Create a Blob with the transcript content
   const blob = new Blob([timestamped_final_and_interim_transcript], { type: 'text/plain' });
@@ -2240,62 +2492,6 @@ function saveTranslatedTranscript(timestamped_translated_final_and_interim_trans
 
 	// Cleanup
 	URL.revokeObjectURL(url);
-}
-
-
-function formatTimestamp(startTimestamp) {
-  // Convert startTimestamp to string
-  const timestampString = startTimestamp.toISOString();
-
-  // Extract date and time parts
-  const datePart = timestampString.slice(0, 10);
-  const timePart = timestampString.slice(11, 23);
-
-  // Concatenate date and time parts with a space in between
-  return `${datePart} ${timePart}`;
-}
-
-
-function containsColon(sentence) {
-    // Check if the sentence includes the colon character
-    return sentence.includes(':');
-}
-
-
-function containsSpaceCharacter(sentence) {
-    // Check if the sentence includes the colon character
-    return sentence.includes('\%20');
-}
-
-
-function readTextFile(filename, callback) {
-    // Create a new XMLHttpRequest object
-    var xhr = new XMLHttpRequest();
-    // Configure it to fetch the file
-    xhr.open("GET", filename, true);
-    // Set the response type to text
-    xhr.responseType = "text";
-
-    // When the request is loaded
-    xhr.onload = function() {
-        // Check if the request was successful
-        if (xhr.status === 200) {
-            // Invoke the callback with the file contents
-            callback(xhr.response);
-        } else {
-            // If there was an error, log it
-            console.error("Failed to load file: " + filename);
-        }
-    };
-
-    // When an error occurs during the request
-    xhr.onerror = function() {
-        // Log the error
-        console.error("Failed to load file: " + filename);
-    };
-
-    // Send the request
-    xhr.send();
 }
 
 
@@ -2436,7 +2632,6 @@ function getRect(element) {
 
 
 function get_textarea_rect() {
-
 	var video_info = getVideoPlayerInfo();
 	if (video_info) {
 		//console.log("Video player found");
@@ -2714,136 +2909,4 @@ function create_cnn_video_player() {
 	tag_iframe.allowFullscreen = 'true';
 
 	console.log(div_detail__media_video);
-}
-
-
-function getFirstWord(sentence) {
-    // Trim the sentence to remove any leading or trailing whitespace
-    let trimmedSentence = sentence.trim();
-
-    // Split the sentence into an array of words
-    let words = trimmedSentence.split(/\s+/);
-
-    // Return the first word
-    return words[0];
-}
-
-
-function removeTimestamps(transcript) {
-    var timestampPattern = /(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /;
-    var lines = transcript.split('\n');
-    var cleanedLines = lines.map(line => line.replace(timestampPattern, ''));
-    return cleanedLines.join('\n');
-}
-
-
-function capitalizeSentences(transcription) {
-	//console.log('transcription = ', transcription);
-
-    // Split the transcription into individual lines
-    const lines = transcription.split('\n');
-    
-    // Iterate over each line
-    for (let i = 0; i < lines.length; i++) {
-        lines[i] = lines[i].trim();
-		// Split each line by colon to separate startTimestamp and sentence
-        //const parts = lines[i].split(' : ');
-		const colon = lines[i].match(/\s*: /);
-		const parts = lines[i].split(colon);
-		//console.log('parts[0] = ', parts[0]);
-		//console.log('parts[1] = ', parts[1]);
-
-        // If the line is in the correct format (startTimestamp : sentence)
-        if (parts.length === 2) {
-            // Capitalize the first character of the sentence
-            const capitalizedSentence = (parts[1].trimLeft()).charAt(0).toUpperCase() + (parts[1].trimLeft()).slice(1);
-
-            // Replace the original sentence with the capitalized one
-            //lines[i] = parts[0] + ' : ' + capitalizedSentence;
-			lines[i] = parts[0] + colon + capitalizedSentence;
-			//console.log('i = ', i );
-			//console.log('lines[i] = ', lines[i] );
-        }
-    }
-    
-    // Join the lines back into a single string and return
-	//console.log('lines.join("\n") = ', lines.join('\n'));
-    return lines.join('\n');
-}
-
-
-function formatText(text) {
-    // Replace URL-encoded spaces with regular spaces
-    text = text.replace(/%20/g, ' ');
-	text = text.trim();
-	text = text.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
-	text = text.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-	text = text.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-
-    // Match timestamps in the text
-    //const timestamps = text.match(/\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}/g);
-	//const timestamps = text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
-	const timestamps = text.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
-
-    if (timestamps) {
-        // Split the text based on timestamps
-        //const lines = text.split(/(?=\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/);
-		const lines = text.split(timestamps);
-
-        let formattedText = "";
-        for (let line of lines) {
-            // Replace the separator format in the timestamps
-            //line = line.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) *--> *(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/, '$1 --> $2');
-			line = line.replace(timestamps, '$1 --> $2');
-            
-            // Add the formatted line to the result
-            formattedText += line.trim() + "\n";
-        }
-        
-        return formattedText.trim(); // Trim any leading/trailing whitespace from the final result
-    } else {
-        return text.trim();
-    }
-}
-
-
-function removeDuplicateLines(transcript) {
-    const lines = transcript.split('\n'); // Split the input into individual lines
-    const seen = {}; // Object to track unique lines
-    const result = [];
-
-    lines.forEach(line => {
-        const parts = line.split(' : '); // Split line into timestamp and sentence
-        if (parts.length === 2) {
-            const timestamp = parts[0].trim(); // Extract and trim the timestamp
-            const sentence = parts[1].trim(); // Extract and trim the sentence
-            const key = `${timestamp} : ${sentence}`; // Create a unique key
-
-            if (!seen[key]) { // Check if the key is already seen
-                seen[key] = true; // Mark the key as seen
-                result.push(line); // Add the unique line to the result
-            }
-        }
-    });
-
-    return result.join('\n'); // Join the unique lines back into a single string
-}
-
-
-function removeEmptyLines(transcript) {
-    // Split the transcript into individual lines
-    const lines = transcript.split('\n');
-    // Filter out empty lines and join the remaining lines back into a single string
-    const nonEmptyLines = lines.filter(line => line.trim() !== '');
-    return nonEmptyLines.join('\n');
-}
-
-
-function removeEmptySentences(transcript) {
-    const lines = transcript.split('\n'); // Split the input into individual lines
-    const result = lines.filter(line => {
-        const parts = line.split(' : '); // Split line into timestamp and sentence
-        return parts.length === 2 && parts[1].trim() !== ''; // Keep lines with non-empty sentences
-    });
-    return result.join('\n'); // Join the remaining lines back into a single string
 }

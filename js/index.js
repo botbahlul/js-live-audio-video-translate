@@ -24,7 +24,6 @@ var all_final_transcripts = [], formatted_all_final_transcripts;
 var all_translated_transcripts = [], formatted_all_translated_transcripts;
 var displayed_transcript, displayed_translation;
 var transcript_is_final = false;
-var version = "0.2.6"
 
 
 var src_language =
@@ -166,8 +165,13 @@ if (localStorage.getItem("src_dialect")) {
 	console.log('localStorage.getItem("src_dialect") = ', src_dialect);
 } else {
 	//src_dialect = "id-ID";
-	if (src_language[src_language_index].length>2) {
-		src_dialect = document.querySelector("#select_src_dialect").value;
+	if (src_language[src_language_index].length > 2) {
+		//src_dialect = document.querySelector("#select_src_dialect").value;
+		if (src === 'en') {
+			src_dialect = 'en-US';
+		} else {
+			src_dialect = document.querySelector("#select_src_dialect").value;
+		}
 	} else {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
 	};
@@ -333,8 +337,13 @@ if (localStorage.getItem("dst_dialect")) {
 	dst_dialect = localStorage.getItem("dst_dialect");
 	console.log('localStorage.getItem("dst_dialect") = ', dst_dialect);
 } else {
-	if (dst_language[dst_language_index].length>2) {
-		dst_dialect = document.querySelector("#select_dst_dialect").value;
+	if (dst_language[dst_language_index].length > 2) {
+		//dst_dialect = document.querySelector("#select_dst_dialect").value;
+		if (dst === 'en') {
+			dst_dialect = 'en-US';
+		} else {
+			dst_dialect = document.querySelector("#select_dst_dialect").value;
+		}
 	} else {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
 	};
@@ -852,7 +861,7 @@ var final_transcript = '';
 var interim_transcript = '';
 if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
-var start_timestamp = Date.now();
+var speech_start_time = Date.now();
 var translate_time = Date.now();
 
 if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
@@ -906,7 +915,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 		}
 		if (event.error === 'not-allowed') {
-			if (Date.now() - start_timestamp < 100) {
+			if (Date.now() - speech_start_time < 100) {
 				alert('Permission to use microphone is blocked, go to chrome://settings/contentExceptions#media-stream to change it');
 			} else {
 				alert('Permission to use microphone was denied');
@@ -1049,7 +1058,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		} else {
 			console.log('recognition.onend: keep recognizing because recognizing = ', recognizing);
 			recognition.start();
-			start_timestamp = Date.now();
+			speech_start_time = Date.now();
 			translate_time =  Date.now();
 		}
 	};
@@ -1107,7 +1116,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			timestamped_final_and_interim_transcript = final_transcript + '\n' + interim_transcript;
 
-			if (containsColon(timestamped_final_and_interim_transcript)) {
+			if (containsTimestamp(timestamped_final_and_interim_transcript)) {
 				timestamped_final_and_interim_transcript = formatTranscript(timestamped_final_and_interim_transcript);
 				timestamped_final_and_interim_transcript = removeEmptyLines(timestamped_final_and_interim_transcript);
 				//console.log('formatTranscript(timestamped_final_and_interim_transcript) =', timestamped_final_and_interim_transcript);
@@ -1252,7 +1261,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	if (recognizing) {
 		console.log('starting recognition: recognizing = ', recognizing);
 		recognition.start();
-		start_timestamp = Date.now();
+		speech_start_time = Date.now();
 		translate_time =  Date.now();
 	}
 
@@ -1457,7 +1466,7 @@ function update_src_country() {
 
 	src_language_index = document.querySelector("#select_src_language").selectedIndex;
 	//localStorage.setItem("src_language_index", src_language_index);
-	if (src_language[src_language_index].length>2) {
+	if (src_language[src_language_index].length > 2) {
 		for (var j = 0; j < document.querySelector("#select_src_dialect").length; j++) {
 			if (document.querySelector("#select_src_dialect")[j].value === src_dialect) {
 				src_dialect_index = j;
@@ -1467,7 +1476,7 @@ function update_src_country() {
 			}
 		}
 	}
-	if (src_language[src_language_index].length>2) {
+	if (src_language[src_language_index].length > 2) {
 		src_dialect = document.querySelector("#select_src_dialect").value;
 	} else {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
@@ -1504,7 +1513,7 @@ function update_dst_country() {
 
 	dst_language_index = document.querySelector("#select_dst_language").selectedIndex;
 	//localStorage.setItem("dst_language_index", dst_language_index);
-	if (dst_language[dst_language_index].length>2) {
+	if (dst_language[dst_language_index].length > 2) {
 		for (var j = 0; j<document.querySelector("#select_dst_dialect").length; j++) {
 			if (document.querySelector("#select_dst_dialect")[j].value===dst_dialect) {
 				dst_dialect_index = j;
@@ -1514,7 +1523,7 @@ function update_dst_country() {
 			}
 		}
 	}
-	if (dst_language[dst_language_index].length>2) {
+	if (dst_language[dst_language_index].length > 2) {
 		dst_dialect = document.querySelector("#select_dst_dialect").value;
 	} else {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
@@ -1778,12 +1787,12 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").style.border = 'none';
 	document.querySelector("#src_textarea").style.display = 'inline-block';
 	document.querySelector("#src_textarea").style.overflow = 'hidden';
-	document.querySelector("#src_textarea").style.allow="fullscreen";
+	document.querySelector("#src_textarea").style.allow = "fullscreen";
 
 	document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
 	document.querySelector("#src_textarea").style.color = src_font_color;
 	document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_src_container_color").value, document.querySelector("#input_src_container_opacity").value);
-	document.querySelector("#src_textarea").style.fontSize=String(src_font_size)+'px';
+	document.querySelector("#src_textarea").style.fontSize = String(src_font_size)+'px';
 
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
@@ -1890,7 +1899,7 @@ function create_modal_text_area() {
 		console.log('appending dst_textarea_container to html body');
 		dst_textarea_container$.appendTo('body');
 	} else {
-		console.log('src_textarea_container has already exist');
+		console.log('dst_textarea_container has already exist');
 	}
 
 	document.querySelector("#dst_textarea").style.width = '100%';
@@ -1898,12 +1907,12 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.border = 'none';
 	document.querySelector("#dst_textarea").style.display = 'inline-block';
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
-	document.querySelector("#dst_textarea").style.allow="fullscreen";
+	document.querySelector("#dst_textarea").style.allow = "fullscreen";
 
 	document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
 	document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_dst_container_color").value, document.querySelector("#input_dst_container_opacity").value);
-	document.querySelector("#dst_textarea").style.fontSize=String(dst_font_size)+'px';
+	document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size)+'px';
 
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 		document.querySelector("#dst_textarea").style.position = 'absolute';
@@ -2080,7 +2089,7 @@ function startButton(event) {
 		transcript_is_final = false;
 		displayed_translation = '';
 		recognition.lang = src_dialect;
-		start_timestamp = event.timeStamp;
+		speech_start_time = event.timeStamp;
 		translate_time = event.timeStamp;
 		recognition.start();
 		document.querySelector("#start_img").src = 'images/mic-animate.gif';
@@ -2218,10 +2227,10 @@ function capitalize(s) {
 }
 
 
-function containsColon(sentence) {
-	const colon = sentence.match(/\s*: /);
-	// Check if the sentence includes the colon character
-	return sentence.includes(colon);
+function containsTimestamp(sentence) {
+	const timestamp = sentence.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
+	// Check if the sentence includes the timestamp pattern
+	return sentence.includes(timestamp);
 }
 
 
@@ -2557,7 +2566,7 @@ function regenerate_textarea() {
 		document.querySelector("#src_textarea").style.overflow = 'hidden';
 
 		document.querySelector("#src_textarea").style.fontFamily = document.querySelector("#select_src_font").value + ", sans-serif";
-		document.querySelector("#src_textarea").style.fontSize=String(document.querySelector("#input_src_font_size").value)+'px';
+		document.querySelector("#src_textarea").style.fontSize = String(document.querySelector("#input_src_font_size").value)+'px';
 		document.querySelector("#src_textarea").style.color = document.querySelector("#input_src_font_color").value;
 		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_src_container_color").value, document.querySelector("#input_src_container_opacity").value);
 
@@ -2607,7 +2616,7 @@ function regenerate_textarea() {
 		document.querySelector("#dst_textarea").style.overflow = 'hidden';
 
 		document.querySelector("#dst_textarea").style.fontFamily = document.querySelector("#select_dst_font").value + ", sans-serif";
-		document.querySelector("#dst_textarea").style.fontSize=String(document.querySelector("#input_dst_font_size").value)+'px';
+		document.querySelector("#dst_textarea").style.fontSize = String(document.querySelector("#input_dst_font_size").value)+'px';
 		document.querySelector("#dst_textarea").style.color = document.querySelector("#input_dst_font_color").value;
 		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#input_dst_container_color").value, document.querySelector("#input_dst_container_opacity").value);
 

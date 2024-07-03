@@ -20,8 +20,8 @@ var timestamp_separator = "-->";
 var session_start_time, session_end_time;
 var interim_started = false;
 var pause_timeout, pause_threshold;
-var all_final_transcripts = [], formatted_all_final_transcripts;
-var all_translated_transcripts = [], formatted_all_translated_transcripts;
+var array_all_final_transcripts = [], formatted_all_final_transcripts;
+var array_all_translated_final_transcripts = [], formatted_all_translated_transcripts;
 var displayed_transcript, displayed_translation;
 var transcript_is_final = false;
 
@@ -164,9 +164,7 @@ if (localStorage.getItem("src_dialect")) {
 	src_dialect = localStorage.getItem("src_dialect");
 	console.log('localStorage.getItem("src_dialect") = ', src_dialect);
 } else {
-	//src_dialect = "id-ID";
 	if (src_language[src_language_index].length > 2) {
-		//src_dialect = document.querySelector("#select_src_dialect").value;
 		if (src === 'en') {
 			src_dialect = 'en-US';
 		} else {
@@ -195,7 +193,7 @@ if (localStorage.getItem("show_timestamp_src")) {
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 }
 
-update_src_country();
+[src, src_language_index, src_dialect, src_dialect_index] = update_src_country();
 //console.log('after update_src_country(): src_dialect = ', src_dialect);
 
 
@@ -367,7 +365,7 @@ if (localStorage.getItem("show_timestamp_dst")) {
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
 }
 
-update_dst_country();
+[dst, dst_language_index, dst_dialect, dst_dialect_index] = update_dst_country();
 //console.log('after update_dst_country(): dst_dialect = ', dst_dialect);
 
 
@@ -633,7 +631,7 @@ if (localStorage.getItem("pause_threshold")) {
 
 // Add event listeners for changes in languages and translation select input
 document.querySelector("#select_src_language").addEventListener('change', function(){
-	update_src_country()
+	[src, src_language_index, src_dialect, src_dialect_index] = update_src_country();
 	console.log('document.querySelector("#select_src_language") on change: src = ', src);
 	//console.log('document.querySelector("#select_src_language") on change: src_language_index = ', src_language_index);
 	localStorage.setItem("src_language_index", src_language_index);
@@ -648,7 +646,7 @@ document.querySelector("#select_src_dialect").addEventListener('change', functio
 });
 
 document.querySelector("#select_dst_language").addEventListener('change', function(){
-	update_dst_country();
+	[dst, dst_language_index, dst_dialect, dst_dialect_index] = update_dst_country();
 	console.log('document.querySelector("#select_dst_language") on change: dst = ', dst);
 	//console.log('document.querySelector("#select_dst_language") on change:dst_language_index = ', dst_language_index);
 	localStorage.setItem("dst_language_index", dst_language_index);
@@ -863,6 +861,9 @@ if (document.querySelector("#src_textarea_container")) document.querySelector("#
 if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 var speech_start_time = Date.now();
 var translate_time = Date.now();
+var transcript_to_translate;
+var array_all_translated_final_transcripts = [];
+
 
 if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	alert('Web Speech API is not supported by this browser. upgrade_info to Chrome version 25 or later');
@@ -875,8 +876,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	console.log('Initializing recognition: recognition.lang = ', recognition.lang);
 
 	recognition.onstart = function() {
-		final_transcript = '';
-		interim_transcript = '';
 		startTimestamp = formatTimestampToISOLocalString(new Date());
 		resetPauseTimeout();
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
@@ -927,8 +926,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onend = function() {
-		//final_transcript='';
-		//interim_transcript='';
 		session_end_time = formatTimestampToISOLocalString(new Date());
 		//console.log('session_end_time = ', session_end_time);
 
@@ -939,120 +936,81 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			document.querySelector("#start_img").src = 'images/mic.gif';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
 			if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
+
 			console.log('recognition.onend: stopping because recognizing = ', recognizing);
 
-			var t = formatted_all_final_transcripts + timestamped_final_and_interim_transcript;
-			if (t) {
-				t = formatTranscript(t);
+			//console.log('timestamped_final_and_interim_transcript =', timestamped_final_and_interim_transcript);
+			if (timestamped_final_and_interim_transcript) {
+				timestamped_final_and_interim_transcript = formatTranscript(timestamped_final_and_interim_transcript);
 				//console.log('t =', t);
 				// Split text into an array of lines
-				var lines = t.trim().split('\n');
-				// Use a Set to filter out duplicate lines
-				var unique_lines = [...new Set(lines)];
-				unique_lines = removeDuplicates(unique_lines);
-				//console.log('unique_lines =', unique_lines);
+				var lines = timestamped_final_and_interim_transcript.trim().split('\n');
+				var new_unique_lines = [];
+				var last_line;
+				var translated_last_line;
+				var translated_unique_text;
 
-				// Join the unique lines back into a single string
-				var unique_text;
-				var newunique_lines = [];
-				var timestamps = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
-
-				if (unique_lines.length === 1 && unique_lines[0] != '' && unique_lines[0] != 'undefined') {
-					const timestamps = unique_lines[0].match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/g);
-					if (!timestamps) {
-						var lastunique_lines = `${session_start_time} ${timestamp_separator} ${session_end_time} : ${unique_lines[0]}`;
-						//console.log('lastunique_lines =', lastunique_lines);
-						unique_lines[0] = lastunique_lines;
-						unique_text = newunique_lines.join('\n');
-						unique_text = unique_text + '\n';
+				lines.forEach(line => {
+					const timestamped_line = line.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.$/);
+					if (timestamped_line) {
+						new_unique_lines.push(line);
+					} else {
+						if (line !== '' && line !== '.') {
+							line = line + '.';
+							last_line = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${line}`;
+								new_unique_lines.push(last_line);
+						}
 					}
-				}
-				else if (unique_lines.length>1 && unique_lines[unique_lines.length-1] != '' && !timestamps.test(unique_lines[unique_lines.length-1])) {
-					var lastunique_lines = `${startTimestamp} ${timestamp_separator} ${session_end_time} : ${unique_lines[unique_lines.length-1]}`;
-					//console.log('lastunique_lines =', lastunique_lines);
-					unique_lines[unique_lines.length-1] = lastunique_lines;
-					for (var i = 0; i < unique_lines.length; i++) {
-						newunique_lines.push(unique_lines[i]);
-					}
-					//console.log('newunique_lines =', newunique_lines);
-					unique_text = newunique_lines.join('\n');
+					unique_text = new_unique_lines.join('\n');
 					unique_text = unique_text + '\n';
-				}
-				else if (unique_lines.length>1 && unique_lines[unique_lines.length-1] != '' && timestamps.test(unique_lines[unique_lines.length-1])) {
-					unique_text = unique_lines.join('\n');
-					unique_text = unique_text + '\n';
-				}
+					//console.log('unique_text =', unique_text);
+				});
 
-				// SAVING TRANSCRIPTIONS
 				if (unique_text) {
 					unique_text = unique_text.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 					unique_text = removeEmptySentences(unique_text);
 					unique_text = removePeriodOnlySentences(unique_text);
+					unique_text = formatTranscript(unique_text);
+					unique_text = unique_text + '\n';
 					//console.log('unique_text =', unique_text);
 
+					// SAVING TRANSCRIPTIONS
 					if (show_timestamp_src) {
 						saveTranscript(unique_text);
 					} else {
 						saveTranscript(removeTimestamps(unique_text));
 					}
-				}
 
+					// SAVING TRANSLATION
+					var tt = translateText(unique_text, src, dst).then(result => {
+						timestamped_translated_final_and_interim_transcript = result + '\n';
 
-				// SAVING TRANSLATIONS
-				if (unique_text) var tt = gtranslate(unique_text, src, dst).then((result => {
-					result = result.replace(/(\d+),(\d+)/g, '$1.$2');
+						if (timestamped_translated_final_and_interim_transcript) {
+							timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+							timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+							timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
+							timestamped_translated_final_and_interim_transcript = removePeriodOnlySentences(timestamped_translated_final_and_interim_transcript);
 
-					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-					result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-
-					result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-					result = result.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
-
-					result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
-					result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
-
-					result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
-
-					result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-					result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-
-					result = result.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-					result = result.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-
-					result = result.replace('.,', '.');
-					result = result.replace(',.', ',');
-					result = result.replace('. .', '.');
-
-					result = convertDatesToISOFormat(result);
-					result = formatTranscript(result);
-
-					result = result.replace(/\n\s*$/, '');
-
-					timestamped_translated_final_and_interim_transcript = result + "\n";
-					//console.log('timestamped_translated_final_and_interim_transcript =', timestamped_translated_final_and_interim_transcript);
-
-					if (timestamped_translated_final_and_interim_transcript) {
-						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-						timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-						timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
-						timestamped_translated_final_and_interim_transcript = removePeriodOnlySentences(timestamped_translated_final_and_interim_transcript);
-
-						if (show_timestamp_dst) {
-							saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
-						} else {
-							saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+							if (show_timestamp_dst) {
+								saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+							} else {
+								saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+							}
+							array_all_translated_final_transcripts = [];
+							timestamped_translated_final_and_interim_transcript = '';
 						}
-					}
 
-					formatted_all_translated_transcripts = '';
-					all_translated_transcripts = [];
-					timestamped_translated_final_and_interim_transcript = '';
-					lines = '';
-					unique_lines = [];
-					unique_text = '';
-					t = '';
-				}));
+					}).catch(error => {
+						console.error('Error:', error);
+					});
+				}
 			}
+
+			lines = '';
+			unique_lines = [];
+			new_unique_lines = [];
+			unique_text = '';
+			timestamped_final_and_interim_transcript = '';
 			return;
 
 		} else {
@@ -1064,20 +1022,25 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	};
 
 	recognition.onresult = function(event) {
-		//console.log('recognition.onresult: recognizing = ', recognizing);
+		console.log('recognition.onresult: recognizing = ', recognizing);
 		//console.log('document.querySelector("#src_textarea_container").style.display = ', document.querySelector("#src_textarea_container").style.display);
 		resetPauseTimeout();
+
+		if (typeof(event.results) === 'undefined') {
+			recognition.onend = null;
+			recognition.stop();
+			return;
+		}
 
 		show_src = document.querySelector("#checkbox_show_src").checked;
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
 		show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
 		show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
-        update_src_country();
-        update_dst_country();
-
-        //var interim_transcript = '';
+        [src, src_language_index, src_dialect, src_dialect_index] = update_src_country();
+        [dst, dst_language_index, dst_dialect, dst_dialect_index] = update_dst_country();
 
 		if (!recognizing) {
+
 			final_transcript = '';
 			interim_transcript = '';
 			if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
@@ -1086,6 +1049,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			return;
 
 		} else {
+
 			recognition.lang = src_dialect;
 			var interim_transcript = '';
 
@@ -1097,11 +1061,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					endTimestamp = formatTimestampToISOLocalString(new Date());
 					final_transcript += `${startTimestamp} ${timestamp_separator} ${endTimestamp} : ${capitalize(event.results[i][0].transcript)}`;
 					final_transcript = final_transcript + '.\n'
-					all_final_transcripts.push(`${final_transcript}`);
-
-					//formatted_all_final_transcripts = all_final_transcripts.join("");
-					//console.log('formatted_all_final_transcripts = ', formatted_all_final_transcripts);
-
+					array_all_final_transcripts.push(`${final_transcript}`);
+					array_all_final_transcripts = arrayRemoveDuplicates(array_all_final_transcripts);
 				} else {
 					transcript_is_final = false;
 					if (!interim_started) {
@@ -1114,49 +1075,16 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				}
 			}
 
-			timestamped_final_and_interim_transcript = final_transcript + '\n' + interim_transcript;
-
-			if (containsTimestamp(timestamped_final_and_interim_transcript)) {
-				timestamped_final_and_interim_transcript = formatTranscript(timestamped_final_and_interim_transcript);
-				timestamped_final_and_interim_transcript = removeEmptyLines(timestamped_final_and_interim_transcript);
-				//console.log('formatTranscript(timestamped_final_and_interim_transcript) =', timestamped_final_and_interim_transcript);
-			}
-
-			if (all_final_transcripts.length > 0) {
-				all_final_transcripts = removeDuplicates(all_final_transcripts);
-				formatted_all_final_transcripts = all_final_transcripts.join("\n");
-				//console.log('formatted_all_final_transcripts =', formatted_all_final_transcripts);
-			}
-
-			if (formatted_all_final_transcripts) {
-				displayed_transcript = formatted_all_final_transcripts + '\n' + interim_transcript;
-				//console.log('formatted_all_final_transcripts: displayed_transcript =', displayed_transcript);
-			} else {
-				displayed_transcript = timestamped_final_and_interim_transcript;
-				//console.log('!formatted_all_final_transcripts: displayed_transcript =', displayed_transcript);
-			}
-			displayed_transcript = formatTranscript(displayed_transcript);
-
-			//console.log('displayed_transcript =', displayed_transcript);
-			if (displayed_transcript) {
-				// Split text into an array of lines
-				var lines = displayed_transcript.trim().split('\n');
-				// Use a Set to filter out duplicate lines
-				var unique_lines = [...new Set(lines)];
-				// Join the unique lines back into a single string
-				var unique_text = unique_lines.join('\n');
-				//console.log('unique_text =', unique_text);
-			}
-
-			if (unique_text && getFirstWord(unique_text).includes('undefined')) unique_text = unique_text.replace('undefined', '');
-			if (unique_text) unique_text = removeEmptyLines(unique_text);
+			timestamped_final_and_interim_transcript = final_transcript + interim_transcript;
 
 			if (show_src) {
 				if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'block';
+				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").style.display = 'inline-block';
+
 				if (show_timestamp_src) {
-					if (unique_text && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = unique_text;
+					if (timestamped_final_and_interim_transcript && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = timestamped_final_and_interim_transcript;
 				} else {
-					if (unique_text && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = removeTimestamps(unique_text);
+					if (timestamped_final_and_interim_transcript && document.querySelector("#src_textarea")) document.querySelector("#src_textarea").value = removeTimestamps(timestamped_final_and_interim_transcript);
 				}
 				if (document.querySelector("#src_textarea")) document.querySelector("#src_textarea").scrollTop = document.querySelector("#src_textarea").scrollHeight;
 			} else {
@@ -1164,36 +1092,48 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			}
 
 			if (show_dst) {
-				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 403 AFTER SOME REQUESTS
-				var t = timestamped_final_and_interim_transcript;
+				var transcript_to_translate = '';
+				if (array_all_final_transcripts.length > 0) {
+					array_all_final_transcripts = arrayRemoveDuplicates(array_all_final_transcripts);
+					//console.log('array_all_final_transcripts =', array_all_final_transcripts);
+					last_final_transcript = array_all_final_transcripts[array_all_final_transcripts.length - 1] + '\n';
+					//console.log('last_final_transcript =', last_final_transcript);
+					transcript_to_translate = last_final_transcript + interim_transcript;
+				} else {
+					transcript_to_translate = interim_transcript;
+				}
+
+				if (transcript_to_translate) transcript_to_translate = transcript_to_translate.replace('undefined', '');
+
+				var t = transcript_to_translate;
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) var tt = gtranslate(t, src, dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
-
+						// Replace commas with periods in timestamps
 						result = result.replace(/(\d+),(\d+)/g, '$1.$2');
-
+						// Remove spaces within timestamps for ISO Date format
 						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+						// Remove spaces within timestamps for Local Date format
 						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-
+						// Remove any spaces between the date components for ISO Date format
 						result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+						// Remove any spaces between the date components for Local Date format
 						result = result.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
-
+						// Ensure the timestamp format follows "yyyy-mm-dd hh:mm.ddd" format and remove spaces around the hyphens
 						result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
-						result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{4})/g, '$1-$2-$3');
-
+						// Ensure the timestamp format follows "dd-mm-yyyy hh:mm.ddd" format and remove spaces around the hyphens
+						result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
+						// Remove any spaces around the colons in the time component.
 						result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
-
+						// Replace the time_separator with correct strings "-->" for ISO Date format
 						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-
-						result = result.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
-
+						// Replace the time_separator with correct strings "-->" for Local Date format
+						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+						// Move every timestamps to a new line for Local Date format
 						result = result.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+						// Move every timestamps to a new line for ISO Date format
 						result = result.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-
-						result = result.replace(/ (\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/g, /(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/);
-						result = result.replace(/ (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/g, /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/);
 
 						result = result.replace('.,', '.');
 						result = result.replace(',.', ',');
@@ -1201,40 +1141,36 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 						result = convertDatesToISOFormat(result);
 						result = formatTranscript(result);
-
+						// Remove last blank line
 						result = result.replace(/\n\s*$/, '');
-
 						result = removeEmptyLines(result);
 
-						var timestamps = result.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: /);
-
-						//console.log('transcript_is_final =', transcript_is_final);
-						if (transcript_is_final) {
-							//console.log('transcript_is_final');
-							all_translated_transcripts.push(`${result}`);
-							all_translated_transcripts = removeDuplicates(all_translated_transcripts);
-							//console.log('all_translated_transcripts =', all_translated_transcripts);
-							formatted_all_translated_transcripts = all_translated_transcripts.join("");
-							//console.log('formatted_all_translated_transcripts =', formatted_all_translated_transcripts);
+						if (result.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm)) {
+							var buffer = getTimestampedLines(result);
+							buffer = arrayRemoveDuplicates(buffer);
+							array_all_translated_final_transcripts.push(buffer[0]);
+							array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
 						}
 
-						//console.log('formatted_all_translated_transcripts =', formatted_all_translated_transcripts);
-						var translated_unique_text;
-						if (all_translated_transcripts.length > 0) {
-							all_translated_transcripts = removeDuplicates(all_translated_transcripts);
-							translated_unique_text = all_translated_transcripts.join('\n');
-							//console.log('translated_unique_text =', translated_unique_text);
+						if (array_all_translated_final_transcripts.length > 0) {
+							array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
+							//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
+							displayed_translation = array_all_translated_final_transcripts.join('\n') + result;
+							displayed_translation = formatTranscript(displayed_translation);
+							displayed_translation = removeDuplicateTimestamps(displayed_translation);
+							var lines = displayed_translation.trim().split('\n');
+							var unique_lines = [...new Set(lines)];
+							var unique_text = unique_lines.join('\n');
+							var interim_translation = result.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm, '');
+
+							if (!transcript_is_final) {
+								displayed_translation = unique_text + '\n' + interim_translation;
+							} else {
+								displayed_translation = unique_text;
+							}
+						} else {
+							displayed_translation = result;
 						}
-
-						displayed_translation = translated_unique_text + '\n' + result;
-						displayed_translation = formatTranscript(displayed_translation);
-
-						if (getFirstWord(displayed_translation).includes('undefined')) displayed_translation = displayed_translation.replace('undefined', '');
-
-						var displayed_translation_lines = displayed_translation.trim().split('\n');
-						var displayed_translation_unique_lines = [...new Set(displayed_translation_lines)];
-						displayed_translation_unique_lines = removeDuplicates(displayed_translation_unique_lines);
-						displayed_translation= displayed_translation_unique_lines.join('\n');
 
 						if (show_timestamp_dst) {
 							//console.log('displayed_translation =', displayed_translation);
@@ -1243,9 +1179,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 							//console.log('removeTimestamps(displayed_translation) =', removeTimestamps(displayed_translation));
 							if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
 						}
-
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
-
 					}));
 					translate_time = Date.now();
 				};
@@ -1253,8 +1187,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			} else {
 				if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
 			}
-
-			timestamped_translated_final_and_interim_transcript = document.querySelector("#dst_textarea").value;
 		}
 	};
 
@@ -1482,6 +1414,7 @@ function update_src_country() {
 		src_dialect = src_language[document.querySelector("#select_src_language").selectedIndex][1][0];
 	};
 	//console.log('update_src_country(): src_dialect = ', src_dialect);
+	return [src, src_language_index, src_dialect, src_dialect_index];
 }
 
 
@@ -1529,6 +1462,7 @@ function update_dst_country() {
 		dst_dialect = dst_language[document.querySelector("#select_dst_language").selectedIndex][1][0];
 	};
 	//console.log('update_dst_country(): dst_dialect = ', dst_dialect);
+	return [dst, dst_language_index, dst_dialect, dst_dialect_index];
 }
 
 const URL_String = {
@@ -2067,7 +2001,7 @@ function startButton(event) {
 	//console.log('src_dialect = ', src_dialect);
 	//console.log('dst_dialect = ', dst_dialect);
 
-	recognizing=!recognizing;
+	recognizing = !recognizing;
 	console.log('startButton clicked recognizing = ', recognizing);
 
 	if (!recognizing) {
@@ -2079,12 +2013,16 @@ function startButton(event) {
 		return;
 
 	} else {
+		console.log('removing src_textarea_container from html body');
+		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").parentElement.removeChild(document.querySelector("#src_textarea_container"));
+		console.log('removing dst_textarea_container from html body');
+		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").parentElement.removeChild(document.querySelector("#dst_textarea_container"));
 		create_modal_text_area();
 		final_transcript = '';
 		interim_transcript = '';
-		all_final_transcripts = []
+		array_all_final_transcripts = []
 		formatted_all_final_transcripts = '';
-		all_translated_transcripts = []
+		array_all_translated_final_transcripts = []
 		formatted_all_translated_transcripts = '';
 		transcript_is_final = false;
 		displayed_translation = '';
@@ -2151,6 +2089,85 @@ var gtranslate = async (t, src, dst) => {
 		xmlHttp.open('GET', url, true);
 		xmlHttp.send();
 	});
+};
+
+
+const splitText = (text, maxLength) => {
+    const chunks = [];
+    let start = 0;
+
+    while (start < text.length) {
+        let end = start + maxLength;
+        if (end > text.length) end = text.length;
+
+        // Find the last occurrence of ".\n" before the end of the chunk
+        let chunkEnd = text.lastIndexOf('.\n', end);
+        if (chunkEnd === -1 || chunkEnd <= start) {
+            chunkEnd = end;
+        } else {
+            chunkEnd += 2; // Include the ".\n"
+        }
+
+        chunks.push(text.substring(start, chunkEnd));
+        start = chunkEnd;
+    }
+
+    return chunks;
+};
+
+
+const translateText = async (text, src, dst, maxLength = 10000) => {
+	var chunks = splitText(text, maxLength);
+	var translatedChunks = [];
+
+	for (var chunk of chunks) {
+		try {
+			var translatedChunk = await gtranslate(chunk, src, dst);
+			// Replace commas with periods in timestamps
+			translatedChunk = translatedChunk.replace(/(\d+),(\d+)/g, '$1.$2');
+			// Remove spaces within timestamps for ISO Date format
+			translatedChunk = translatedChunk.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+			// Remove spaces within timestamps for Local Date format
+			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+			// Remove any spaces between the date components for ISO Date format
+			translatedChunk = translatedChunk.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+			// Remove any spaces between the date components for Local Date format
+			translatedChunk = translatedChunk.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
+			// Ensure the timestamp format follows "yyyy-mm-dd hh:mm.ddd" format and remove spaces around the hyphens
+			translatedChunk = translatedChunk.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
+			// Ensure the timestamp format follows "dd-mm-yyyy hh:mm.ddd" format and remove spaces around the hyphens
+			translatedChunk = translatedChunk.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
+			// Remove any spaces around the colons in the time component.
+			translatedChunk = translatedChunk.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+			// Replace the time_separator with correct strings "-->" for ISO Date format
+			translatedChunk = translatedChunk.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+			// Replace the time_separator with correct strings "-->" for Local Date format
+			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+			// Move every timestamps to a new line for Local Date format
+			translatedChunk = translatedChunk.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+			// Move every timestamps to a new line for ISO Date format
+			translatedChunk = translatedChunk.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+			translatedChunk = translatedChunk.replace('.,', '.');
+			translatedChunk = translatedChunk.replace(',.', ',');
+			translatedChunk = translatedChunk.replace('. .', '.');
+
+			// Replace the extra space between the timestamps
+			translatedChunk = translatedChunk.replace(/\.\s+/g, '.');
+			// Replace the period followed by a space (". ") with a period followed by a newline (".\n")
+			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : [^\.]*\.) /g, "$1\n");
+			// Remove last blank line
+			translatedChunk = translatedChunk.replace(/\n\s*$/, '');
+			translatedChunk = convertDatesToISOFormat(translatedChunk);
+			translatedChunk = formatTranscript(translatedChunk);
+
+			translatedChunks.push(translatedChunk);
+		} catch (error) {
+			console.error('Error translating chunk:', error);
+			translatedChunks.push(''); // Handle error gracefully by pushing an empty string or handle it as needed
+		}
+	}
+	return translatedChunks.join('\n');
 };
 
 
@@ -2397,9 +2414,12 @@ function removePeriodOnlySentences(transcript) {
 }
 
 
-function removeDuplicates(transcript_array) {
-	// Create a Set to store unique entries
-	let unique_transcript_array = new Set();
+function arrayRemoveDuplicates(transcript_array) {
+    // Create a Set to keep track of unique timestamps
+    const seenTimestamps = new Set();
+
+    // Array to store the unique lines
+    const uniqueLines = [];
 
 	// Iterate through each transcript
 	transcript_array.forEach(transcript => {
@@ -2409,13 +2429,43 @@ function removeDuplicates(transcript_array) {
 		// Add each line to the Set (Sets automatically handle duplicates)
 		lines.forEach(line => {
 			if (line !== '') {
-				unique_transcript_array.add(line.trim());
+				const timestamp = line.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/);
+				if (timestamp) {
+					const timestampStr = timestamp[0];
+					if (!seenTimestamps.has(timestampStr)) {
+						seenTimestamps.add(timestampStr);
+						uniqueLines.push(line);
+					}
+				}
 			}
 		});
 	});
+	return uniqueLines;
+}
 
-	// Convert the Set back to an array and return it
-	return Array.from(unique_transcript_array);
+
+function removeDuplicateTimestamps(transcript) {
+    // Split the transcript into lines
+    const lines = transcript.split('\n');
+    // Create a Set to keep track of unique timestamps
+    const seenTimestamps = new Set();
+    // Array to store the unique lines
+    const uniqueLines = [];
+
+    lines.forEach(line => {
+        // Extract the timestamp part of the line (assumes format is consistent)
+        const timestamp = line.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/);
+        if (timestamp) {
+            const timestampStr = timestamp[0];
+            if (!seenTimestamps.has(timestampStr)) {
+                seenTimestamps.add(timestampStr);
+                uniqueLines.push(line);
+            }
+        }
+    });
+
+    // Join the unique lines back into a single string
+    return uniqueLines.join('\n');
 }
 
 
@@ -2458,6 +2508,18 @@ function convertDatesToISOFormat(transcript) {
     const modifiedTranscript = transcript.replace(dateRegex, match => convertDate(match));
 
     return modifiedTranscript;
+}
+
+
+function getTimestampedLines(transcript) {
+	// Split the transcript into individual lines
+	const lines = transcript.split('\n');
+	// Regular expression to match lines with timestamps and periods
+	const regex = /(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.$/;
+	// Filter lines that match the regular expression
+	const filteredLines = lines.filter(line => regex.test(line));
+	// Return the filtered lines
+	return filteredLines;
 }
 
 
@@ -2505,7 +2567,7 @@ function saveTranslatedTranscript(timestamped_translated_final_and_interim_trans
 
 
 function resetPauseTimeout() {
-	//all_final_transcripts += timestamped_final_and_interim_transcript;
+	//array_all_final_transcripts += timestamped_final_and_interim_transcript;
 	clearTimeout(pause_timeout);
 	pause_timeout = setTimeout(function() {
 		console.log("No speech detected for " + pause_threshold / 1000 + " seconds, stopping recognition");

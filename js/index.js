@@ -1,6 +1,6 @@
 var recognition, recognizing;
-var src, src_language, src_language_index, src_dialect, src_dialect_index, show_src;
-var dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst;
+var src, src_language, src_language_index, src_dialect, src_dialect_index, show_src, save_src;
+var dst, dst_language, dst_language_index, dst_dialect, dst_dialect_index, show_dst, save_dst;
 var show_timestamp_src, show_timestamp_dst;
 var src_fonts, dst_fonts;
 
@@ -193,6 +193,16 @@ if (localStorage.getItem("show_timestamp_src")) {
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 }
 
+if (localStorage.getItem("save_src")) {
+	save_src = localStorage.getItem("save_src");
+	document.querySelector("#checkbox_save_src").checked = save_src;
+	console.log('localStorage.getItem("save_src") = ', save_src);
+} else {
+	save_src = true;
+	document.querySelector("#checkbox_save_src").checked = save_src;
+}
+
+
 [src, src_language_index, src_dialect, src_dialect_index] = update_src_country();
 //console.log('after update_src_country(): src_dialect = ', src_dialect);
 
@@ -365,6 +375,15 @@ if (localStorage.getItem("show_timestamp_dst")) {
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
 }
 
+if (localStorage.getItem("save_dst")) {
+	save_dst = localStorage.getItem("save_dst");
+	document.querySelector("#checkbox_save_dst").checked = save_dst;
+	console.log('localStorage.getItem("save_dst") = ', save_dst);
+} else {
+	save_dst = true;
+	document.querySelector("#checkbox_save_dst").checked = save_dst;
+}
+
 [dst, dst_language_index, dst_dialect, dst_dialect_index] = update_dst_country();
 //console.log('after update_dst_country(): dst_dialect = ', dst_dialect);
 
@@ -376,6 +395,9 @@ show_dst = document.querySelector("#checkbox_show_dst").checked;
 
 show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
 show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
+
+save_src = document.querySelector("#checkbox_save_src").checked;
+save_dst = document.querySelector("#checkbox_save_dst").checked;
 
 src_selected_font = document.querySelector("#select_src_font").value;
 src_font_size = document.querySelector("#input_src_font_size").value;
@@ -707,6 +729,24 @@ document.querySelector("#checkbox_show_timestamp_dst").addEventListener('change'
 	localStorage.setItem("show_timestamp_dst", show_timestamp_dst);
 });
 
+document.querySelector("#checkbox_save_src").addEventListener('change', function(){
+	save_src = document.querySelector("#checkbox_save_src").checked;
+	console.log('document.querySelector("#checkbox_save_src") on change: save_src = ', save_src);
+	if (!save_src) {
+		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").style.display = 'none';
+	}
+	localStorage.setItem("save_src", save_src);
+});
+
+document.querySelector("#checkbox_save_dst").addEventListener('change', function(){
+	save_dst = document.querySelector("#checkbox_save_dst").checked;
+	console.log('document.querySelector("#checkbox_save_dst") on change: save_dst = ', save_dst);
+	if (!save_dst) {
+		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
+	}
+	localStorage.setItem("save_dst", save_dst);
+});
+
 
 // Add event listeners for changes in font select and font size input
 document.querySelector("#select_src_font").addEventListener("change", updateSubtitleText);
@@ -941,8 +981,9 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 			//console.log('timestamped_final_and_interim_transcript =', timestamped_final_and_interim_transcript);
 			if (timestamped_final_and_interim_transcript) {
+
 				timestamped_final_and_interim_transcript = formatTranscript(timestamped_final_and_interim_transcript);
-				//console.log('t =', t);
+
 				// Split text into an array of lines
 				var lines = timestamped_final_and_interim_transcript.trim().split('\n');
 				var new_unique_lines = [];
@@ -954,6 +995,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					const timestamped_line = line.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.$/);
 					if (timestamped_line) {
 						new_unique_lines.push(line);
+					// Give timestamp to last interim transcript
 					} else {
 						if (line !== '' && line !== '.') {
 							line = line + '.';
@@ -967,6 +1009,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 				});
 
 				if (unique_text) {
+					// Move every sentences started with timestamp to a new line
 					unique_text = unique_text.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 					unique_text = removeEmptySentences(unique_text);
 					unique_text = removePeriodOnlySentences(unique_text);
@@ -974,35 +1017,40 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					unique_text = unique_text + '\n';
 					//console.log('unique_text =', unique_text);
 
+
 					// SAVING TRANSCRIPTIONS
-					if (show_timestamp_src) {
-						saveTranscript(unique_text);
-					} else {
-						saveTranscript(removeTimestamps(unique_text));
+					if (save_src) {
+						if (show_timestamp_src) {
+							saveTranscript(unique_text);
+						} else {
+							saveTranscript(removeTimestamps(unique_text));
+						}
 					}
 
 					// SAVING TRANSLATION
-					var tt = translateText(unique_text, src, dst).then(result => {
-						timestamped_translated_final_and_interim_transcript = result + '\n';
+					if (save_dst) {
+						var tt = translateText(unique_text, src, dst).then(result => {
+							timestamped_translated_final_and_interim_transcript = result + '\n';
 
-						if (timestamped_translated_final_and_interim_transcript) {
-							timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-							timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-							timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
-							timestamped_translated_final_and_interim_transcript = removePeriodOnlySentences(timestamped_translated_final_and_interim_transcript);
+							if (timestamped_translated_final_and_interim_transcript) {
+								timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+								timestamped_translated_final_and_interim_transcript = timestamped_translated_final_and_interim_transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+								timestamped_translated_final_and_interim_transcript = removeEmptySentences(timestamped_translated_final_and_interim_transcript);
+								timestamped_translated_final_and_interim_transcript = removePeriodOnlySentences(timestamped_translated_final_and_interim_transcript);
 
-							if (show_timestamp_dst) {
-								saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
-							} else {
-								saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+								if (show_timestamp_dst) {
+									saveTranslatedTranscript(timestamped_translated_final_and_interim_transcript);
+								} else {
+									saveTranslatedTranscript(removeTimestamps(timestamped_translated_final_and_interim_transcript));
+								}
+								array_all_translated_final_transcripts = [];
+								timestamped_translated_final_and_interim_transcript = '';
 							}
-							array_all_translated_final_transcripts = [];
-							timestamped_translated_final_and_interim_transcript = '';
-						}
 
-					}).catch(error => {
-						console.error('Error:', error);
-					});
+						}).catch(error => {
+							console.error('Error:', error);
+						});
+					}
 				}
 			}
 
@@ -1036,6 +1084,9 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 		show_dst = document.querySelector("#checkbox_show_dst").checked;
 		show_timestamp_src = document.querySelector("#checkbox_show_timestamp_src").checked;
 		show_timestamp_dst = document.querySelector("#checkbox_show_timestamp_dst").checked;
+		save_src = document.querySelector("#checkbox_save_src").checked;
+		save_dst = document.querySelector("#checkbox_save_dst").checked;
+
         [src, src_language_index, src_dialect, src_dialect_index] = update_src_country();
         [dst, dst_language_index, dst_dialect, dst_dialect_index] = update_dst_country();
 
@@ -1092,6 +1143,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 			}
 
 			if (show_dst) {
+				// IF WE TRANSLATE ALL OF unique_text WE WILL GET 400 RESPONSE CODE FROM GOOGLE TRANSLATE SERVER
+				// SO WE CAN ONLY TRANSLATE last_final_transcript + interim_transcript;
 				var transcript_to_translate = '';
 				if (array_all_final_transcripts.length > 0) {
 					array_all_final_transcripts = arrayRemoveDuplicates(array_all_final_transcripts);
@@ -1110,40 +1163,8 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 					if (t) var tt = gtranslate(t, src, dst).then((result => {
 						if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
 						if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
-						// Replace commas with periods in timestamps
-						result = result.replace(/(\d+),(\d+)/g, '$1.$2');
-						// Remove spaces within timestamps for ISO Date format
-						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-						// Remove spaces within timestamps for Local Date format
-						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-						// Remove any spaces between the date components for ISO Date format
-						result = result.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-						// Remove any spaces between the date components for Local Date format
-						result = result.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
-						// Ensure the timestamp format follows "yyyy-mm-dd hh:mm.ddd" format and remove spaces around the hyphens
-						result = result.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
-						// Ensure the timestamp format follows "dd-mm-yyyy hh:mm.ddd" format and remove spaces around the hyphens
-						result = result.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
-						// Remove any spaces around the colons in the time component.
-						result = result.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
-						// Replace the time_separator with correct strings "-->" for ISO Date format
-						result = result.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-						// Replace the time_separator with correct strings "-->" for Local Date format
-						result = result.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-						// Move every timestamps to a new line for Local Date format
-						result = result.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-						// Move every timestamps to a new line for ISO Date format
-						result = result.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 
-						result = result.replace('.,', '.');
-						result = result.replace(',.', ',');
-						result = result.replace('. .', '.');
-
-						result = convertDatesToISOFormat(result);
 						result = formatTranscript(result);
-						// Remove last blank line
-						result = result.replace(/\n\s*$/, '');
-						result = removeEmptyLines(result);
 
 						if (result.match(/(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2,4})-(\d{2})-(\d{2,4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm)) {
 							var buffer = getTimestampedLines(result);
@@ -1161,7 +1182,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 							var lines = displayed_translation.trim().split('\n');
 							var unique_lines = [...new Set(lines)];
 							var unique_text = unique_lines.join('\n');
-							var interim_translation = result.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm, '');
+
+							// Remove periode only sentences
+							//var interim_translation = result.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm, '');
+							var interim_translation = result.replace(/^\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*\.\n/gm, '');
 
 							if (!transcript_is_final) {
 								displayed_translation = unique_text + '\n' + interim_translation;
@@ -1729,13 +1753,14 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").style.fontSize = String(src_font_size)+'px';
 
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
-		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
-			document.querySelector("#checkbox_centerize_src").checked = false;
-		}
 
 		document.querySelector("#src_textarea").style.position = 'absolute';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
+
+		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
+			document.querySelector("#checkbox_centerize_src").checked = false;
+		}
 
 		video_info = getVideoPlayerInfo();
 		if (video_info) {
@@ -1762,11 +1787,13 @@ function create_modal_text_area() {
 	});
 
 	document.querySelector("#src_textarea").offsetParent.ondrag = (function(){
+
+		document.querySelector("#src_textarea").style.position = 'absolute';
+
 		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_src").checked = false;
 		}
 
-		document.querySelector("#src_textarea").style.position = 'absolute';
 
 		video_info = getVideoPlayerInfo();
 		if (video_info) {
@@ -1849,6 +1876,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size)+'px';
 
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
+
 		document.querySelector("#dst_textarea").style.position = 'absolute';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
@@ -1882,6 +1910,7 @@ function create_modal_text_area() {
 	});
 
 	document.querySelector("#dst_textarea").offsetParent.ondrag = (function(){
+
 		document.querySelector("#dst_textarea").style.position = 'absolute';
 
 		if (getRect(document.querySelector("#dst_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#dst_textarea_container")).width)) {
@@ -2117,50 +2146,14 @@ const splitText = (text, maxLength) => {
 
 
 const translateText = async (text, src, dst, maxLength = 10000) => {
+	// WE SHOULD SPLIT LARGE TRANSCRIPTION INTO SMALLER PARTS TO AVOID 400 STATUS RESPONSE FROM GOOGLE TRANSLATE SERVER
 	var chunks = splitText(text, maxLength);
 	var translatedChunks = [];
 
 	for (var chunk of chunks) {
 		try {
 			var translatedChunk = await gtranslate(chunk, src, dst);
-			// Replace commas with periods in timestamps
-			translatedChunk = translatedChunk.replace(/(\d+),(\d+)/g, '$1.$2');
-			// Remove spaces within timestamps for ISO Date format
-			translatedChunk = translatedChunk.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-			// Remove spaces within timestamps for Local Date format
-			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
-			// Remove any spaces between the date components for ISO Date format
-			translatedChunk = translatedChunk.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
-			// Remove any spaces between the date components for Local Date format
-			translatedChunk = translatedChunk.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
-			// Ensure the timestamp format follows "yyyy-mm-dd hh:mm.ddd" format and remove spaces around the hyphens
-			translatedChunk = translatedChunk.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
-			// Ensure the timestamp format follows "dd-mm-yyyy hh:mm.ddd" format and remove spaces around the hyphens
-			translatedChunk = translatedChunk.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
-			// Remove any spaces around the colons in the time component.
-			translatedChunk = translatedChunk.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
-			// Replace the time_separator with correct strings "-->" for ISO Date format
-			translatedChunk = translatedChunk.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-			// Replace the time_separator with correct strings "-->" for Local Date format
-			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
-			// Move every timestamps to a new line for Local Date format
-			translatedChunk = translatedChunk.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-			// Move every timestamps to a new line for ISO Date format
-			translatedChunk = translatedChunk.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
-
-			translatedChunk = translatedChunk.replace('.,', '.');
-			translatedChunk = translatedChunk.replace(',.', ',');
-			translatedChunk = translatedChunk.replace('. .', '.');
-
-			// Replace the extra space between the timestamps
-			translatedChunk = translatedChunk.replace(/\.\s+/g, '.');
-			// Replace the period followed by a space (". ") with a period followed by a newline (".\n")
-			translatedChunk = translatedChunk.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : [^\.]*\.) /g, "$1\n");
-			// Remove last blank line
-			translatedChunk = translatedChunk.replace(/\n\s*$/, '');
-			translatedChunk = convertDatesToISOFormat(translatedChunk);
 			translatedChunk = formatTranscript(translatedChunk);
-
 			translatedChunks.push(translatedChunk);
 		} catch (error) {
 			console.error('Error translating chunk:', error);
@@ -2304,11 +2297,48 @@ function removeTimestamps(transcript) {
 
 
 function formatTranscript(transcript) {
+	// Replace commas with periods in timestamps
+	transcript = transcript.replace(/(\d+),(\d+)/g, '$1.$2');
+	// Remove spaces within timestamps for ISO Date format
+	transcript = transcript.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+	// Remove spaces within timestamps for Local Date format
+	transcript = transcript.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}): (\d{2}\.\d+)/g, '$1:$2');
+	// Remove any spaces between the date components for ISO Date format
+	transcript = transcript.replace(/(\d{4})-\s?(\d{2})-\s?(\d{2})/g, '$1-$2-$3');
+	// Remove any spaces between the date components for Local Date format
+	transcript = transcript.replace(/(\d{2})-\s?(\d{2})-\s?(\d{4})/g, '$1-$2-$3');
+	// Ensure the timestamp format follows "yyyy-mm-dd hh:mm.ddd" format and remove spaces around the hyphens
+	transcript = transcript.replace(/(\d{4})\s*-\s*(\d{2})\s*-\s*(\d{2})/g, '$1-$2-$3');
+	// Ensure the timestamp format follows "dd-mm-yyyy hh:mm.ddd" format and remove spaces around the hyphens
+	transcript = transcript.replace(/(\d{2})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, '$1-$2-$3');
+	// Remove any spaces around the colons in the time component.
+	transcript = transcript.replace(/(\d{2})\s*:\s*(\d{2})\s*:\s*(\d{2}\.\d{3})/g, '$1:$2:$3');
+	// Replace the time_separator with correct strings "-->" for ISO Date format
+	transcript = transcript.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+	// Replace the time_separator with correct strings "-->" for Local Date format
+	transcript = transcript.replace(/(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3})[^0-9]+(\d{2}-\d{2}-\d{5} \d{2}:\d{2}:\d{2}\.\d{3})/g, `$1 ${timestamp_separator} $2`);
+	// Move every timestamps to a new line for Local Date format
+	transcript = transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+	// Move every timestamps to a new line for ISO Date format
+	transcript = transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+
+	transcript = transcript.replace('.,', '.');
+	transcript = transcript.replace(',.', ',');
+	transcript = transcript.replace('. .', '.');
+
+	transcript = convertDatesToISOFormat(transcript);
+	// Remove last blank line
+	transcript = transcript.replace(/\n\s*$/, '');
+	transcript = removeEmptyLines(transcript);
+
 	// Replace URL-encoded spaces with regular spaces
 	transcript = transcript.replace(/%20/g, ' ');
 	transcript = transcript.trim();
+	// Give space between time part and colon
 	transcript = transcript.replace(/(\d{2}:\d{2}:\d{2}\.\d{3}): /g, '$1 : ');
+	// Move every timestamps to a new line for Local Date format
 	transcript = transcript.replace(/(?<!^)(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
+	// Move every timestamps to a new line for ISO Date format
 	transcript = transcript.replace(/(?<!^)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} --> \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} : )/gm, '\n$1');
 
 	// Match timestamps in the transcript

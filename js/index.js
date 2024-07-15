@@ -24,7 +24,7 @@ var array_all_final_transcripts = [], formatted_all_final_transcripts;
 var array_all_translated_final_transcripts = [], formatted_all_translated_transcripts;
 var displayed_transcript, displayed_translation;
 var transcript_is_final = false;
-
+var fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
 
 var src_language =
 	[['Afrikaans',       ['af-ZA']],
@@ -254,7 +254,7 @@ var dst_language =
 						['en-PH', 'Philippines'],
 						['en-GB', 'United Kingdom'],
 						['en-US', 'United States']],
-	['Filipino',        ['fil-PH']],
+						['Filipino',        ['fil-PH']],
 	['Finland',         ['fi-FI']],
 	['French',          ['fr-FR']],
 	['Galician',        ['gl-ES']],
@@ -327,7 +327,7 @@ var dst_language =
 	['Vietnamese',      ['vi-VN']],
 	['Ukrainian',       ['uk-UA']],
 	['Zulu',            ['zu-ZA']]];
- 
+	
 for (var j = 0; j < dst_language.length; j++) {
     document.querySelector("#select_dst_language").options[j] = new Option(dst_language[j][0], j);
 }
@@ -843,13 +843,229 @@ document.querySelector("#input_pause_threshold").addEventListener('change', func
 
 
 window.addEventListener('resize', function(event) {
+	//console.log('window.addEventListener("resize")');
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	//console.log('document.querySelector(video_info_id) =', document.querySelector(video_info_id));
+	//console.log('document.querySelector(video_outer_info_id) =', document.querySelector(video_outer_info_id));
+
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		//console.log('resize event: document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) loaded');
+		document.querySelector(video_outer_info_id).style.textAlign = 'center';
+		document.querySelector(video_info_id).style.position = 'absolute';
+		if (window.innerWidth/window.innerHeight >= 16/9) {
+			//console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+			document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+			document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+			document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+			document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+		}
+		else {
+			//console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+			document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+			document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+			document.querySelector(video_info_id).style.left = 0 + 'px';
+			//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+			document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+		}
+
+	}
 	regenerate_textarea();
 });
 
 
 document.addEventListener('fullscreenchange', function(event) {
-	regenerate_textarea();
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	//console.log('video_outer_info_id =', video_outer_info_id);
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		if (!fullscreenElement) {
+			document.querySelector(video_outer_info_id).style.textAlign = 'center';
+			document.querySelector(video_info_id).style.position = 'absolute';
+			if (window.innerWidth/window.innerHeight >= 16/9) {
+				console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+				document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+				document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+				document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+				document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+			}
+			else {
+				console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+				document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+				document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+				document.querySelector(video_info_id).style.left = 0 + 'px';
+				document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+			}
+
+		} else {
+			document.querySelector(video_info_id).style.width = '100vw';
+			document.querySelector(video_info_id).style.height = '100vh';
+			document.querySelector(video_info_id).style.left = '0px';
+			document.querySelector(video_info_id).style.top = '0px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+
+			var video_info = get_video_player_info();
+			if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+			if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
+		}
+		regenerate_textarea();
+	}
 });
+
+/*
+document.addEventListener('webkitfullscreenchange', function(event) {
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	console.log('video_outer_info_id =', video_outer_info_id);
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		if (!fullscreenElement) {
+			document.querySelector(video_outer_info_id).style.textAlign = 'center';
+			document.querySelector(video_info_id).style.position = 'absolute';
+			if (window.innerWidth/window.innerHeight >= 16/9) {
+				console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+				document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+				document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+				document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+				document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+			}
+			else {
+				console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+				document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+				document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+				document.querySelector(video_info_id).style.left = 0 + 'px';
+				//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+				document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+			}
+
+		} else {
+			document.querySelector(video_info_id).style.width = '100vw';
+			document.querySelector(video_info_id).style.height = '100vh';
+			document.querySelector(video_info_id).style.left = '0px';
+			document.querySelector(video_info_id).style.top = '0px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+
+			var video_info = get_video_player_info();
+			if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+			if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
+		}
+		regenerate_textarea();
+	}
+});
+
+document.addEventListener('mozfullscreenchange', function(event) {
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	console.log('video_outer_info_id =', video_outer_info_id);
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		if (!fullscreenElement) {
+			document.querySelector(video_outer_info_id).style.textAlign = 'center';
+			document.querySelector(video_info_id).style.position = 'absolute';
+			if (window.innerWidth/window.innerHeight >= 16/9) {
+				console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+				document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+				document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+				document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+				document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+			}
+			else {
+				console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+				document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+				document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+				document.querySelector(video_info_id).style.left = 0 + 'px';
+				//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+				document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+			}
+
+		} else {
+			document.querySelector(video_info_id).style.width = '100vw';
+			document.querySelector(video_info_id).style.height = '100vh';
+			document.querySelector(video_info_id).style.left = '0px';
+			document.querySelector(video_info_id).style.top = '0px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+
+			var video_info = get_video_player_info();
+			if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+			if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
+		}
+		regenerate_textarea();
+	}
+});
+
+document.addEventListener('msfullscreenchange', function(event) {
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	console.log('video_outer_info_id =', video_outer_info_id);
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		if (!fullscreenElement) {
+			document.querySelector(video_outer_info_id).style.textAlign = 'center';
+			document.querySelector(video_info_id).style.position = 'absolute';
+			if (window.innerWidth/window.innerHeight >= 16/9) {
+				console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+				document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+				document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+				document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+				document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+			}
+			else {
+				console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+				document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+				document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+				document.querySelector(video_info_id).style.left = 0 + 'px';
+				//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+				document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+			}
+
+		} else {
+			document.querySelector(video_info_id).style.width = '100vw';
+			document.querySelector(video_info_id).style.height = '100vh';
+			document.querySelector(video_info_id).style.left = '0px';
+			document.querySelector(video_info_id).style.top = '0px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+
+			var video_info = get_video_player_info();
+			if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+			if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
+		}
+		regenerate_textarea();
+	}
+});
+*/
+
+document.addEventListener('keydown', function(event) {
+	if (event.keyCode === 122) {
+		event.preventDefault();
+		console.log('F11 key was pressed!');
+		//var video_outer_info = get_video_outer_info().element;
+		//toggleFullscreen(video_outer_info);
+		toggleFullscreen(document.documentElement);
+		
+		window.onresize = (function(){
+			const video_info = get_video_player_info();
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+		});
+	}
+});
+
 
 
 // Maintain video size when window resized or entering fullscreen mode
@@ -892,6 +1108,83 @@ if (document.querySelector("#videojs-flvjs-player")) {
 	});
 }
 
+
+/*
+if (document.querySelector("#cnnlive")) {
+	//document.querySelector("#cnnlive").style.width = '1080px';
+	//document.querySelector("#cnnlive").style.height = '607.5px';
+	document.querySelector("#cnnlive").style.height = window.innerHeight + 'px';
+	document.querySelector("#cnnlive").style.width = ((16/9)*window.innerHeight) + 'px';
+
+	window.onresize = (function(){
+		if (document.querySelector("#cnnlive")) {
+			document.querySelector("#outer").style.textAlign = 'center';
+			document.querySelector("#cnnlive").style.position = 'absolute';
+			document.querySelector("#cnnlive").style.height = window.innerHeight + 'px';
+			document.querySelector("#cnnlive").style.width = ((16/9)*window.innerHeight) + 'px';
+			document.querySelector("#cnnlive").style.left = (0.5*(window.innerWidth-getRect(document.querySelector("#cnnlive")).width)) + 'px';
+			document.querySelector("#cnnlive").style.top = document.querySelector("#outer").style.top;
+
+			//document.querySelector('#inner_width').innerHTML = window.innerWidth;
+			//document.querySelector('#inner_height').innerHTML = window.innerHeight;
+			//document.querySelector('#video_width').innerHTML = getRect(document.querySelector("#cnnlive")).width;
+			//document.querySelector('#video_height').innerHTML = getRect(document.querySelector("#cnnlive")).height;
+		}
+	});
+}
+*/
+
+
+document.addEventListener('DOMContentLoaded', (event) => {
+	console.log('DOMContentLoaded');
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		console.log('Maintain video size when window resized or entering fullscreen mode');
+		document.querySelector(video_info_id).style.height = window.innerHeight + 'px';
+		document.querySelector(video_info_id).style.width = ((16/9)*window.innerHeight) + 'px';
+		document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+		document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+		//document.querySelector(video_info_id).style.top = document.querySelector(video_outer_info_id).style.top;
+
+		window.onresize = (function(){
+			if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+				console.log('window.onresize');
+				console.log('document.querySelector(video_info_id) =', document.querySelector(video_info_id));
+				console.log('document.querySelector(video_outer_info_id) =', document.querySelector(video_outer_info_id));
+				if (document.querySelector(video_outer_info_id)) document.querySelector(video_outer_info_id).style.textAlign = 'center';
+				if (document.querySelector(video_info_id)) document.querySelector(video_info_id).style.position = 'absolute';
+				if (window.innerWidth/window.innerHeight >= 16/9) {
+					console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+					document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+					document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+					document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+					document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+				}
+				else {
+					console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+					document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+					document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+					document.querySelector(video_info_id).style.left = 0 + 'px';
+					//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+					document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+				}
+
+				//document.querySelector('#inner_width').innerHTML = window.innerWidth;
+				//document.querySelector('#inner_height').innerHTML = window.innerHeight;
+				//document.querySelector('#video_width').innerHTML = getRect(document.querySelector(video_info_id)).width;
+				//document.querySelector('#video_height').innerHTML = getRect(document.querySelector(video_info_id)).height;
+			}
+		});
+
+	}
+});
+
+
+	
 
 
 if (document.querySelector("#dst_textarea")) {
@@ -1324,7 +1617,7 @@ function updateSubtitleText() {
 	console.log('centerize_src = ', centerize_src);
 
 	var textarea_rect = get_textarea_rect();
-	var video_info = getVideoPlayerInfo();
+	var video_info = get_video_player_info();
 	if (textarea_rect && video_info) {
 		if (document.querySelector("#checkbox_centerize_src").checked) {
 			src_left = textarea_rect.src_left;
@@ -1405,7 +1698,7 @@ function updateSubtitleText() {
 	console.log('centerize_dst = ', centerize_dst);
 
 	var textarea_rect = get_textarea_rect();
-	var video_info = getVideoPlayerInfo();
+	var video_info = get_video_player_info();
 	if (textarea_rect && video_info) {
 		if (document.querySelector("#checkbox_centerize_dst").checked) {
 			dst_left = textarea_rect.dst_left;
@@ -1687,7 +1980,8 @@ function embed(){
 	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
 		//if (!document.querySelector(".iframe_header_unit")) create_iframe_video_player();
 		if (document.querySelector(".video_header_unit")) document.body.removeChild(document.querySelector(".video_header_unit"));
-		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		//if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		if (document.querySelector("#outer")) document.body.removeChild(document.querySelector("#outer"));
 		var ytID=getYoutubePlayerID(url);
 		var src="https://www.youtube.com/embed/"+ytID;
 		url = src;
@@ -1699,7 +1993,8 @@ function embed(){
 	if (url.includes(".mp4")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
-		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		//if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		if (document.querySelector("#outer")) document.body.removeChild(document.querySelector("#outer"));
 		if (document.querySelector(".flv_video_header_unit")) document.body.removeChild(document.querySelector(".flv_video_header_unit"));
 		//insert_videojs_script();
 		console.log(document.querySelector("#my_video"));
@@ -1714,7 +2009,8 @@ function embed(){
 	if (url.includes(".flv")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
-		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		//if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		if (document.querySelector("#outer")) document.body.removeChild(document.querySelector("#outer"));
 		if (document.querySelector(".video_header_unit")) document.body.removeChild(document.querySelector(".video_header_unit"));
 		console.log(document.querySelector("#videojs-flvjs-player"));
 		document.querySelector("#videojs-flvjs-player").style.display = "block";
@@ -1735,7 +2031,8 @@ function embed(){
 	if (url.includes(".m3u8")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
-		if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		//if (document.querySelector(".detail__media-video")) document.body.removeChild(document.querySelector(".detail__media-video"));
+		if (document.querySelector("#outer")) document.body.removeChild(document.querySelector("#outer"));
 		insert_videojs_script();
 		console.log(document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
@@ -1748,14 +2045,54 @@ function embed(){
 		if (document.querySelector(".iframe_header_unit")) document.body.removeChild(document.querySelector(".iframe_header_unit"));
 		if (document.querySelector(".video_header_unit")) document.body.removeChild(document.querySelector(".video_header_unit"));
 		console.log(document.querySelector("#cnnlive"));
-		document.querySelector(".detail__media-video").style.display = "block";
+		document.querySelector("#outer").style.backgroundColor = '#000000';
+		//document.querySelector(".detail__media-video").style.backgroundColor = 'red';
+		//document.querySelector(".detail__media-video").style.display = "block";
 		document.querySelector("#cnnlive").style.display = "block";
 		document.querySelector("#cnnlive").src = url;
 	}
 
-	var video_info = getVideoPlayerInfo();
-	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
-	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
+
+	var video_info = get_video_player_info();
+	var video_info_id = '#' + video_info.id;
+	var video_outer_info = get_video_outer_info().element;
+	var video_outer_info_id = '#' + video_outer_info.id;
+	console.log('video_outer_info_id =', video_outer_info_id);
+	if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id) && !video_info.src.includes('youtube')) {
+	//if (document.querySelector(video_info_id) && document.querySelector(video_outer_info_id)) {
+		if (!document.fullscreenElement) {
+			document.querySelector(video_outer_info_id).style.textAlign = 'center';
+			document.querySelector(video_info_id).style.position = 'absolute';
+			if (window.innerWidth/window.innerHeight >= 16/9) {
+				console.log('resize event: window.innerWidth/window.innerHeight >= 16/9');
+				document.querySelector(video_info_id).style.height = (window.innerHeight) + 'px';
+				document.querySelector(video_info_id).style.width = (((16/9)*window.innerHeight)) + 'px';
+				document.querySelector(video_info_id).style.left = (0.5*(window.innerWidth-getRect(document.querySelector(video_info_id)).width)) + 'px';
+				document.querySelector(video_info_id).style.top = getRect(document.querySelector(video_outer_info_id)).top + 'px';
+			}
+			else {
+				console.log('resize event: window.innerWidth/window.innerHeight < 16/9');
+				document.querySelector(video_info_id).style.width = window.innerWidth + 'px';
+				document.querySelector(video_info_id).style.height = ((9/16)*window.innerWidth) + 'px';
+				document.querySelector(video_info_id).style.left = 0 + 'px';
+				//document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top + 0.5*(window.innerHeight - getRect(document.querySelector(video_info_id)).height)) + 'px';
+				document.querySelector(video_info_id).style.top = (getRect(document.querySelector(video_outer_info_id)).top) + 'px';
+			}
+
+		} else {
+			document.querySelector(video_info_id).style.width = '100vw';
+			document.querySelector(video_info_id).style.height = '100vh';
+			document.querySelector(video_info_id).style.left = '0px';
+			document.querySelector(video_info_id).style.top = '0px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+		}
+	}
+
+	var video_info = get_video_player_info();
+	if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+	if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
+
 }
 
 
@@ -1773,7 +2110,7 @@ function create_modal_text_area() {
 	dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
 
 	var textarea_rect = get_textarea_rect();
-	video_info = getVideoPlayerInfo();
+	video_info = get_video_player_info();
 
 
 	var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
@@ -1790,6 +2127,7 @@ function create_modal_text_area() {
 		})
 		.css({
 			'position': 'absolute',
+			'allowfullscreen': 'true',
 			'fontFamily': document.querySelector("#select_src_font").value + ', sans-serif',
 			'fontSize': document.querySelector("#input_src_font_size").value,
 			'color': document.querySelector("#slider_src_font_color").value,
@@ -1801,9 +2139,24 @@ function create_modal_text_area() {
 		})
 		.offset({top:textarea_rect.src_top, left:textarea_rect.src_left})
 
+	//if (!document.querySelector("#src_textarea_container")) {
+	//	console.log('appending src_textarea_container to html body');
+	//	src_textarea_container$.appendTo('body');
+	//} else {
+	//	console.log('src_textarea_container has already exist');
+	//}
+
+	//var video_outer_info = get_video_outer_info().element;
+	//if (!document.querySelector("#src_textarea_container")) {
+	//	console.log('appending src_textarea_container to video outer element');
+	//	if (video_outer_info) src_textarea_container$.appendTo(video_outer_info);
+	//} else {
+	//	console.log('src_textarea_container has already exist');
+	//}
+
 	if (!document.querySelector("#src_textarea_container")) {
 		console.log('appending src_textarea_container to html body');
-		src_textarea_container$.appendTo('body');
+		src_textarea_container$.appendTo(document.documentElement);
 	} else {
 		console.log('src_textarea_container has already exist');
 	}
@@ -1818,7 +2171,7 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
 	document.querySelector("#src_textarea").style.color = src_font_color;
 	document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#slider_src_container_color").value, document.querySelector("#slider_src_container_opacity").value);
-	document.querySelector("#src_textarea").style.fontSize = String(src_font_size)+'px';
+	document.querySelector("#src_textarea").style.fontSize = String(src_font_size) + 'px';
 
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 
@@ -1830,7 +2183,7 @@ function create_modal_text_area() {
 			document.querySelector("#checkbox_centerize_src").checked = false;
 		}
 
-		video_info = getVideoPlayerInfo();
+		video_info = get_video_player_info();
 		if (video_info) {
 			src_container_width_factor = getRect(document.querySelector("#src_textarea")).width/video_info.width;
 			src_container_width_factor = parseFloat(src_container_width_factor).toFixed(3);
@@ -1867,7 +2220,7 @@ function create_modal_text_area() {
 		}
 
 
-		video_info = getVideoPlayerInfo();
+		video_info = get_video_player_info();
 		if (video_info) {
 			src_container_top_factor = (getRect(document.querySelector("#src_textarea_container")).top - video_info.top)/video_info.height;
 			src_container_top_factor = parseFloat(src_container_top_factor).toFixed(3);
@@ -1909,6 +2262,7 @@ function create_modal_text_area() {
 		})
 		.css({
 			'position': 'absolute',
+			'allowfullscreen': 'true',
 			'fontFamily': document.querySelector("#select_dst_font").value + ', sans-serif',
 			'fontSize': document.querySelector("#input_dst_font_size").value,
 			'color': document.querySelector("#slider_dst_font_color").value,
@@ -1920,9 +2274,24 @@ function create_modal_text_area() {
 		})
 		.offset({top:textarea_rect.dst_top, left:textarea_rect.dst_left})
 
+	//if (!document.querySelector("#dst_textarea_container")) {
+	//	console.log('appending dst_textarea_container to html body');
+	//	dst_textarea_container$.appendTo('body');
+	//} else {
+	//	console.log('dst_textarea_container has already exist');
+	//}
+
+	//var video_outer_info = get_video_outer_info().element;
+	//if (!document.querySelector("#dst_textarea_container")) {
+	//	console.log('appending dst_textarea_container to video outer element');
+	//	if (video_outer_info) dst_textarea_container$.appendTo(video_outer_info);
+	//} else {
+	//	console.log('dst_textarea_container has already exist');
+	//}
+
 	if (!document.querySelector("#dst_textarea_container")) {
 		console.log('appending dst_textarea_container to html body');
-		dst_textarea_container$.appendTo('body');
+		dst_textarea_container$.appendTo(document.documentElement);
 	} else {
 		console.log('dst_textarea_container has already exist');
 	}
@@ -1937,7 +2306,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
 	document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#slider_dst_container_color").value, document.querySelector("#slider_dst_container_opacity").value);
-	document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size)+'px';
+	document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size) + 'px';
 
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 
@@ -1949,7 +2318,7 @@ function create_modal_text_area() {
 			document.querySelector("#checkbox_centerize_dst").checked = false;
 		}
 
-		video_info = getVideoPlayerInfo();
+		video_info = get_video_player_info();
 		if (video_info) {
 			dst_container_width_factor = getRect(document.querySelector("#dst_textarea")).width/video_info.width;
 			dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
@@ -1985,7 +2354,7 @@ function create_modal_text_area() {
 			document.querySelector("#checkbox_centerize_dst").checked = false;
 		}
 
-		video_info = getVideoPlayerInfo();
+		video_info = get_video_player_info();
 		if (video_info) {
 			dst_container_top_factor = (getRect(document.querySelector("#dst_textarea_container")).top - video_info.top)/video_info.height;
 			dst_container_top_factor = parseFloat(dst_container_top_factor).toFixed(3);
@@ -2026,7 +2395,7 @@ function startButton(event) {
 	dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
 	dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
 
-	video_info = getVideoPlayerInfo();
+	video_info = get_video_player_info();
 	if (video_info) {
 		//console.log("Video player found");
 		//console.log("video_info.id = ", video_info.id);
@@ -2095,22 +2464,31 @@ function startButton(event) {
 	//console.log('dst_dialect = ', dst_dialect);
 
 	recognizing = !recognizing;
-	console.log('startButton clicked recognizing = ', recognizing);
+	console.log('startButton clicked: recognizing = ', recognizing);
 
 	if (!recognizing) {
+		console.log('removing src_textarea_container from html body');
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").parentElement.removeChild(document.querySelector("#src_textarea_container"));
+		console.log('removing dst_textarea_container from html body');
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").parentElement.removeChild(document.querySelector("#dst_textarea_container"));
 		if (document.querySelector("#ajax_dst_textarea_container")) document.querySelector("#ajax_dst_textarea_container").parentElement.removeChild(document.querySelector("#ajax_dst_textarea_container"));
+		console.log('removing fullscreen button from html body');
+		if (document.querySelector("#button_fullscreen")) document.querySelector("#button_fullscreen").parentElement.removeChild(document.querySelector("#button_fullscreen"));
 		recognition.stop();
 		document.querySelector("#start_img").src = 'images/mic.gif';
 		return;
 
 	} else {
-		console.log('removing src_textarea_container from html body');
+		console.log('removing src_textarea_container from html body if exist to create a fresh new one');
 		if (document.querySelector("#src_textarea_container")) document.querySelector("#src_textarea_container").parentElement.removeChild(document.querySelector("#src_textarea_container"));
-		console.log('removing dst_textarea_container from html body');
+		console.log('removing dst_textarea_container from html body if exist to create a fresh new one');
 		if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").parentElement.removeChild(document.querySelector("#dst_textarea_container"));
+		console.log('removing fullscreen button from html body if exist to create a fresh new one');
+		if (document.querySelector("#button_fullscreen")) document.querySelector("#button_fullscreen").parentElement.removeChild(document.querySelector("#button_fullscreen"));
+
 		create_modal_text_area();
+		createbutton_fullscreen();
+
 		final_transcript = '';
 		interim_transcript = '';
 		array_all_final_transcripts = []
@@ -2126,8 +2504,8 @@ function startButton(event) {
 		document.querySelector("#start_img").src = 'images/mic-animate.gif';
 	}
 
-	if (video_info) document.documentElement.scrollTop = video_info.top; // For modern browsers
-	if (video_info) document.body.scrollTop = video_info.top; // For older browsers
+	if (video_info.src) document.documentElement.scrollTop = video_info.top; // For modern browsers
+	if (video_info.src) document.body.scrollTop = video_info.top; // For older browsers
 
 }
 
@@ -2683,10 +3061,10 @@ function regenerate_textarea() {
 
 	if (document.querySelector("#src_textarea_container")) {
 		document.querySelector("#src_textarea_container").style.fontFamily = document.querySelector("#select_src_font").value + ", sans-serif";
-		document.querySelector("#src_textarea_container").style.width = String(textarea_rect.src_width)+'px';
-		document.querySelector("#src_textarea_container").style.height = String(textarea_rect.src_height)+'px';
-		document.querySelector("#src_textarea_container").style.top = String(textarea_rect.src_top)+'px';
-		document.querySelector("#src_textarea_container").style.left = String(textarea_rect.src_left)+'px';
+		document.querySelector("#src_textarea_container").style.width = String(textarea_rect.src_width) + 'px';
+		document.querySelector("#src_textarea_container").style.height = String(textarea_rect.src_height) + 'px';
+		document.querySelector("#src_textarea_container").style.top = String(textarea_rect.src_top) + 'px';
+		document.querySelector("#src_textarea_container").style.left = String(textarea_rect.src_left) + 'px';
 
 		var src_textarea_container$=$('<div id="src_textarea_container"><textarea id="src_textarea"></textarea></div>')
 			.width(textarea_rect.src_width)
@@ -2713,8 +3091,8 @@ function regenerate_textarea() {
 			})
 			.offset({top:textarea_rect.src_top, left:textarea_rect.src_left})
 
-		document.querySelector("#src_textarea").style.width = String(textarea_rect.src_width)+'px';
-		document.querySelector("#src_textarea").style.height = String(textarea_rect.src_height)+'px';
+		document.querySelector("#src_textarea").style.width = String(textarea_rect.src_width) + 'px';
+		document.querySelector("#src_textarea").style.height = String(textarea_rect.src_height) + 'px';
 		document.querySelector("#src_textarea").style.width = '100%';
 		document.querySelector("#src_textarea").style.height = '100%';
 		document.querySelector("#src_textarea").style.border = 'none';
@@ -2722,7 +3100,7 @@ function regenerate_textarea() {
 		document.querySelector("#src_textarea").style.overflow = 'hidden';
 
 		document.querySelector("#src_textarea").style.fontFamily = document.querySelector("#select_src_font").value + ", sans-serif";
-		document.querySelector("#src_textarea").style.fontSize = String(document.querySelector("#input_src_font_size").value)+'px';
+		document.querySelector("#src_textarea").style.fontSize = String(document.querySelector("#input_src_font_size").value) + 'px';
 		document.querySelector("#src_textarea").style.color = document.querySelector("#slider_src_font_color").value;
 		document.querySelector("#src_textarea").style.backgroundColor = hexToRgba(document.querySelector("#slider_src_container_color").value, document.querySelector("#slider_src_container_opacity").value);
 
@@ -2733,10 +3111,10 @@ function regenerate_textarea() {
 
 	if (document.querySelector("#dst_textarea_container")) {
 		document.querySelector("#dst_textarea_container").style.fontFamily = document.querySelector("#select_dst_font").value + ", sans-serif";
-		document.querySelector("#dst_textarea_container").style.width = String(textarea_rect.dst_width)+'px';
-		document.querySelector("#dst_textarea_container").style.height = String(textarea_rect.dst_height)+'px';
-		document.querySelector("#dst_textarea_container").style.top = String(textarea_rect.dst_top)+'px';
-		document.querySelector("#dst_textarea_container").style.left = String(textarea_rect.dst_left)+'px';
+		document.querySelector("#dst_textarea_container").style.width = String(textarea_rect.dst_width) + 'px';
+		document.querySelector("#dst_textarea_container").style.height = String(textarea_rect.dst_height) + 'px';
+		document.querySelector("#dst_textarea_container").style.top = String(textarea_rect.dst_top) + 'px';
+		document.querySelector("#dst_textarea_container").style.left = String(textarea_rect.dst_left) + 'px';
 
 		var dst_textarea_container$=$('<div id="dst_textarea_container"><textarea id="dst_textarea"></textarea></div>')
 			.width(textarea_rect.dst_width)
@@ -2763,8 +3141,8 @@ function regenerate_textarea() {
 			})
 			.offset({top:textarea_rect.dst_top, left:textarea_rect.dst_left})
 
-		document.querySelector("#dst_textarea").style.width = String(textarea_rect.dst_width)+'px';
-		document.querySelector("#dst_textarea").style.height = String(textarea_rect.dst_height)+'px';
+		document.querySelector("#dst_textarea").style.width = String(textarea_rect.dst_width) + 'px';
+		document.querySelector("#dst_textarea").style.height = String(textarea_rect.dst_height) + 'px';
 		document.querySelector("#dst_textarea").style.width = '100%';
 		document.querySelector("#dst_textarea").style.height = '100%';
 		document.querySelector("#dst_textarea").style.border = 'none';
@@ -2772,13 +3150,17 @@ function regenerate_textarea() {
 		document.querySelector("#dst_textarea").style.overflow = 'hidden';
 
 		document.querySelector("#dst_textarea").style.fontFamily = document.querySelector("#select_dst_font").value + ", sans-serif";
-		document.querySelector("#dst_textarea").style.fontSize = String(document.querySelector("#input_dst_font_size").value)+'px';
+		document.querySelector("#dst_textarea").style.fontSize = String(document.querySelector("#input_dst_font_size").value) + 'px';
 		document.querySelector("#dst_textarea").style.color = document.querySelector("#slider_dst_font_color").value;
 		document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(document.querySelector("#slider_dst_container_color").value, document.querySelector("#slider_dst_container_opacity").value);
 
 	} else {
 		console.log('dst_textarea_container has already exist');
 	}
+
+	if (document.querySelector("#button_fullscreen")) document.querySelector("#button_fullscreen").style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+	if (document.querySelector("#button_fullscreen")) document.querySelector("#button_fullscreen").style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+
 }
 
 
@@ -2791,13 +3173,15 @@ function getRect(element) {
 		width: rect.width,
 		height: rect.height,
 		top: rect.top + scrollTop,
-		left: rect.left + scrollLeft
+		left: rect.left + scrollLeft,
+		right: rect.right + scrollLeft,
+		bottom: rect.bottom + scrollTop
 	};
 }
 
 
 function get_textarea_rect() {
-	var video_info = getVideoPlayerInfo();
+	var video_info = get_video_player_info();
 	if (video_info) {
 		//console.log("Video player found");
 		//console.log("video_info.id = ", video_info.id);
@@ -2892,41 +3276,219 @@ function get_textarea_rect() {
 }
 
 
-function getVideoPlayerInfo() {
+function initResizeObserver(element, callback) {
+	if (resizeObserver) {
+		resizeObserver.disconnect();
+	}
+	resizeObserver = new ResizeObserver(() => {
+		callback();
+	});
+	resizeObserver.observe(element);
+}
+
+
+function onFullscreenChange() {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    if (fullscreenElement) {
+        initResizeObserver(fullscreenElement, get_video_player_info);
+    }
+}
+
+
+function get_video_player_info() {
 	var elements = document.querySelectorAll('video, iframe');
-	//console.log('elements = ',  elements);
+	//console.log('elements =',  elements);
 	var largestVideoElement = null;
 	var largestSize = 0;
 
-	for (var i = 0; i<elements.length; i++) {
-		var rect = getRect(elements[i]);
-		//console.log('rect', rect);
-		if (rect.width > 0) {
-			var size = rect.width * rect.height;
+	for (var i = 0; i < elements.length; i++) {
+		if (getRect(elements[i]).width > 0) {
+			var size = getRect(elements[i]).width * getRect(elements[i]).height;
 			if (size > largestSize) {
 				largestSize = size;
 				largestVideoElement = elements[i];
+
+				var videoPlayerContainer = largestVideoElement.parentElement;
+				while (videoPlayerContainer && videoPlayerContainer !== document.body) {
+					var style = window.getComputedStyle(videoPlayerContainer);
+					videoPlayerContainer = videoPlayerContainer.parentElement;
+				}
+ 
+				// Default to the video player if no suitable container found
+				if (!videoPlayerContainer || videoPlayerContainer === document.body) {
+					//videoPlayerContainer = videoPlayer;
+					videoPlayerContainer = largestVideoElement;
+				}
+
+				// Get the position and size of the container
+				var container_rect = getRect(videoPlayerContainer);
+				// Get the computed style of the container
+				var container_style = window.getComputedStyle(videoPlayerContainer);
+				// Check if position and z-index are defined, else set default values
+				var container_position = container_style.position !== 'static' ? container_style.position : 'relative';
+				var container_zIndex = container_style.zIndex !== 'auto' && container_style.zIndex !== '0' ? parseInt(container_style.zIndex) : 1;
+
 			}
-			var videoPlayerID = elements[i].id;
-			var style = window.getComputedStyle(elements[i]);
-			//console.log('videoPlayerID = ',  videoPlayerID);
-			var position = style.position !== 'static' ? style.position : 'relative';
-			var zIndex = style.zIndex !== 'auto' && style.zIndex !== '0' ? parseInt(style.zIndex) : 1;
 
 			return {
-				element: elements[i],
-				id: elements[i].id,
-				top: rect.top,
-				left: rect.left,
-				width: rect.width,
-				height: rect.height,
-				position: position,
-				zIndex: zIndex,
+				element: largestVideoElement,
+				id: largestVideoElement.id,
+				tagName: largestVideoElement.tagName.toLowerCase(),
+				top: getRect(largestVideoElement).top,
+				left: getRect(largestVideoElement).left,
+				bottom: getRect(largestVideoElement).bottom,
+				right: getRect(largestVideoElement).right,
+				width: getRect(largestVideoElement).width,
+				height: getRect(largestVideoElement).height,
+				position: largestVideoElement.style.position,
+				zIndex: largestVideoElement.style.zIndex,
+				container: videoPlayerContainer,
+				container_id: videoPlayerContainer.id,
+				container_top: container_rect.top,
+				container_left: container_rect.left,
+				container_bottom: container_rect.bottom,
+				container_right: container_rect.right,
+				container_width: container_rect.width,
+				container_height: container_rect.height,
+				container_position: container_position,
+				container_zIndex: container_zIndex,
+				src: largestVideoElement.src,
 			};
 		}
 	}
 	//console.log('No video player found');
 	return null;
+}
+
+
+function createbutton_fullscreen() {
+	const video_info = get_video_player_info();
+	//console.log('video_info.top =', video_info.top);
+	//console.log('video_info.left =', video_info.left);
+	//console.log('video_info.bottom =', video_info.bottom);
+	//console.log('video_info.right =', video_info.right);
+	var button_fullscreen = document.createElement('button');
+	button_fullscreen.id = 'button_fullscreen';
+	button_fullscreen.style.position = 'absolute';
+	button_fullscreen.style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+	//button_fullscreen.style.top = (get_video_player_info().top) + 'px';
+	button_fullscreen.style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+	button_fullscreen.style.zIndex = '1000';
+	button_fullscreen.style.padding = '10px';
+	button_fullscreen.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+	button_fullscreen.style.color = '#fff';
+	button_fullscreen.style.border = 'none';
+	button_fullscreen.style.cursor = 'pointer';
+	button_fullscreen.style.borderRadius = '5px';
+		
+	// Create the SVG icon
+	var fullscreenIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	fullscreenIcon.setAttribute('width', '12');
+	fullscreenIcon.setAttribute('height', '12');
+	fullscreenIcon.setAttribute('viewBox', '0 0 24 24');
+	fullscreenIcon.setAttribute('fill', 'none');
+	fullscreenIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+		
+	var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+	path.setAttribute('fill-rule', 'evenodd');
+	path.setAttribute('clip-rule', 'evenodd');
+	path.setAttribute('d', 'M7 10H3V3H10V7H5V10ZM21 3H14V7H19V10H21V3ZM17 17H21V21H14V17H19V14H21V17ZM3 14H7V19H10V21H3V14Z');
+	path.setAttribute('fill', 'currentColor');
+		
+	fullscreenIcon.appendChild(path);
+	button_fullscreen.appendChild(fullscreenIcon);
+		
+	// Append the fullscreen button to the outer div
+	//console.log('appending button_fullscreen to video outer element ');
+	//var video_outer_info = get_video_outer_info().element;
+	//video_outer_info.appendChild(button_fullscreen);
+	document.documentElement.appendChild(button_fullscreen);
+		
+	document.querySelector('#button_fullscreen').onclick = () => {
+		console.log('button_fullscreen clicked');
+		//toggleFullscreen(video_outer_info);
+		toggleFullscreen(document.documentElement);
+	}
+		
+	window.onresize = (function(){
+		const video_info = get_video_player_info();
+		if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (get_video_player_info().left + get_video_player_info().width - 42)  + 'px';
+		if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.top = (get_video_player_info().top + get_video_player_info().height - 36) + 'px';
+	});
+
+}
+
+
+function toggleFullscreen(element) {
+	console.log('toggleFullscreen clicked');
+	if (!document.fullscreenElement) {
+		enterFullscreen(element);
+	} else {
+		exitFullscreen();
+	}
+}
+	
+// Function to enter fullscreen mode for the video
+function enterFullscreen(element) {
+	console.log('enterFullscreen');
+	if (element.requestFullscreen) {
+		element.requestFullscreen();
+		} else if (element.mozRequestFullScreen) { // Firefox
+		element.mozRequestFullScreen();
+		} else if (element.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+		element.webkitRequestFullscreen();
+		} else if (element.msRequestFullscreen) { // IE/Edge
+		element.msRequestFullscreen();
+	}
+}
+	
+function exitFullscreen() {
+	console.log('exitFullscreen');
+	if (document.exitFullscreen) {
+		document.exitFullscreen();
+		} else if (document.mozCancelFullScreen) { // Firefox
+		document.mozCancelFullScreen();
+		} else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
+		document.webkitExitFullscreen();
+		} else if (document.msExitFullscreen) { // IE/Edge
+		document.msExitFullscreen();
+	}
+}
+	
+function get_video_outer_info() {
+	const video_info = get_video_player_info();
+	const videoElement = video_info.element;
+	var video_outer_info, video_outer_info_id;
+	var video_outer_info_width, video_outer_info_height, video_outer_info_top, video_outer_info_left;
+	var video_outer_info_position, video_outer_info_zIndex;
+	if (videoElement) {
+		video_outer_info = videoElement.parentElement;
+		while (video_outer_info && video_outer_info !== document.body) {
+			video_outer_info = video_outer_info.parentElement;
+			video_outer_info_id = video_outer_info.parentElement.id;
+			var rect = getRect(video_outer_info);
+			video_outer_info_width = rect.width;
+			video_outer_info_height = rect.height;
+			video_outer_info_top = rect.top;
+			video_outer_info_left = rect.left;
+			video_outer_info_position = video_outer_info.parentElement.style.position;
+			video_outer_info_zIndex = video_outer_info.parentElement.style.zIndex;
+			if (video_outer_info.parentElement === document.body) {
+				break;
+			}
+		}
+	}
+	//return video_outer_info;
+	return {
+		element: video_outer_info,
+		id: video_outer_info_id,
+		width: video_outer_info_width,
+		height: video_outer_info_height,
+		top: video_outer_info_top,
+		left: video_outer_info_left,
+		position: video_outer_info_position,
+		zIndex: video_outer_info_zIndex,
+	};
 }
 
 
@@ -3074,4 +3636,38 @@ function create_cnn_video_player() {
 	tag_iframe.allowFullscreen = 'true';
 
 	console.log(div_detail__media_video);
+}
+
+function showTextareaInFullscreen(videoElement) {
+	// Create the textarea and set its position and size
+	const textarea = document.createElement('textarea');
+	textarea.style.position = 'fixed';
+	textarea.style.top = 0.01 * getRect(videoElement).top;
+	textarea.style.left = 0.1 *getRect(videoElement).left;
+	textarea.style.width = 0.75 * getRect(videoElement).width;;
+	textarea.style.height = 0.15 * getRect(videoElement).height;;
+	textarea.value = "JUST A TEST"
+	
+	// Request fullscreen mode
+	const requestFullscreen = videoElement.requestFullscreen || videoElement.webkitRequestFullscreen || videoElement.msRequestFullscreen;
+	requestFullscreen.call(videoElement);
+	
+	// Add the textarea to the document and focus it
+	document.body.appendChild(textarea);
+	textarea.focus();
+}
+
+function enterFullscreen(element) {
+	console.log('IS FULLSCREEN');
+	if (document.querySelector('#cnnlive')) document.querySelector('#cnnlive').style.width = '100%';
+	if (document.querySelector('#cnnlive')) document.querySelector('#cnnlive').style.height = '100%';
+	if (element.requestFullscreen) {
+		element.requestFullscreen();
+	} else if (element.mozRequestFullScreen) { // Firefox
+		element.mozRequestFullScreen();
+	} else if (element.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+		element.webkitRequestFullscreen();
+	} else if (element.msRequestFullscreen) { // IE/Edge
+		element.msRequestFullscreen();
+	}
 }

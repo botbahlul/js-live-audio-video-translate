@@ -1,6 +1,8 @@
 # js-live-audio-video-translate
 This is a web template that can RECOGNIZE any live audio/video streaming (using Chrome webkitSpeechRecognition API) and TRANSLATE it (using unofficial Google Translate API) for FREE!
 
+NOTE : Since version 0.3.2 I've added a CUSTOM FULLSCREEN BUTTON on the right bottom corner of the video so we can see subtitles in fullscreen mode.
+
 You need to install CORS Unblock Chrome extension to avoid default CORS Blocking Policy of Chrome and Edge
 
 You will also need Stereo Mix or Virtual Audio Cable recording device for best recognizing

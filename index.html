@@ -1,266 +1,285 @@
 <!DOCTYPE html>
 <style>
 	* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
 	}
 	*:before,
 	*:after {
-	font-family: Arial, sans-serif;
-	font-size: 12px;
-	box-sizing: inherit;
+		font-family: Arial, sans-serif;
+		font-size: 12px;
+		box-sizing: inherit;
 	}
 	body {
-	font-family: Arial, sans-serif;
+		font-family: Arial, sans-serif;
 	}
 	
 	.container {
-	width: 100%;
-	margin: 10px auto;
+		width: 100%;
+		margin: 10px auto;
 	}
 	.two-column {
-	display: flex;
-	gap: 10px;
+		display: flex;
+		gap: 10px;
 	}
 	.two-column-2 {
-	display: flex;
-	gap: 10px;
+		display: flex;
+		gap: 10px;
 	}
 	.column {
-	flex: 1;
-	background: #f4f4f4;
-	padding: 10px;
-	border: 1px solid #ddd;
+		flex: 1;
+		background: #f4f4f4;
+		padding: 10px;
+		border: 1px solid #ddd;
 	}
 	.column-2-1 {
-	width: 25%
+		width: 25%
 	}
 	.column-2-2 {
-	width: 75%
+		width: 75%
 	}
 	
 	#select_src_language {
-	width: 160px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 160px;
+		height: 16px;
 	}
 	#select_src_dialect {
-	width: 240px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 240px;
+		height: 16px;
 	}
 	#select_src_font {
-	width: 160px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 160px;
+		height: 16px;
 	}
 	#input_src_font_size {
-	width: 40px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 40px;
+		height: 16px;
 	}
 	#slider_src_font_color {
-	width: 40px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 40px;
+		height: 16px;
 	}
 	#input_src_container_width_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_src_container_height_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_src_container_top_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_src_container_left_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#slider_src_container_color {
-	width: 100px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 100px;
+		height: 16px;
 	}
 	#slider_src_container_opacity {
-	width: 100px; /* Adjust width as needed */
-	height: 4px; /* Adjust height as needed */
+		width: 100px;
+		height: 4px;
 	}
 	#select_dst_language {
-	width: 160px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 160px;
+		height: 16px;
 	}
 	#select_dst_dialect {
-	width: 240px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 240px;
+		height: 16px;
 	}
 	#select_dst_font {
-	width: 160px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 160px;
+		height: 16px;
 	}
 	#input_dst_font_size {
-	width: 40px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 40px;
+		height: 16px;
 	}
 	#slider_dst_font_color {
-	width: 40px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 40px;
+		height: 16px;
 	}
 	#input_dst_container_width_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_dst_container_height_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_dst_container_top_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#input_dst_container_left_factor {
-	width: 50px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 50px;
+		height: 16px;
 	}
 	#slider_dst_container_color {
-	width: 100px; /* Adjust width as needed */
-	height: 16px; /* Adjust height as needed */
+		width: 100px;
+		height: 16px;
 	}
 	#slider_dst_container_opacity {
-	width: 100px; /* Adjust width as needed */
-	height: 4px; /* Adjust height as needed */
+		width: 100px;
+		height: 4px;
 	}
 	
 	#start_button {
-	border: 0;
-	/*background-color:transparent;*/
-	padding: 0;
+		border: 0;
+		/*background-color:transparent;*/
+		padding: 0;
 	}
 	#url_box {
-	width: 350px; /* Adjust width as needed */
-	height: 18px; /* Adjust height as needed */
+		width: 350px;
+		height: 18px;
 	}
 	.mic-button {
-	float: right;
-	width: 48px;
-	height: 48px;
+		float: right;
+		width: 48px;
+		height: 48px;
 	}
 	
 	.iframe_header_unit iframe_container yt_iframe {
-	top: 0;
-	left: 0;
-	bottom: 0;
-	width: 100%;
-	height: 100%;
-	text-align: center;
-	border: 0;
-	//position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+		border: 0;
+		//position: absolute;
 	}
 	#my_yt_iframe {
-	/*border: 0;*/
-	/*background-color:transparent;*/
-	position: absolute;
-	z-index: 1;
-	display: none;
+		/*border: 0;*/
+		/*background-color:transparent;*/
+		position: absolute;
+		z-index: 1;
+		display: none;
 	}
 	
 	.video_header_unit video_container video {
-	top: 0;
-	left: 0;
-	bottom: 0;
-	width: 100%;
-	height: 100%;
-	text-align: center;
-	border: 0;
-	//position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+		border: 0;
+		//position: absolute;
 	}
 	video {
-	width: 100%;
-	height: 100%;
-	position: absolute;
-	z-index: 0;
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		z-index: 0;
 	}
 	#my_video {
-	/*border: 0;*/
-	/*background-color:transparent;*/
-	position: absolute;
-	z-index: 1;
-	display: none;
+		/*border: 0;*/
+		/*background-color:transparent;*/
+		position: absolute;
+		z-index: 1;
+		display: none;
 	}
 	
 	.flv_video_header_unit flv_video_container flv_video {
-	top: 0;
-	left: 0;
-	bottom: 0;
-	width: 100%;
-	height: 100%;
-	text-align: center;
-	border: 0;
-	//position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+		border: 0;
+		//position: absolute;
 	}
 	
 	flv_video {
-	width: 100%;
-	height: 100%;
-	position: absolute;
-	z-index: 0;
+		width: 100%;
+		height: 100%;
+		position: absolute;
+		z-index: 0;
 	}
 	
 	#videojs-flvjs-player {
-	/*border: 0;*/
-	/*background-color:transparent;*/
-	position: absolute;
-	z-index: 1;
-	display: none;
+		/*border: 0;*/
+		/*background-color:transparent;*/
+		position: absolute;
+		z-index: 1;
+		display: none;
 	}
 	
-	
+/*
 	.detail__media-video {
-	width: 100%;
-	height: 100%;
-	display: none;
-	text-align: center;
-	position: relative;
-	overflow: hidden;
-	//background-color: green;
+		width: 100%;
+		height: 100%;
+		display: none;
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+		//background-color: green;
 	}
 	.ratiobox {
-	left:0%;
-	top:0%;
-	width: 100%;
-	height:100%;
-	overflow: hidden;
-	position: relative;
-	text-align: center;
-	//background-color: red;
-	padding-bottom: 56.25%; /* 16:9 ratio */
+		left:0%;
+		top:0%;
+		//width: 100%;
+		//height:100%;
+		overflow: hidden;
+		position: relative;
+		text-align: center;
+		//background-color: red;
+		padding-bottom: 56.25%; /* 16:9 ratio */
 	}
 	.ratiobox iframe {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		//width: 100%;
+		//height: 100%;
 	}
-	#controls {
-	margin-top: 10px;
-	z-index: 10;
+*/
+
+	#outer {
+		//left:0%;
+		text-align:center;
+		justify-content: center;
+		position:relative;
+		background-color: black;
 	}
-	#timeSlider {
-	width: 960px;
-	position: absolute;
-	z-index: 111;
+	.detail__media-video mgb-16"{
+		display:block;
+		//text-align:center;
+		position:relative;
+		//overflow: hidden;
+		//width:100%;
+		//height:10000px;
+		//min-height:100%;
 	}
+	.ratiobox ratiobox--16-9{
+		//left:0%;
+		//top:0%;
+		//height:100%;
+		//width:100%;
+		//overflow: hidden;
+		position: absolute;
+		z-index: 1;
+	}
+
 </style>
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Live Audio/Video Translate v0.3.1</title>
+		<title>Live Audio/Video Translate v0.3.2</title>
 	</head>
 	
 	<body>
 		<br>
-		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.1</h3>
+		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.2</h3>
 		
 		<div class="container">
 			<div class="two-column">
@@ -283,7 +302,7 @@
 							<br>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="select_src_font" style="font-size: 12px">Subtitle Font</label>
@@ -306,7 +325,7 @@
 							<label for="src_container_width_continuing_text" style="font-size: 12px" >x Video Width</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_src_container_height_factor" style="font-size: 12px">Container Height</label>
@@ -316,7 +335,7 @@
 							<label for="src_container_height_continuing_text" style="font-size: 12px">x Video Height</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_src_container_left_factor" style="font-size: 12px">Container Left</label>
@@ -329,7 +348,7 @@
 							<label style='font-size: 12px'> Centerize Horizontally </label>
 						</div>
 					</div>
-						
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_src_container_top_factor" style="font-size: 12px">Container Top</label>
@@ -339,7 +358,7 @@
 							<label for="src_container_top_continuing_text" style="font-size: 12px">x Video Height</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="slider_src_container_color" style="font-size: 12px">Container Color</label>
@@ -350,7 +369,7 @@
 							<label id="label_src_container_color" for="slider_src_container_color" style="font-size: 12px"></label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="slider_src_container_opacity" style="font-size: 12px">Container Opacity</label>
@@ -361,7 +380,7 @@
 							<label id="label_src_container_opacity" for="slider_src_container_opacity" style="font-size: 12px"></label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<input type="checkbox" id="checkbox_save_src" name="checkbox_save_src" style='font-size: 12px' checked='true;'>
@@ -388,7 +407,7 @@
 							<br>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="select_dst_font" style="font-size: 12px">Subtitle Font</label>
@@ -411,7 +430,7 @@
 							<label for="dst_container_width_continuing_text" style="font-size: 12px" >x Video Width</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_dst_container_height_factor" style="font-size: 12px">Container Height</label>
@@ -421,7 +440,7 @@
 							<label for="dst_container_height_continuing_text" style="font-size: 12px">x Video Height</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_dst_container_left_factor" style="font-size: 12px">Container Left</label>
@@ -434,7 +453,7 @@
 							<label style='font-size: 12px'> Centerize Horizontally </label>
 						</div>
 					</div>
-						
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="input_dst_container_top_factor" style="font-size: 12px">Container Top</label>
@@ -444,7 +463,7 @@
 							<label for="dst_container_top_continuing_text" style="font-size: 12px">x Video Height</label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="slider_dst_container_color" style="font-size: 12px">Container Color</label>
@@ -455,7 +474,7 @@
 							<label id="label_dst_container_color" for="slider_dst_container_color" style="font-size: 12px"></label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<label for="slider_dst_container_opacity" style="font-size: 12px">Container Opacity</label>
@@ -466,7 +485,7 @@
 							<label id="label_dst_container_opacity" for="slider_dst_container_opacity" style="font-size: 12px"></label>
 						</div>
 					</div>
-
+					
 					<div class="two-column-2">
 						<div class="column-2-1">
 							<input type="checkbox" id="checkbox_save_dst" name="checkbox_save_dst" style='font-size: 12px' checked='true;'>
@@ -476,27 +495,28 @@
 				</div>
 			</div>
 		</div>
-		
-		<label style="font-size: 12px" for="pause_threshold">Pause Threshold&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-		<input style='width:60px' type="number" id="input_pause_threshold" min="0" step="1" value="2000">
-		<label for="pause_threshold_continuing_text" style="font-size: 12px"> (in miliseconds, silent duration that will trigger speech engine to restart)</label>
-		
-		<br>
-		
-		<label style="font-size: 12px">Video URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-		<input id="url_box" type="url"></input>
-		<button type="button" id="embed_button">Embed</button>
-		
-		<div class="mic-button">
-			<button id="start_button">
-				<img id="start_img" src="images/mic.gif" alt="Start" height="45%" width="45%" border="0">
-			</button>
+
+		<div class="container">
+			<label style="font-size: 12px" for="pause_threshold">Pause Threshold&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+			<input style='width:60px' type="number" id="input_pause_threshold" min="0" step="1" value="2000">
+			<label for="pause_threshold_continuing_text" style="font-size: 12px"> (in miliseconds, silent duration that will trigger speech engine to restart)</label>
+			<br>
+			<label style="font-size: 12px">Video URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+			<input id="url_box" type="url"></input>
+			<button type="button" id="embed_button">Embed</button>
+
+			<div class="mic-button">
+				<button id="start_button">
+					<img id="start_img" src="images/mic.gif" alt="Start" height="45%" width="45%" border="0">
+				</button>
+			</div>
 		</div>
-		
-		<br></br>
-		
-		
-		<div class="iframe_header_unit">
+
+		<br>
+
+		<!-- VIDEO PLAYERS  -->
+
+		<div class="iframe_header_unit" id="iframe_header_unit">
 			<div class="iframe_container">
 				<div class="yt_iframe">
 					<iframe id="my_yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen="true" class="fillWidth"></iframe>
@@ -504,7 +524,7 @@
 			</div>
 		</div>
 		
-		<div class="video_header_unit">
+		<div class="video_header_unit" id="video_header_unit">
 			<div class="video_container">
 				<div class="video">
 					<video id="my_video" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
@@ -514,7 +534,7 @@
 			</div>
 		</div>
 		
-		<div class="flv_video_header_unit">
+		<div class="flv_video_header_unit" id="flv_video_header_unit">
 			<div class="flv_video_container">
 				<div class="flv_video">
 					<video id="videojs-flvjs-player" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
@@ -524,18 +544,20 @@
 			</div>
 		</div>
 		
-		<div class="detail__media-video">
-			<div class="ratiobox" style="margin: 0 auto;">
-				<!--iframe id="cnnlive" width="960" height="540" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe-->
-				<iframe id="cnnlive" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe>
+		<div class="outer"  id="outer">
+			<div class="detail__media-video">
+				<div class="ratiobox" style="margin: 0 auto;">
+					<!--iframe id="cnnlive" width="960" height="540" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe-->
+					<iframe id="cnnlive" width="1072px" height="603px" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;' class="fillWidth"></iframe>
+				</div>
 			</div>
 		</div>
-		
-		<script src="js/jquery.min.js"></script>
-		<link rel="stylesheet" href="css/jquery-ui.css">
-		<script src="js/jquery-ui.min.js"></script>
-		
-		<script type='text/javascript' src="js/index.js"></script>
-		
+
 	</body>
+
+	<script src="js/jquery.min.js"></script>
+	<link rel="stylesheet" href="css/jquery-ui.css">
+	<script src="js/jquery-ui.min.js"></script>
+	<script type='text/javascript' src="js/index.js"></script>
+
 </html>

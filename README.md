@@ -3,6 +3,8 @@ This is a web template that can RECOGNIZE any live audio/video streaming (using 
 
 NOTE : Since version 0.3.2 I've added a CUSTOM FULLSCREEN BUTTON on the right bottom corner of the video so we can see subtitles in fullscreen mode.
 ![image](https://github.com/user-attachments/assets/d3dbdeb3-bb68-4ef9-987f-2ba0c54bde35)
+![image](https://github.com/user-attachments/assets/3b9d3472-9ed2-4830-a59a-28b8496aefa1)
+
 
 
 You need to install CORS Unblock Chrome extension to avoid default CORS Blocking Policy of Chrome and Edge

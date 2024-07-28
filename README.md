@@ -3,6 +3,7 @@ This is a web template that can RECOGNIZE any live audio/video streaming (using 
 
 NOTE : Since version 0.3.2 I've added a CUSTOM FULLSCREEN BUTTON on the right bottom corner of the video so we can see subtitles in fullscreen mode.
 After 5 seconds this button will be hidden, to show it again just move mouse cursor inside subtitles textarea or move the mouse go outside then inside browser window.
+You can also use F11 key to enter fullscreen mode and still see the subtitles. On some streaming website it may not working properly, just let me know.
 ![image](https://github.com/user-attachments/assets/d3dbdeb3-bb68-4ef9-987f-2ba0c54bde35)
 ![image](https://github.com/user-attachments/assets/3b9d3472-9ed2-4830-a59a-28b8496aefa1)
 

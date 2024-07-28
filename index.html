@@ -131,7 +131,6 @@
 	
 	#start_button {
 		border: 0;
-		/*background-color:transparent;*/
 		padding: 0;
 	}
 	#url_box {
@@ -143,25 +142,7 @@
 		width: 48px;
 		height: 48px;
 	}
-	
-	.iframe_header_unit iframe_container yt_iframe {
-		top: 0;
-		left: 0;
-		bottom: 0;
-		width: 100%;
-		height: 100%;
-		text-align: center;
-		border: 0;
-		//position: absolute;
-	}
-	#my_yt_iframe {
-		/*border: 0;*/
-		/*background-color:transparent;*/
-		position: absolute;
-		z-index: 1;
-		display: none;
-	}
-	
+
 	.video_header_unit video_container video {
 		top: 0;
 		left: 0;
@@ -170,7 +151,15 @@
 		height: 100%;
 		text-align: center;
 		border: 0;
-		//position: absolute;
+
+		//width: 100%;
+		//display: block;
+		//text-align: center;
+		//position: relative;
+		overflow: hidden;
+
+		//height:10000px;
+		//min-height:100%;
 	}
 	video {
 		width: 100%;
@@ -179,93 +168,14 @@
 		z-index: 0;
 	}
 	#my_video {
-		/*border: 0;*/
-		/*background-color:transparent;*/
 		position: absolute;
 		z-index: 1;
 		display: none;
 	}
-	
-	.flv_video_header_unit flv_video_container flv_video {
-		top: 0;
-		left: 0;
-		bottom: 0;
-		width: 100%;
-		height: 100%;
-		text-align: center;
-		border: 0;
-		//position: absolute;
-	}
-	
-	flv_video {
-		width: 100%;
-		height: 100%;
-		position: absolute;
-		z-index: 0;
-	}
-	
-	#videojs-flvjs-player {
-		/*border: 0;*/
-		/*background-color:transparent;*/
+	#my_iframe {
 		position: absolute;
 		z-index: 1;
 		display: none;
-	}
-	
-/*
-	.detail__media-video {
-		width: 100%;
-		height: 100%;
-		display: none;
-		text-align: center;
-		position: relative;
-		overflow: hidden;
-		//background-color: green;
-	}
-	.ratiobox {
-		left:0%;
-		top:0%;
-		//width: 100%;
-		//height:100%;
-		overflow: hidden;
-		position: relative;
-		text-align: center;
-		//background-color: red;
-		padding-bottom: 56.25%; /* 16:9 ratio */
-	}
-	.ratiobox iframe {
-		position: absolute;
-		top: 0;
-		left: 0;
-		//width: 100%;
-		//height: 100%;
-	}
-*/
-
-	#outer {
-		//left:0%;
-		text-align:center;
-		justify-content: center;
-		position:relative;
-		background-color: black;
-	}
-	.detail__media-video mgb-16"{
-		display:block;
-		//text-align:center;
-		position:relative;
-		//overflow: hidden;
-		//width:100%;
-		//height:10000px;
-		//min-height:100%;
-	}
-	.ratiobox ratiobox--16-9{
-		//left:0%;
-		//top:0%;
-		//height:100%;
-		//width:100%;
-		//overflow: hidden;
-		position: absolute;
-		z-index: 1;
 	}
 
 </style>
@@ -274,12 +184,11 @@
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Live Audio/Video Translate v0.3.4</title>
+		<title>Live Audio/Video Translate v0.3.5</title>
 	</head>
-	
 	<body>
 		<br>
-		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.4</h3>
+		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.5</h3>
 		
 		<div class="container">
 			<div class="two-column">
@@ -514,41 +423,14 @@
 
 		<br>
 
-		<!-- VIDEO PLAYERS  -->
-
-		<div class="iframe_header_unit" id="iframe_header_unit">
-			<div class="iframe_container">
-				<div class="yt_iframe">
-					<iframe id="my_yt_iframe" width="960" height="540" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope;" allowfullscreen="true" class="fillWidth"></iframe>
-				</div>
-			</div>
-		</div>
-		
-		<div class="video_header_unit" id="video_header_unit">
-			<div class="video_container">
+		<div class="video_header_unit">
+			<div class="video_container" style="justify-content: center;">
 				<div class="video">
 					<video id="my_video" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
 						<source id="video_source" />
 					</video>
-				</div>
-			</div>
-		</div>
-		
-		<div class="flv_video_header_unit" id="flv_video_header_unit">
-			<div class="flv_video_container">
-				<div class="flv_video">
-					<video id="videojs-flvjs-player" class="video-js vjs-default-skin" controls preload="auto" allowfullscreen class="fillWidth"  data-setup='{}'>
-						<source src="" type='video/x-flv' />
-					</video>
-				</div>
-			</div>
-		</div>
-		
-		<div class="outer"  id="outer">
-			<div class="detail__media-video">
-				<div class="ratiobox" style="margin: 0 auto;">
-					<!--iframe id="cnnlive" width="960" height="540" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;'></iframe-->
-					<iframe id="cnnlive" width="1072px" height="603px" style="margin: 0 auto;" frameborder="0" allowfullscreen='true;' class="fillWidth"></iframe>
+					<!--iframe id="my_iframe" style="margin: 0 auto;" src="https://www.cnnindonesia.com/tv/embed?ref=transmedia&smartautoplay=true" frameborder="0" width="960" height="540" scrolling="no" allowfullscreen="true"></iframe-->
+					<iframe id="my_iframe" style="margin: 0 auto;" src="" frameborder="0" scrolling="no" allowfullscreen="true"></iframe>
 				</div>
 			</div>
 		</div>

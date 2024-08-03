@@ -5,7 +5,8 @@ import time
 import urllib.parse
 import json
 from PIL import Image
-from moviepy.editor import VideoFileClip
+import subprocess
+import json
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -238,7 +239,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def is_image_or_video(self, filename):
         image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
-        video_extensions = ('.mpg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', 'wmv', 'ogv')
         return filename.lower().endswith(image_extensions + video_extensions)
 
     def generate_thumbnail(self, filepath, thumbnail_url):
@@ -254,18 +255,43 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         # Adjust thumbnail path for the .thumbnails directory
         os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+
         try:
             print(f"Generating thumbnail for: {filepath}, saving to: {thumbnail_path}")
 
             if self.is_video(filepath):
-                # Extract a frame from the middle of the video
-                with VideoFileClip(filepath) as video:
-                    duration = video.duration
-                    frame_time = duration / 2  # Middle of the video
-                    frame = video.get_frame(frame_time)
-                    frame_image = Image.fromarray(frame)
-                    frame_image.thumbnail((128, 128))
-                    frame_image.save(thumbnail_path, format="PNG")
+                print(filepath + ' is video file')
+                # Get the duration of the video using ffprobe
+                command = [
+                            'ffprobe',
+                            '-hide_banner',
+                            '-loglevel', 'error',
+                            '-v', 'error',
+                            '-show_entries',
+                            'format=duration',
+                            '-of', 'json',
+                            filepath
+                ]
+                result = subprocess.run(command, capture_output=True, text=True)
+                duration_info = json.loads(result.stdout)
+                duration = float(duration_info['format']['duration'])
+                middle_time = duration / 4
+
+                # Extract a frame from the middle of the video using ffmpeg
+                command = [
+                            'ffmpeg',
+                            '-hide_banner',
+                            '-loglevel', 'error',
+                            '-v', 'error',
+							'-ss', str(middle_time),
+							'-i', filepath,
+							'-vf',
+							'thumbnail,scale=128:-1',
+							'-frames:v', '1',
+                            '-q:v', '2',  # Set quality for the thumbnail
+                            thumbnail_path
+                ]
+                subprocess.run(command, check=True)
             else:
                 # Generate thumbnail for image
                 with Image.open(filepath) as img:
@@ -273,6 +299,12 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     img.save(thumbnail_path, format="PNG")
 
             print(f"Thumbnail created for {filepath}")
+
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to generate thumbnail for {filepath} using ffmpeg. Error: {e}")
+            with Image.open("/file.png") as img:
+                img.thumbnail((128, 128))
+                img.save(thumbnail_path, format="PNG")
         except OSError as e:
             print(f"Failed to generate thumbnail for {filepath}. OSError: {e}")
             with Image.open("/file.png") as img:
@@ -280,9 +312,12 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 img.save(thumbnail_path, format="PNG")
         except Exception as e:
             print(f"An unexpected error occurred while generating thumbnail for {filepath}. Error: {e}")
+            with Image.open("/file.png") as img:
+                img.thumbnail((128, 128))
+                img.save(thumbnail_path, format="PNG")
 
     def is_video(self, filename):
-        video_extensions = ('.mpg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', 'wmv', 'ogv')
         return filename.lower().endswith(video_extensions)
 
     def translate_path(self, path):

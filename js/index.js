@@ -895,7 +895,9 @@ document.onfullscreenchange = (event) => {
 		if (fullscreenElement) {
 			console.log('fullscreenElement =', fullscreenElement);
 			video_info.element.style.width = '100vw';
+			//video_info.element.style.width = screen.width;
 			video_info.element.style.height = '100vh';
+			//video_info.element.style.height = screen.height;
 			video_info.element.style.left = '0px';
 			video_info.element.style.top = '0px';
 			if (document.querySelector('#button_fullscreen')) document.querySelector('#button_fullscreen').style.left = (video_info.left + video_info.width - 48)  + 'px';
@@ -1793,7 +1795,7 @@ function embed(){
 
 	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
 		//if (!document.querySelector(".iframe_header_unit")) create_iframe_video_player();
-		document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
+		if (document.querySelector("#my_video")) document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
 		var ytID = getYoutubePlayerID(url);
 		var src = "https://www.youtube.com/embed/" + ytID;
 		url = src;
@@ -1807,7 +1809,7 @@ function embed(){
 
 	if (url.includes(".mp4")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
-		document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
+		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
 		document.querySelector("#video_source").src = url;
@@ -1819,11 +1821,11 @@ function embed(){
 
 	if (url.includes(".flv")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
-		document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
+		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
-		document.querySelector("#my_iframe").style.width = "1072px";
-		document.querySelector("#my_iframe").style.height = "603px";
+		document.querySelector("#my_video").style.width = "1072px";
+		document.querySelector("#my_video").style.height = "603px";
 
 		loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
 			if (flvjs.isSupported()) {
@@ -1840,7 +1842,7 @@ function embed(){
 
 	if (url.includes(".m3u8")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
-		document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
+		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
 		insert_videojs_script();
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
@@ -1852,7 +1854,7 @@ function embed(){
 
 	if (url.includes("www.cnnindonesia.com")) {
 		//if (!document.querySelector(".detail__media-video")) create_cnn_video_player();
-		document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
+		if (document.querySelector("#my_video")) document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
 		console.log('document.querySelector("#my_iframe") =', document.querySelector("#my_iframe"));
 		document.querySelector(".video_header_unit").style.backgroundColor = '#000000';
 		//document.querySelector(".detail__media-video").style.backgroundColor = 'red';

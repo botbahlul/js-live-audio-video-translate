@@ -1,12 +1,10 @@
 import http.server
 import argparse
 import os
-import time
 import urllib.parse
 import json
 from PIL import Image
 import subprocess
-import json
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
@@ -14,7 +12,6 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
-        # self.path is current URL path being requested by client browser
         print('self.path =', self.path)
         decoded_path = urllib.parse.unquote(self.path)
         print(f"Requested path = self.path = {self.path}")
@@ -24,23 +21,18 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith('/is_directory'):
             self.check_is_directory()
         else:
-            # full_path is current actual LOCAL path on drive that being requested by client browser
             full_path = self.translate_path(self.path)
             print(f"Full path = {full_path}")
 
             if os.path.isdir(full_path):
-                #self.create_list_and_index(full_path)
-                self.create_list_json(full_path)  # Create list.json
                 index_path = os.path.join(full_path, 'index.html')
                 if os.path.exists(index_path):
                     print(f"Serving index.html at {index_path}")
                     self.path = os.path.join(self.path, 'index.html')
                     return super().do_GET()
                 else:
-                    print(f"index.html file not found, creating index.html for path =", self.path)
-                    self.path = os.path.join(self.path, 'index.html')
-                    self.create_index_html(full_path)  # Create index.html
-                    return super().do_GET()
+                    print(f"Serving directory listing for {full_path}")
+                    self.create_directory_listing(full_path)
             elif os.path.isfile(full_path):
                 return super().do_GET()
             else:
@@ -60,130 +52,23 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error(400, "Bad request: path parameter is missing")
 
-    def create_list_and_index(self, path):
-        self.create_list_json(path)  # Create list.json
-        self.create_index_html(path)  # Create index.html
+    def create_directory_listing(self, path):
+        entries = self.get_directory_entries(path)
+        html_content = self.generate_directory_listing_html(entries)
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(html_content.encode('utf-8'))
 
-    def create_index_html(self, path):
-        index_html_content = """
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Directory Listing</title>
-        <script>
-			document.addEventListener('DOMContentLoaded', function() {
-				async function load(list_json_path_url) {
-					console.log('list_json_path_url =', list_json_path_url);
-					let obj = await (await fetch(list_json_path_url)).json();
-					console.log('obj =', obj);
-					const directoryListing = document.getElementById('directory-listing');
-					directoryListing.innerHTML = ''; // Clear existing content
-					obj.forEach(item => {
-						const itemElement = document.createElement('div');
-						if (item.thumbnail_url) {
-							const img = document.createElement('img');
-							img.src = item.thumbnail_url;
-							img.alt = `${item.name} thumbnail`;
-							itemElement.appendChild(img);
-						}
-						
-						if (item.type === 'directory') {
-							const link = document.createElement('a');
-							link.href = item.url;
-							link.textContent = item.name;
-							itemElement.appendChild(link);
-						}
-						else {
-							const link = document.createElement('a');
-							link.href = item.url;
-							link.textContent = item.name;
-							itemElement.appendChild(link);
-						}
-						directoryListing.appendChild(itemElement);
-					});
-				}
-
-				function checkIsDirectory(path) {
-					return fetch(`/is_directory?path=${encodeURIComponent(path)}`)
-						.then(response => {
-							if (!response.ok) {
-								throw new Error('Network response was not ok');
-							}
-							return response.json();
-						})
-						.then(data => data.is_directory)
-						.catch(error => {
-							console.error('Failed to check if path is a directory:', error);
-							throw error;
-						});
-				}
-
-				// Initial load
-				let window_location_href = window.location.href;
-				console.log('window_location_href =', window_location_href);
-				let window_location_href_url = new URL(window_location_href);
-				console.log('window_location_href_url =', window_location_href_url);
-				const url_origin = window_location_href_url.origin;
-				console.log('url_origin =', url_origin);
-				let list_json_path = '.list.json';
-				console.log('list_json_path =', list_json_path);
-				if (window_location_href.endsWith("index.html")) {
-					let base_window_location_href = url_origin + window_location_href_url.pathname.substring(0, window_location_href_url.pathname.lastIndexOf('/') + 1);
-					console.log('base_window_location_href =', base_window_location_href);
-					let list_json_path_url = base_window_location_href + '/' + encodeURI(list_json_path);
-					console.log('list_json_path_url =', list_json_path_url);
-					load(list_json_path_url);
-				}
-				else {
-					let base_window_location_href = url_origin + window_location_href_url.pathname;
-					console.log('base_window_location_href =', base_window_location_href);
-					let list_json_path_url = base_window_location_href + '/' + encodeURI(list_json_path);
-					console.log('list_json_path_url =', list_json_path_url);
-					load(list_json_path_url);
-				}
-
-				var link = document.querySelectorAll("a");
-				link.forEach(a => {
-					a.onclick = async (event) => {
-						event.preventDefault();
-						console.log(a.href + ' was clicked');
-						console.log('link.href =', a.href);
-						if (await checkIsDirectory(a.href)) {
-							const url_origin = new URL(window.location.href).origin;
-							console.log('url_origin =', url_origin);
-							let list_json_path = '.list.json';
-							window.location.href = url_origin + a.href;
-							let list_json_path_url = url_origin + a.href + '/' + encodeURI(list_json_path);
-							console.log('list_json_path_url =', list_json_path_url);
-							console.log('link.href === "directory": load(' + list_json_path_url + ')');
-							load(encodeURI(list_json_path_url));
-						}
-					};
-				});
-			});
-		</script>
-	</head>
-	<body>
-		<h1>Directory Listing</h1>
-		<div id="directory-listing"></div>
-	</body>
-</html>
-
-"""
-        with open(os.path.join(path, 'index.html'), 'w', encoding='utf-8') as index_file:
-            index_file.write(index_html_content.strip())
-
-    def create_list_json(self, path):
-        print('create_list_json for path =', path)
+    def get_directory_entries(self, path):
+        entries = []
         try:
             directory_items = os.listdir(path)
         except OSError:
             self.send_error(404, "No permission to list directory")
-            return None
+            return entries
 
         directory_items.sort(key=lambda a: a.lower())
-        entries = []
         for item in directory_items:
             full_path = os.path.join(path, item)
             if os.path.isdir(full_path):
@@ -192,26 +77,13 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 item_type = "file"
                 if self.is_image_or_video(item):
-                    print(item + ' is image or video file')
-                    # Ensure .thumbnails directory exists
-                    print('path =', path)
-                    thumbnails_dir = '/.thumbnails'
-                    print('thumbnails_dir =', thumbnails_dir)
+                    thumbnails_dir = os.path.join(path, '.thumbnails')
                     os.makedirs(thumbnails_dir, exist_ok=True)
-
                     thumbnail_filename = item + '.png'
-                    print('thumbnail_filename =', thumbnail_filename)
-                    thumbnail_url = urllib.parse.quote(os.path.join('/.thumbnails', thumbnail_filename))
-                    print('thumbnail_url =', thumbnail_url)
-                    print('self.translate_path(thumbnail_url) =', self.translate_path(thumbnail_url))
+                    thumbnail_url = urllib.parse.quote(os.path.join('.thumbnails', thumbnail_filename))
                     thumbnail_path = self.translate_path(thumbnail_url)
-                    print('thumbnail_path =', thumbnail_path)
-
-                    # Check if thumbnail already exists
-                    print('os.path.exists(thumbnail_path) =', os.path.exists(thumbnail_path))
                     if not os.path.exists(thumbnail_path):
                         self.generate_thumbnail(full_path, thumbnail_url)
-                        
                 else:
                     thumbnail_url = "/file.png"
             entries.append({
@@ -220,104 +92,84 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "url": urllib.parse.quote(os.path.join('/', os.path.relpath(full_path, self.directory)).replace('\\', '/')),
                 "thumbnail_url": thumbnail_url
             })
+        return entries
 
-        # Save the JSON to a file
-        json_file_path = os.path.join(path, '.list.json')
-        with open(json_file_path, 'w', encoding='utf-8') as json_file:
-            json.dump(entries, json_file, ensure_ascii=False, indent=4)
-        print(f"Directory listing saved to {json_file_path}")
+    def generate_directory_listing_html(self, entries):
+        entries_html = ""
+        for entry in entries:
+            #print('entry =', entry)
+            thumbnail_img = f'<img src="{entry["thumbnail_url"]}" alt="{entry["name"]} thumbnail">' if entry["thumbnail_url"] else ""
+            entries_html += f'''
+            <div>
+                {thumbnail_img}
+                <a href="{entry["url"]}">{entry["name"]}</a>
+            </div>
+            '''
 
-    def serve_index(self, path):
-        index_path = os.path.join(path, 'index.html')
-        print("index_path =", index_path)
-        if os.path.exists(index_path):
-            self.path = 'index.html'
-            return super().do_GET()
-        else:
-            self.send_error(404, "Index file not found")
-            return None
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Directory Listing</title>
+</head>
+<body>
+    <h1>Directory Listing</h1>
+    <div id="directory-listing">
+        {entries_html}
+    </div>
+</body>
+</html>
+
+"""
+        #print("Generated HTML:", html_content)
+        return html_content
 
     def is_image_or_video(self, filename):
         image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
-        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', 'wmv', 'ogv')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv')
         return filename.lower().endswith(image_extensions + video_extensions)
 
     def generate_thumbnail(self, filepath, thumbnail_url):
-        # Decode the URL-encoded characters
-        print('generate_thumbnail(self, filepath, thumbnail_url)')
-        print('filepath =', filepath)
-        print('thumbnail_url =', thumbnail_url)
-        print('self.translate_path(thumbnail_url) =', self.translate_path(thumbnail_url))
         thumbnail_path = urllib.parse.unquote(self.translate_path(thumbnail_url))
-        print('thumbnail_path =', thumbnail_path)
-        thumbnail_filename = os.path.basename(thumbnail_path)
-        print('thumbnail_filename =', thumbnail_filename)
-
-        # Adjust thumbnail path for the .thumbnails directory
         os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
-
         try:
-            print(f"Generating thumbnail for: {filepath}, saving to: {thumbnail_path}")
-
             if self.is_video(filepath):
-                print(filepath + ' is video file')
-                # Get the duration of the video using ffprobe
                 command = [
-                            'ffprobe',
-                            '-hide_banner',
-                            '-loglevel', 'error',
-                            '-v', 'error',
-                            '-show_entries',
-                            'format=duration',
-                            '-of', 'json',
-                            filepath
+                    'ffprobe', '-hide_banner', '-loglevel', 'error', '-v', 'error',
+                    '-show_entries', 'format=duration', '-of', 'json', filepath
                 ]
                 result = subprocess.run(command, capture_output=True, text=True)
                 duration_info = json.loads(result.stdout)
                 duration = float(duration_info['format']['duration'])
                 middle_time = duration / 4
-
-                # Extract a frame from the middle of the video using ffmpeg
                 command = [
-                            'ffmpeg',
-                            '-hide_banner',
-                            '-loglevel', 'error',
-                            '-v', 'error',
-							'-ss', str(middle_time),
-							'-i', filepath,
-							'-vf',
-							'thumbnail,scale=128:-1',
-							'-frames:v', '1',
-                            '-q:v', '2',  # Set quality for the thumbnail
-                            thumbnail_path
+                    'ffmpeg', '-hide_banner', '-loglevel', 'error', '-v', 'error',
+                    '-ss', str(middle_time), '-i', filepath, '-vf', 'thumbnail,scale=128:-1',
+                    '-frames:v', '1', '-q:v', '2', thumbnail_path
                 ]
                 subprocess.run(command, check=True)
             else:
-                # Generate thumbnail for image
                 with Image.open(filepath) as img:
                     img.thumbnail((128, 128))
                     img.save(thumbnail_path, format="PNG")
-
-            print(f"Thumbnail created for {filepath}")
-
         except subprocess.CalledProcessError as e:
-            print(f"Failed to generate thumbnail for {filepath} using ffmpeg. Error: {e}")
-            with Image.open("/file.png") as img:
-                img.thumbnail((128, 128))
-                img.save(thumbnail_path, format="PNG")
+            print(f"Failed to generate thumbnail: {e}")
+            self.generate_default_thumbnail(thumbnail_path)
         except OSError as e:
-            print(f"Failed to generate thumbnail for {filepath}. OSError: {e}")
-            with Image.open("/file.png") as img:
-                img.thumbnail((128, 128))
-                img.save(thumbnail_path, format="PNG")
+            print(f"OSError generating thumbnail: {e}")
+            self.generate_default_thumbnail(thumbnail_path)
         except Exception as e:
-            print(f"An unexpected error occurred while generating thumbnail for {filepath}. Error: {e}")
-            with Image.open("/file.png") as img:
-                img.thumbnail((128, 128))
-                img.save(thumbnail_path, format="PNG")
+            print(f"Unexpected error generating thumbnail: {e}")
+            self.generate_default_thumbnail(thumbnail_path)
+
+    def generate_default_thumbnail(self, thumbnail_path):
+        with Image.open("/file.png") as img:
+            img.thumbnail((128, 128))
+            img.save(thumbnail_path, format="PNG")
 
     def is_video(self, filename):
-        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', 'wmv', 'ogv')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv')
         return filename.lower().endswith(video_extensions)
 
     def translate_path(self, path):

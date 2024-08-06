@@ -1797,7 +1797,9 @@ function embed(){
 		//if (!document.querySelector(".iframe_header_unit")) create_iframe_video_player();
 		if (document.querySelector("#my_video")) document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
 		var ytID = getYoutubePlayerID(url);
-		var src = "https://www.youtube.com/embed/" + ytID;
+		console.log('ytID =', ytID)
+		//var src = "https://www.youtube.com/embed/" + ytID;
+		var src = `https://www.youtube.com/embed/${ytID}`;
 		url = src;
 		console.log('document.querySelector("#my_iframe") =', document.querySelector("#my_iframe"));
 		document.querySelector("#my_iframe").style.display = "block";
@@ -1846,8 +1848,8 @@ function embed(){
 		insert_videojs_script();
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
-		document.querySelector("#my_iframe").style.width = "1072px";
-		document.querySelector("#my_iframe").style.height = "603px";
+		document.querySelector("#my_video").style.width = "100%";
+		document.querySelector("#my_video").style.height = "100%";
 		document.querySelector("#video_source").src = url;
 		document.querySelector("#video_source").type = "application/x-mpegURL";
 	}

@@ -1766,8 +1766,8 @@ function insert_videojs_script() {
 	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>');
 	////video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css"> <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
 	//video_script$=$('<link href="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelementplayer.min.css" rel="stylesheet"> <script src="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelement-and-player.min.js"></script>');
-	//video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
-	video_script$=$('<link rel="stylesheet" href="https://vjs.zencdn.net/7.20.2/video-js.css"> <script src="https://vjs.zencdn.net/7.20.2/video.min.js"></script>');
+	video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
+	//video_script$=$('<link rel="stylesheet" href="https://vjs.zencdn.net/7.20.2/video-js.css"> <script src="https://vjs.zencdn.net/7.20.2/video.min.js"></script>');
 	console.log('appending video_script to html body');
 	video_script$.appendTo('body');
 }
@@ -1853,16 +1853,6 @@ function embed(){
 		document.querySelector("#my_video").style.height = "100%";
 		document.querySelector("#video_source").src = url;
 		document.querySelector("#video_source").type = "application/x-mpegURL";
-/*
-		var player = videojs('my_video', {
-            techOrder: ['html5'],
-            html5: {
-                hlsjsConfig: {
-                    // Optional configuration for HLS.js
-                }
-            }
-        });
-*/
 	}
 
 	if (url.includes("www.cnnindonesia.com")) {

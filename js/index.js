@@ -1764,9 +1764,10 @@ function preload(elem, time){
 
 function insert_videojs_script() {
 	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>');
-	video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
+	////video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css"> <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
 	//video_script$=$('<link href="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelementplayer.min.css" rel="stylesheet"> <script src="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelement-and-player.min.js"></script>');
 	//video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
+	video_script$=$('<link rel="stylesheet" href="https://vjs.zencdn.net/7.20.2/video-js.css"> <script src="https://vjs.zencdn.net/7.20.2/video.min.js"></script>');
 	console.log('appending video_script to html body');
 	video_script$.appendTo('body');
 }
@@ -1852,6 +1853,16 @@ function embed(){
 		document.querySelector("#my_video").style.height = "100%";
 		document.querySelector("#video_source").src = url;
 		document.querySelector("#video_source").type = "application/x-mpegURL";
+/*
+		var player = videojs('my_video', {
+            techOrder: ['html5'],
+            html5: {
+                hlsjsConfig: {
+                    // Optional configuration for HLS.js
+                }
+            }
+        });
+*/
 	}
 
 	if (url.includes("www.cnnindonesia.com")) {
@@ -3966,11 +3977,23 @@ function maintain_video_size() {
 	}
 
 	// DON'T CHANGE THIS!
-	if (video_info.src !== '') {
-		document.documentElement.scrollTop = get_video_player_info().top; // For modern browsers
-		document.body.scrollTop = get_video_player_info().top; // For older browsers
-		console.log('Scrolling');
-		regenerate_textarea();
+	if (video_info) {
+		if (video_info.element === document.querySelector('iframe')) {
+			if (video_info.src !== '') {
+				document.documentElement.scrollTop = get_video_player_info().top; // For modern browsers
+				document.body.scrollTop = get_video_player_info().top; // For older browsers
+				console.log('Scrolling');
+				regenerate_textarea();
+			}
+		}
+		else if (video_info.element === document.querySelector('video')) {
+			if (document.querySelector('source').src !== '') {
+				document.documentElement.scrollTop = get_video_player_info().top; // For modern browsers
+				document.body.scrollTop = get_video_player_info().top; // For older browsers
+				console.log('Scrolling');
+				regenerate_textarea();
+			}
+		}
 	}
 
 }

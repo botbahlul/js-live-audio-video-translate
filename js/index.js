@@ -983,7 +983,7 @@ window.onresize = scrollToVideo; // Adjust on window resize as well
 
 if (document.querySelector("#dst_textarea")) {
 	document.addEventListener('DOMContentLoaded', (event) => {
-		// Intercept for unwanted characters from gtranslate function return values
+		// Intercept for unwanted characters from translate1 function return values
 		document.querySelector("#dst_textarea").addEventListener('input', () => {
 			const value = document.querySelector("#dst_textarea").value;
 			if (value.includes('%20')) {
@@ -1024,7 +1024,10 @@ var speech_start_time = Date.now();
 var translate_time = Date.now();
 var transcript_to_translate;
 var array_all_translated_final_transcripts = [];
-
+// 1 = translate1 / translate.googleapis.com
+// 2 = translate2 / clients5.google.com
+var translate_endpoint = 0;
+var translate_endpoint_testing = false;
 
 if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 	alert('Web Speech API is not supported by this browser. upgrade_info to Chrome version 25 or later');
@@ -1285,9 +1288,10 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 400 AFTER SOME REQUESTS
 				var t = transcript_to_translate;
-				if ((Date.now() - translate_time > 1000) && recognizing) {
+				/*if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) {
-						var tt = gtranslate(t, src, dst).then(result => {
+						//var tt = translate1(t, src, dst).then(result => {
+						var tt = translate2(t, src, dst).then(result => {
 							if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
 							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
 
@@ -1346,7 +1350,80 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 						});
 						translate_time = Date.now();
 					}
-				};
+				};*/
+
+				if ((Date.now() - translate_time > 1000) && recognizing) {
+					if (t) {
+
+						getTranslateFunction(t, src, dst).then(translateFunction => {
+
+							if (!translateFunction) {
+								console.log('No translation endpoint available.');
+								return;
+							}
+
+							var tt = translateFunction(t, src, dst).then(result => {
+
+								if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
+								if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
+
+								result = formatTranscript(result);
+
+								if (result.match(/(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm) 
+										|| result.match(/(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm)) {
+
+									var buffer = getTimestampedLines(result);
+									buffer = arrayRemoveDuplicates(buffer);
+									array_all_translated_final_transcripts.push(buffer[0]);
+									array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
+								}
+
+								if (array_all_translated_final_transcripts.length > 0) {
+									array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
+									displayed_translation = array_all_translated_final_transcripts.join('\n') + result;
+									displayed_translation = formatTranscript(displayed_translation);
+									displayed_translation = removeDuplicateTimestamps(displayed_translation);
+
+									var lines = displayed_translation.trim().split('\n');
+									var unique_lines = [...new Set(lines)];
+									var unique_text = unique_lines.join('\n');
+
+									var interim_translation = result.replace(/^\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> \d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}\s*[:：] .*[\.\。]\n/gm, '');
+
+									if (!transcript_is_final) {
+										displayed_translation = unique_text + '\n' + interim_translation;
+									} else {
+										displayed_translation = unique_text;
+									}
+
+								} else {
+									displayed_translation = result;
+								}
+
+								if (show_timestamp_dst) {
+									if (displayed_translation && document.querySelector("#dst_textarea")) {
+										document.querySelector("#dst_textarea").value = displayed_translation;
+									}
+								} else {
+									if (displayed_translation && document.querySelector("#dst_textarea")) {
+										document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
+									}
+								}
+
+								if (document.querySelector("#dst_textarea")) {
+									document.querySelector("#dst_textarea").scrollTop =
+										document.querySelector("#dst_textarea").scrollHeight;
+								}
+
+							}).catch(error => {
+								console.log('error =', error);
+							});
+
+						});
+
+						translate_time = Date.now();
+					}
+				}
 
 			} else {
 				if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'none';
@@ -1766,10 +1843,10 @@ function insert_videojs_script() {
 	//video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css" > <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.min.js"></script>');
 	////video_script$=$('<link rel="stylesheet" href="https://unpkg.com/video.js/dist/video-js.css"> <script src="https://unpkg.com/video.js/dist/video.js"></script> <script src="https://unpkg.com/@videojs/http-streaming@2.14.2/dist/videojs-http-streaming.js"></script>');
 	//video_script$=$('<link href="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelementplayer.min.css" rel="stylesheet"> <script src="https://cdn.jsdelivr.net/npm/mediaelement@latest/build/mediaelement-and-player.min.js"></script>');
-	video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
 	//video_script$=$('<link rel="stylesheet" href="https://vjs.zencdn.net/7.20.2/video-js.css"> <script src="https://vjs.zencdn.net/7.20.2/video.min.js"></script>');
-	console.log('appending video_script to html body');
-	video_script$.appendTo('body');
+	video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"> <script src="https://vjs.zencdn.net/8.12.0/video.min.js"></script>');
+	console.log('appending video_script to html head');
+	video_script$.appendTo('head');
 }
 
 function insert_flvjs_script() {
@@ -1785,7 +1862,7 @@ function loadScript(src, callback) {
     script.onerror = function() {
 		console.error('Failed to load script: ' + src);
 	};
-	document.head.appendChild(script);
+	document.body.appendChild(script);
 }
 
 function embed(){
@@ -1794,13 +1871,27 @@ function embed(){
 	var original_url = url_box.value;
 	var isSeeking = false;
 
+    // if (!url) return;
+
+    // Pastikan iframe ada, kalau belum ada maka buat
+    var iframe = document.querySelector("#my_iframe");
+    if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.id = "my_iframe";
+        iframe.style.border = "none";
+        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        iframe.allowFullscreen = true;
+        document.body.appendChild(iframe); // bisa ganti ke container lain kalau perlu
+    }
+
 	if ((url.includes('youtu.be'))||(url.includes('youtube'))) {
 		//if (!document.querySelector(".iframe_header_unit")) create_iframe_video_player();
 		if (document.querySelector("#my_video")) document.querySelector("#my_video").parentElement.removeChild(document.querySelector("#my_video"));
 		var ytID = getYoutubePlayerID(url);
 		console.log('ytID =', ytID)
 		//var src = "https://www.youtube.com/embed/" + ytID;
-		var src = `https://www.youtube.com/embed/${ytID}`;
+		// var src = `https://www.youtube.com/embed/${ytID}`;
+		var src = `https://www.youtube.com/embed/${ytID}?autoplay=1&origin=${location.origin}`;
 		url = src;
 		console.log('document.querySelector("#my_iframe") =', document.querySelector("#my_iframe"));
 		document.querySelector("#my_iframe").style.display = "block";
@@ -1808,9 +1899,11 @@ function embed(){
 		document.querySelector("#my_iframe").style.height = "100%";
 		document.querySelector("#my_iframe").src = url;
 		url_box.value = original_url;
-	}
+    } else {
+        console.warn("URL is not YouTube, can't handle it.");
+    }
 
-	if (url.includes(".mp4")) {
+	if (url.toLowerCase().includes(".mp4")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
@@ -1822,13 +1915,13 @@ function embed(){
 		//console.log('document.querySelector("#my_video").duration = ', document.querySelector("#my_video").duration);
 	}
 
-	if (url.includes(".flv")) {
+	if (url.toLowerCase().includes(".flv")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
-		document.querySelector("#my_video").style.width = "1072px";
-		document.querySelector("#my_video").style.height = "603px";
+		document.querySelector("#my_video").style.width = "100%";
+		document.querySelector("#my_video").style.height = "100%";
 
 		loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
 			if (flvjs.isSupported()) {
@@ -1843,10 +1936,13 @@ function embed(){
 		});
 	}
 
-	if (url.includes(".m3u8")) {
+	if (url.toLowerCase().includes(".m3u8")) {
 		//if (!document.querySelector(".video_header_unit")) create_hls_video_player();
 		if (document.querySelector("#my_iframe")) document.querySelector("#my_iframe").parentElement.removeChild(document.querySelector("#my_iframe"));
-		insert_videojs_script();
+		//insert_videojs_script();
+		video_script$=$('<link href="https://vjs.zencdn.net/8.12.0/video-js.min.css" rel="stylesheet"><br><script src="https://vjs.zencdn.net/8.12.0/video.min.js"> var player = videojs("my_video", { techOrder: ["html5"], html5: { hlsjsConfig: { }}}); </script>');
+		console.log('appending video_script to html head');
+		video_script$.appendTo('head');
 		console.log('document.querySelector("#my_video") =', document.querySelector("#my_video"));
 		document.querySelector("#my_video").style.display = "block";
 		document.querySelector("#my_video").style.width = "100%";
@@ -2295,7 +2391,7 @@ function startButton(event) {
 }
 
 
-var translate = async (t, src, dst) => {
+var translate2 = async (t, src, dst) => {
 	return new Promise((resolve, reject) => {
 		const url = 'https://clients5.google.com/translate_a/single?dj=1&dt=t&dt=sp&dt=ld&dt=bd&client=dict-chrome-ex&sl=' 
 					+ src + '&tl=' + dst + '&q=' + encodeURIComponent(t);
@@ -2322,7 +2418,7 @@ var translate = async (t, src, dst) => {
 };
 
 
-var gtranslate = async (t, src, dst) => {
+var translate1 = async (t, src, dst) => {
 	return new Promise((resolve, reject) => {
 		const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' + src + '&tl=' + dst + '&dt=t&q=' + encodeURIComponent(t);
 		var xmlHttp = new XMLHttpRequest();
@@ -2345,6 +2441,144 @@ var gtranslate = async (t, src, dst) => {
 		xmlHttp.open('GET', url, true);
 		xmlHttp.send();
 	});
+};
+
+var testTranslateEndpoint = async (t, src, dst) => {
+	if (translate_endpoint_testing) {
+		return translate_endpoint;
+	}
+
+	translate_endpoint_testing = true;
+
+	console.log('========================================');
+	console.log('Testing Google Translate endpoints...');
+	console.log('translate1 = https://translate.googleapis.com');
+	console.log('translate2 = https://clients5.google.com');
+	console.log('========================================');
+
+	// ============================================================
+	// TEST translate1
+	// ============================================================
+	try {
+		console.log('Testing translate1...');
+
+		var testResult1 = await translate1(t, src, dst);
+
+		if (testResult1 && testResult1.trim() !== '') {
+			translate_endpoint = 1;
+
+			console.log('========================================');
+			console.log('translate1 SUCCESS');
+			console.log('Using translate1 from now on.');
+			console.log('========================================');
+
+			translate_endpoint_testing = false;
+			return translate_endpoint;
+		}
+
+		console.log('translate1 returned empty result.');
+	} catch (error) {
+		console.log('translate1 FAILED:', error);
+	}
+
+	// ============================================================
+	// TEST translate2
+	// ============================================================
+	try {
+		console.log('Testing translate2...');
+
+		var testResult2 = await translate2(t, src, dst);
+
+		if (testResult2 && testResult2.trim() !== '') {
+			translate_endpoint = 2;
+
+			console.log('========================================');
+			console.log('translate2 SUCCESS');
+			console.log('Using translate2 from now on.');
+			console.log('========================================');
+
+			translate_endpoint_testing = false;
+			return translate_endpoint;
+		}
+
+		console.log('translate2 returned empty result.');
+	} catch (error) {
+		console.log('translate2 FAILED:', error);
+	}
+
+	// ============================================================
+	// BOTH FAILED
+	// ============================================================
+	translate_endpoint = 0;
+	translate_endpoint_testing = false;
+
+	console.error('========================================');
+	console.error('ALL GOOGLE TRANSLATE ENDPOINTS FAILED');
+	console.error('========================================');
+
+	return translate_endpoint;
+};
+
+var getTranslateFunction = async (t, src, dst) => {
+
+	if (translate_endpoint === 1) {
+		console.log('Using translate1');
+		return translate1;
+	}
+
+	if (translate_endpoint === 2) {
+		console.log('Using translate2');
+		return translate2;
+	}
+
+	if (translate_endpoint_testing) {
+		return null;
+	}
+
+	translate_endpoint_testing = true;
+
+	console.log('Testing translate1...');
+
+	try {
+		var result1 = await translate1(t, src, dst);
+
+		if (result1 && result1.trim() !== '') {
+			translate_endpoint = 1;
+			translate_endpoint_testing = false;
+
+			console.log('translate1 is OK.');
+			console.log('Selected endpoint = translate1');
+
+			return translate1;
+		}
+	} catch (error) {
+		console.log('translate1 failed:', error);
+	}
+
+	console.log('Testing translate2...');
+
+	try {
+		var result2 = await translate2(t, src, dst);
+
+		if (result2 && result2.trim() !== '') {
+			translate_endpoint = 2;
+			translate_endpoint_testing = false;
+
+			console.log('translate2 is OK.');
+			console.log('Selected endpoint = translate2');
+
+			return translate2;
+		}
+	} catch (error) {
+		console.log('translate2 failed:', error);
+	}
+
+	translate_endpoint = 0;
+	translate_endpoint_testing = false;
+
+	console.log('Both translation endpoints failed.');
+
+	return null;
 };
 
 
@@ -2379,7 +2613,7 @@ const translateText = async (text, src, dst, maxLength = 10000) => {
 
 	for (var chunk of chunks) {
 		try {
-			var translatedChunk = await gtranslate(chunk, src, dst);
+			var translatedChunk = await translate1(chunk, src, dst);
 			translatedChunk = formatTranscript(translatedChunk);
 			translatedChunks.push(translatedChunk);
 		} catch (error) {

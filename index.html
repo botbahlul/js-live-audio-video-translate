@@ -177,6 +177,11 @@
 		z-index: 1;
 		display: none;
 	}
+	#videojs-flvjs-player {
+		position: absolute;
+		z-index: 1;
+		display: none;
+	}
 
 </style>
 <html lang="en">
@@ -185,10 +190,11 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Live Audio/Video Translate v0.3.8</title>
+		<link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
 	</head>
 	<body>
 		<br>
-		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.7</h3>
+		<h3 style="font-size: 12px">Live Audio/Video Translate v0.3.8</h3>
 		
 		<div class="container">
 			<div class="two-column">
@@ -430,16 +436,17 @@
 						<source id="video_source" />
 					</video>
 					<!--iframe id="my_iframe" style="margin: 0 auto;" src="https://www.cnnindonesia.com/tv/embed?ref=transmedia&smartautoplay=true" frameborder="0" width="960" height="540" scrolling="no" allowfullscreen="true"></iframe-->
-					<iframe id="my_iframe" style="margin: 0 auto;" src="" frameborder="0" scrolling="no" allowfullscreen="true"></iframe>
+					<!--iframe id="my_iframe" style="margin: 0 auto;" src="" frameborder="0" scrolling="no" allowfullscreen="true"></iframe-->
+					<iframe id="my_iframe" style="margin: 0 auto;" src="" allowfullscreen="true"></iframe>
 				</div>
 			</div>
 		</div>
-
 	</body>
 
 	<script src="js/jquery.min.js"></script>
 	<link rel="stylesheet" href="css/jquery-ui.css">
 	<script src="js/jquery-ui.min.js"></script>
+	<script src="js/backend_player.js"></script>
 	<script type='text/javascript' src="js/index.js"></script>
 
 </html>

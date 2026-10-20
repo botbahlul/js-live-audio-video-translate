@@ -1,7 +1,8 @@
 # js-live-audio-video-translate
 This is a web template that can RECOGNIZE any live audio/video streaming (using Chrome webkitSpeechRecognition API) and TRANSLATE it (using unofficial Google Translate API) for FREE!
 
-NOTE : Since version 0.3.2 I've added a CUSTOM FULLSCREEN BUTTON on the right bottom corner of the video so we can see subtitles in fullscreen mode.
+NOTE : Version 0.4.0 now supports for embedding any URL's supported by Streamlink and yt-dlp like vidio, vimeo, twitch, etc, enjoy!
+Since version 0.3.2 I've added a CUSTOM FULLSCREEN BUTTON on the right bottom corner of the video so we can see subtitles in fullscreen mode.
 After 5 seconds this button will be hidden, to show it again just move mouse cursor inside subtitles textarea or move the mouse go outside then inside browser window.
 You can also use F11 key to enter fullscreen mode and still see the subtitles. On some streaming website it may not working properly, just let me know.
 ![image](https://github.com/user-attachments/assets/d3dbdeb3-bb68-4ef9-987f-2ba0c54bde35)

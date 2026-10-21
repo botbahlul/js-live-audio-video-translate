@@ -18,36 +18,38 @@ from PIL import Image
 # ---------------------------------------------------------------------------
 # Backend resolver (yt-dlp / streamlink) + proxy
 #
-#   GET /resolve?url=<halaman/video>&engine=auto|yt-dlp|streamlink
+#   GET /resolve?url=<page/video>&engine=auto|yt-dlp|streamlink
 #       -> JSON {ok, engine, title, is_live, kind: "hls"|"file", url: "/proxy?id=..."}
 #   GET /proxy?id=<id>
-#       -> stream media dari server asal (header Referer/User-Agent dari yt-dlp
-#          ikut dikirim, Range diteruskan, playlist .m3u8 ditulis ulang supaya
-#          segmennya juga lewat /proxy)
+#       -> Streams media from the source server (includes original Referer/User-Agent
+#          headers from yt-dlp, forwards Range requests, and rewrites .m3u8
+#          playlists so that segments are also routed through /proxy)
 #
-# Proxy hanya melayani URL yang didaftarkan oleh /resolve atau yang muncul di
-# dalam playlist hasil /resolve, bukan URL bebas.
+# The proxy only handles URLs registered via /resolve or those appearing within
+# a playlist returned by /resolve; it does not support arbitrary URLs.
 # ---------------------------------------------------------------------------
 
-# Satu file yang sudah berisi video+audio, supaya <video> bisa memutar tanpa merge ffmpeg.
+# A single file containing both video and audio, allowing the <video> element
+# to play the content without requiring an FFmpeg merge.
+
 YTDLP_FORMAT = "b[ext=mp4][protocol=https]/b[ext=mp4][protocol=http]/b[protocol^=m3u8]/b"
-RESOLVE_TIMEOUT = 60       # detik, batas waktu yt-dlp/streamlink
-UPSTREAM_TIMEOUT = 30      # detik, batas waktu koneksi ke server asal
-MAX_TARGETS = 20000        # batas jumlah URL yang diingat proxy
+RESOLVE_TIMEOUT = 60       # seconds, time limit for yt-dlp/streamlink
+UPSTREAM_TIMEOUT = 30      # seconds, connection timeout to the origin server
+MAX_TARGETS = 20000        # limit on the number of URLs remembered by the proxy
 DEFAULT_UA = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/124.0 Safari/537.36')
 DIRECT_MEDIA_RE = re.compile(r'\.(m3u8|mp4|m4v|webm)$', re.I)
 URI_ATTR_RE = re.compile(r'URI="([^"]+)"')
 
-EXTRA_YTDLP_ARGS = []      # diisi dari --cookies-from-browser
+EXTRA_YTDLP_ARGS = []      # populated from --cookies-from-browser
 
 PROXY_TARGETS = OrderedDict()   # id -> (url, headers)
 PROXY_LOCK = threading.Lock()
 
-# Stream yang tidak punya satu URL (mis. HLS dengan audio terpisah / "hls-multi"):
+# Streams that do not have a single URL (e.g., HLS with separate audio / "hls-multi"):
 # streamlink -> stdout -> ffmpeg -> fragmented MP4 -> /live
 LIVE_TARGETS = OrderedDict()    # id -> page_url
-LIVE_SESSIONS = []              # [(proses streamlink, proses ffmpeg)]
+LIVE_SESSIONS = []              # [(streamlink process, ffmpeg process)]
 LIVE_LOCK = threading.Lock()
 LIVE_PREFIX_RE = re.compile(r'^(hls|hlsvariant|httpstream|dash)://(.+)$', re.I)
 
@@ -151,7 +153,7 @@ def resolve_streamlink(page_url):
     try:
         out = run_cmd(base + ['--stream-url', page_url, 'best'])
     except ResolveError as e:
-        # Stream "hls-multi" (video + audio terpisah, mis. Vidio) tidak punya satu URL.
+        # "hls-multi" streams (video + audio separated, e.g., Vidio) do not have a single URL.
         if 'cannot be translated to a URL' in str(e):
             if not shutil.which('ffmpeg'):
                 raise ResolveError('stream ini butuh ffmpeg (video dan audio terpisah), '
@@ -175,7 +177,7 @@ ENGINES = {
 
 
 def resolve(page_url, engine):
-    # Awalan streamlink (hls://, hlsvariant://, ...) hanya untuk streamlink; URL di dalamnya harus http(s).
+    # The streamlink prefixes (hls://, hlsvariant://, ...) are for streamlink only; the URLs contained within them must be http(s).
     prefixed = LIVE_PREFIX_RE.match(page_url)
     parsed = urllib.parse.urlparse(prefixed.group(2) if prefixed else page_url)
     if parsed.scheme not in ('http', 'https') or not parsed.netloc:
@@ -214,7 +216,7 @@ def resolve(page_url, engine):
 
 
 def _pump_stderr(name, proc):
-    # kuras stderr supaya pipe tidak penuh, dan tampilkan pesan error-nya
+    # drain stderr so the pipe doesn't fill up, and display the error message
     try:
         for raw in proc.stderr:
             line = raw.decode('utf-8', 'replace').rstrip()
@@ -247,13 +249,13 @@ def stop_live_sessions():
 
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
-        # /live tidak bisa di-seek; kalau diiklankan, browser akan membuka banyak proses baru
+        # /live cannot be seeked; if an ad is played, the browser will spawn many new processes
         if not getattr(self, '_no_ranges', False):
             self.send_header('Accept-Ranges', 'bytes')
         super().end_headers()
 
     def log_message(self, fmt, *args):
-        # segmen HLS bisa ratusan request, jangan membanjiri console
+        # HLS segments can result in hundreds of requests; avoid flooding the console
         if self.path.startswith('/proxy'):
             return
         super().log_message(fmt, *args)
@@ -374,7 +376,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     break
                 self.wfile.write(chunk)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-            pass    # player menutup koneksi (seek/ganti video), wajar
+            pass    # player closes connection (seek/change video), normal
         except OSError as e:
             print('proxy terputus:', e)
         finally:
@@ -393,7 +395,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         if not sl or not ffmpeg:
             return self.send_error(503, 'streamlink dan ffmpeg harus terpasang')
 
-        stop_live_sessions()    # satu pemutar aktif sekaligus; sesi lama dihentikan
+        stop_live_sessions()    # only one active player at a time; previous session terminated
         sl_proc = subprocess.Popen(sl + ['-O', '--loglevel', 'error', page_url, 'best'],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ff_proc = subprocess.Popen(
@@ -401,7 +403,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
              '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',   # audio ADTS tidak bisa di-copy ke MP4
              '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1'],
             stdin=sl_proc.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        sl_proc.stdout.close()  # supaya SIGPIPE sampai ke streamlink bila ffmpeg berhenti
+        sl_proc.stdout.close()  # so that SIGPIPE reaches the streamlink when ffmpeg stops
         session = (sl_proc, ff_proc)
         with LIVE_LOCK:
             LIVE_SESSIONS.append(session)
@@ -420,7 +422,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     break
                 self.wfile.write(chunk)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-            pass    # player ditutup / ganti video
+            pass    # player closed / change video
         except OSError as e:
             print('live terputus:', e)
         finally:
@@ -429,7 +431,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 if session in LIVE_SESSIONS:
                     LIVE_SESSIONS.remove(session)
 
-    # ----- bagian lama (tidak diubah) -----------------------------------
+    # ----- old section (unchanged) -----------------------------------
     def check_is_directory(self):
         query_components = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         path = query_components.get("path", [None])[0]

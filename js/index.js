@@ -1871,19 +1871,6 @@ function embed_bak(){
     var original_url = url;
 	var isSeeking = false;
 
-    // if (!url) return;
-
-    // Pastikan iframe ada, kalau belum ada maka buat
-	//var iframe = document.querySelector("#my_iframe");
-	//if (!iframe) {
-	//	iframe = document.createElement("iframe");
-	//	iframe.id = "my_iframe";
-	//	iframe.style.border = "none";
-	//	iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-	//	iframe.allowFullscreen = true;
-	//	iframe.referrerPolicy = "strict-origin-when-cross-origin"; // PENTING
-	//	document.body.appendChild(iframe);
-	//}
     var iframe = document.querySelector("#my_iframe");
     if (!iframe) {
         iframe = document.createElement("iframe");
@@ -1892,7 +1879,7 @@ function embed_bak(){
         document.body.appendChild(iframe);
     }
 
-    // Selalu dipasang, baik iframe dari HTML maupun buatan JS
+    // Always included, whether as an HTML iframe or one created via JS
     iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
     iframe.referrerPolicy = "strict-origin-when-cross-origin";
@@ -1909,7 +1896,7 @@ function embed_bak(){
         iframe.style.height = "100%";
         iframe.src = `https://www.youtube.com/embed/${ytID}?autoplay=1&rel=0`;
         url_box.value = original_url;
-        url = iframe.src; // supaya cek .mp4/.flv di bawah tidak salah baca
+        url = iframe.src; // so that we don't misread the .mp4/.flv below
     }
 	else {
         console.warn("URL is not YouTube, can't handle it.");
@@ -1981,100 +1968,99 @@ function embed_bak(){
 }
 
 
-	function embed(){
-		console.log('embed()');
-		if (typeof stop_backend_player === 'function') stop_backend_player();
+function embed(){
+	console.log('embed()');
+	if (typeof stop_backend_player === 'function') stop_backend_player();
 
-		var url = url_box.value.trim();
-		var original_url = url;
+	var url = url_box.value.trim();
+	var original_url = url;
 
-		// Awalan opsional untuk memaksa backend: dl: / ytdlp: / streamlink:
-		var m = url.match(/^(dl|ytdlp|streamlink):\s*/i);
-		var engine = 'auto';
-		if (m) {
-			url = url.slice(m[0].length);
-			engine = ({dl: 'auto', ytdlp: 'yt-dlp', streamlink: 'streamlink'})[m[1].toLowerCase()];
+	// Optional prefix to force a backend: dl: / ytdlp: / streamlink:
+	var m = url.match(/^(dl|ytdlp|streamlink):\s*/i);
+	var engine = 'auto';
+	if (m) {
+		url = url.slice(m[0].length);
+		engine = ({dl: 'auto', ytdlp: 'yt-dlp', streamlink: 'streamlink'})[m[1].toLowerCase()];
+	}
+
+	var lower = url.toLowerCase();
+	var is_youtube = lower.includes('youtu.be') || lower.includes('youtube');
+	var is_mp4  = lower.includes('.mp4');
+	var is_flv  = lower.includes('.flv');
+	var is_m3u8 = lower.includes('.m3u8');
+	var is_cnn  = url.includes('www.cnnindonesia.com');
+
+	console.log('embed: url =', JSON.stringify(url), '| youtube =', is_youtube,
+		'| mp4/flv/m3u8/cnn =', is_mp4, is_flv, is_m3u8, is_cnn, '| backend prefix =', !!m);
+
+	if (!url) { console.warn('URL kosong'); return; }
+
+	// Other sites, or forced by using the prefixes dl:/ytdlp:/streamlink:
+	if (m || (!is_youtube && !is_mp4 && !is_flv && !is_m3u8 && !is_cnn)) {
+		embed_via_backend(url, engine);
+		return;
+	}
+
+	var video = document.querySelector("#my_video");
+	var iframe = document.querySelector("#my_iframe");
+
+	if (is_youtube) {
+		if (video) video.parentElement.removeChild(video);
+		if (!iframe) {
+			iframe = document.createElement("iframe");
+			iframe.id = "my_iframe";
+			iframe.style.border = "none";
+			(document.querySelector('.video_container .video') || document.body).appendChild(iframe);
 		}
+		iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+		iframe.allowFullscreen = true;
+		iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
-		var lower = url.toLowerCase();
-		var is_youtube = lower.includes('youtu.be') || lower.includes('youtube');
-		var is_mp4  = lower.includes('.mp4');
-		var is_flv  = lower.includes('.flv');
-		var is_m3u8 = lower.includes('.m3u8');
-		var is_cnn  = url.includes('www.cnnindonesia.com');
+		var ytID = getYoutubePlayerID(url);
+		console.log('ytID =', ytID);
+		iframe.style.display = "block";
+		iframe.style.width = "100%";
+		iframe.style.height = "100%";
+		iframe.src = `https://www.youtube.com/embed/${ytID}?autoplay=1&rel=0`;
+		url_box.value = original_url;
+	}
+	else if (is_mp4 || is_flv || is_m3u8) {
+		if (iframe) iframe.parentElement.removeChild(iframe);
+		video = (typeof ensure_video_element === 'function') ? ensure_video_element() : video;
+		video.style.display = "block";
+		video.style.width = "100%";
+		video.style.height = "100%";
 
-		console.log('embed: url =', JSON.stringify(url), '| youtube =', is_youtube,
-			'| mp4/flv/m3u8/cnn =', is_mp4, is_flv, is_m3u8, is_cnn, '| backend prefix =', !!m);
-
-		if (!url) { console.warn('URL kosong'); return; }
-
-		// Situs lain, atau dipaksa dengan awalan dl:/ytdlp:/streamlink:
-		if (m || (!is_youtube && !is_mp4 && !is_flv && !is_m3u8 && !is_cnn)) {
-			embed_via_backend(url, engine);
+		if (is_mp4) {
+			document.querySelector("#video_source").src = url;
+			document.querySelector("#video_source").type = "video/mp4";
+			video.load();
+			video.play();
+		} else if (is_flv) {
+			loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
+				if (flvjs.isSupported()) {
+					var flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
+					flvPlayer.attachMediaElement(video);
+					flvPlayer.load();
+					flvPlayer.play();
+				}
+			});
+		} else {
+			// m3u8 handled directly via the backend (hls.js + proxy) — more reliable than the old video.js code
+			embed_via_backend(url, 'auto');
 			return;
 		}
-
-		var video = document.querySelector("#my_video");
-		var iframe = document.querySelector("#my_iframe");
-
-		if (is_youtube) {
-			if (video) video.parentElement.removeChild(video);
-			if (!iframe) {
-				iframe = document.createElement("iframe");
-				iframe.id = "my_iframe";
-				iframe.style.border = "none";
-				(document.querySelector('.video_container .video') || document.body).appendChild(iframe);
-			}
-			iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-			iframe.allowFullscreen = true;
-			iframe.referrerPolicy = "strict-origin-when-cross-origin";
-
-			var ytID = getYoutubePlayerID(url);
-			console.log('ytID =', ytID);
-			iframe.style.display = "block";
-			iframe.style.width = "100%";
-			iframe.style.height = "100%";
-			iframe.src = `https://www.youtube.com/embed/${ytID}?autoplay=1&rel=0`;
-			url_box.value = original_url;
-		}
-		else if (is_mp4 || is_flv || is_m3u8) {
-			if (iframe) iframe.parentElement.removeChild(iframe);
-			video = (typeof ensure_video_element === 'function') ? ensure_video_element() : video;
-			video.style.display = "block";
-			video.style.width = "100%";
-			video.style.height = "100%";
-
-			if (is_mp4) {
-				document.querySelector("#video_source").src = url;
-				document.querySelector("#video_source").type = "video/mp4";
-				video.load();
-				video.play();
-			} else if (is_flv) {
-				loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
-					if (flvjs.isSupported()) {
-						var flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
-						flvPlayer.attachMediaElement(video);
-						flvPlayer.load();
-						flvPlayer.play();
-					}
-				});
-			} else {
-				// m3u8 langsung lewat backend (hls.js + proxy), lebih andal daripada kode video.js lama
-				embed_via_backend(url, 'auto');
-				return;
-			}
-		}
-		else if (is_cnn) {
-			if (video) video.parentElement.removeChild(video);
-			document.querySelector(".video_header_unit").style.backgroundColor = '#000000';
-			iframe.style.display = "block";
-			iframe.style.width = "1072px";
-			iframe.style.height = "603px";
-			iframe.src = url;
-		}
-
-		maintain_video_size();
 	}
+	else if (is_cnn) {
+		if (video) video.parentElement.removeChild(video);
+		document.querySelector(".video_header_unit").style.backgroundColor = '#000000';
+		iframe.style.display = "block";
+		iframe.style.width = "1072px";
+		iframe.style.height = "603px";
+		iframe.src = url;
+	}
+	maintain_video_size();
+}
 
 
 function create_modal_text_area() {

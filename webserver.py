@@ -313,6 +313,9 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.handle_proxy(parsed)
         if parsed.path == '/live':
             return self.handle_live(parsed)
+        # --- TAMBAHKAN HANDLER BARU INI ---
+        if parsed.path == '/play_video':
+            return self.handle_play_video(parsed)
 
         print('self.path =', self.path)
         decoded_path = urllib.parse.unquote(self.path)
@@ -336,9 +339,146 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     print(f"Serving directory listing for {full_path}")
                     self.create_directory_listing(full_path)
             elif os.path.isfile(full_path):
+                # --- STRATEGI BARU: HANDLER PARTIAL STREAMING (PENCEGAH DOWNLOAD) ---
+                lower_path = full_path.lower()
+                if lower_path.endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv')):
+                    # Tentukan MIME-Type yang presisi sesuai ekstensi
+                    ctype = 'video/mp4'
+                    if lower_path.endswith('.webm'): ctype = 'video/webm'
+                    elif lower_path.endswith('.mkv'): ctype = 'video/x-matroska'
+                    elif lower_path.endswith('.avi'): ctype = 'video/x-msvideo'
+                    elif lower_path.endswith('.mov'): ctype = 'video/quicktime'
+                    elif lower_path.endswith('.flv'): ctype = 'video/x-flv'
+
+                    file_size = os.path.getsize(full_path)
+                    range_header = self.headers.get('Range')
+
+                    # Jika browser meminta streaming parsial (Range Request)
+                    if range_header and range_header.startswith("bytes="):
+                        try:
+                            # Ambil rentang byte yang diminta browser (contoh: bytes=0-)
+                            ranges = range_header.strip().split("=")[1].split("-")
+                            start_byte = int(ranges[0])
+                            end_byte = int(ranges[1]) if ranges[1] else file_size - 1
+                        except ValueError:
+                            start_byte = 0
+                            end_byte = file_size - 1
+
+                        if start_byte >= file_size:
+                            self.send_error(416, "Requested Range Not Satisfiable")
+                            return
+
+                        end_byte = min(end_byte, file_size - 1)
+                        content_length = end_byte - start_byte + 1
+
+                        # Kirim status 206 Parsial ke browser (Kunci utama agar tidak mendownload)
+                        self.send_response(206)
+                        self.send_header('Content-Type', ctype)
+                        self.send_header('Accept-Ranges', 'bytes')
+                        self.send_header('Content-Range', f'bytes {start_byte}-{end_byte}/{file_size}')
+                        self.send_header('Content-Length', str(content_length))
+                        self.end_headers()
+
+                        # Salurkan bongkahan data video yang diminta saja
+                        with open(full_path, 'rb') as f:
+                            f.seek(start_byte)
+                            remaining = content_length
+                            while remaining > 0:
+                                chunk_size = min(64 * 1024, remaining)
+                                chunk = f.read(chunk_size)
+                                if not chunk:
+                                    break
+                                self.wfile.write(chunk)
+                                remaining -= len(chunk)
+                        return
+                    else:
+                        # Jika browser meminta file utuh tanpa Range
+                        self.send_response(200)
+                        self.send_header('Content-Type', ctype)
+                        self.send_header('Accept-Ranges', 'bytes')
+                        self.send_header('Content-Length', str(file_size))
+                        self.end_headers()
+                        with open(full_path, 'rb') as f:
+                            shutil.copyfileobj(f, self.wfile)
+                        return
+                
+                # Biarkan file non-video diurusi oleh handler default Python
                 return super().do_GET()
+
             else:
                 self.send_error(404, self.path + " file not found")
+
+    def handle_play_video(self, parsed):
+        """Serves a clean HTML video player for new tabs to bypass IDM interception."""
+        qs = urllib.parse.parse_qs(parsed.query)
+        video_url = (qs.get('file') or [''])[0].strip()
+        
+        if not video_url:
+            self.send_error(400, "Missing file parameter")
+            return
+            
+        decoded_url = urllib.parse.unquote(video_url)
+        file_name = decoded_url.split('/')[-1]
+        lower_name = file_name.lower()
+        
+        # Deteksi format yang tidak didukung browser native di tab baru
+        if lower_name.endswith(('.mkv', '.avi', '.flv', '.mov')):
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Unsupported Format</title>
+                <style>
+                    body {{ background: #1e1e1e; color: #fff; font-family: sans-serif; text-align: center; padding-top: 100px; }}
+                    .box {{ background: #2d2d2d; display: inline-block; padding: 30px; border-radius: 8px; border-top: 5px solid #ff3333; }}
+                </style>
+                <script>
+                    let time = 4;
+                    setInterval(() => {{
+                        time--;
+                        document.getElementById('timer').innerText = time;
+                        if(time <= 0) window.close();
+                    }}, 1000);
+                </script>
+            </head>
+            <body>
+                <div class="box">
+                    <h2>Unsupported Browser Format!</h2>
+                    <p>Format <b>{file_name}</b> tidak didukung pemutar native di tab baru.</p>
+                    <p>Silakan putar di halaman utama menggunakan Embed Player.</p>
+                    <p>Tab ini akan menutup dalam <span id="timer" style="color:#ff9900;font-weight:bold;">4</span> detik...</p>
+                </div>
+            </body>
+            </html>
+            """
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.end_headers()
+            self.wfile.write(html_content.encode('utf-8'))
+            return
+
+        # Jika format didukung (MP4, WebM), berikan pemutar HTML5 langsung
+        html_player = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Playing: {file_name}</title>
+            <style>
+                body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }}
+                video {{ width: 100%; height: 100%; object-fit: contain; }}
+            </style>
+        </head>
+        <body>
+            <video controls autoplay name="media">
+                <source src="{video_url}" type="video/mp4">
+            </video>
+        </body>
+        </html>
+        """
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.end_headers()
+        self.wfile.write(html_player.encode('utf-8'))
 
     # ----- /resolve -----------------------------------------------------
     def send_json(self, status, obj):
@@ -507,6 +647,10 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "No permission to list directory")
             return entries
 
+        # --- FILTER OUT DOTFILES AND DOTFOLDERS HERE ---
+        # This completely skips any file or folder starting with a "." (like .thumbnails)
+        directory_items = [item for item in directory_items if not item.startswith('.')]
+
         directory_items.sort(key=lambda a: a.lower())
         for item in directory_items:
             full_path = os.path.join(path, item)
@@ -516,22 +660,22 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 item_type = "file"
                 if self.is_image_or_video(item):
-                    # 1. Determine the absolute path to the .thumbnails folder based on the current folder path
+                    # 1. Buat folder .thumbnails lokal secara absolut sesuai folder video berada
                     thumbnails_dir = os.path.join(path, '.thumbnails')
                     os.makedirs(thumbnails_dir, exist_ok=True)
                     
                     thumbnail_filename = item + '.png'
                     
-                    # 2. Define thumbnail_path directly (without using translate_path)
+                    # 2. BEST PRACTICE: Define `thumbnail_path` directly using `os.path.join` (DO NOT use `translate_path`)
                     thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
                     
-                    # 3. URLs for the browser are aligned with the current web folder structure
-                    # If located in /videos/, the URL becomes .thumbnails/file_name.mp4.png
+                    # 3. URL for use in the <img src="..."> tag in the browser
+                    # Use a path relative to the current folder so the browser doesn't get confused
                     thumbnail_url = urllib.parse.quote(os.path.join('.thumbnails', thumbnail_filename).replace('\\', '/'))
                     
-                    # Check if the physical thumbnail file does not exist, if it does not exist then generate it.
+                    # 4. Generate only if the physical thumbnail file does not yet exist
                     if not os.path.exists(thumbnail_path):
-                        # Modify the function call to directly pass a valid physical path
+                        # modify the thumbnail generation function so that it accepts a physical path directly
                         self.generate_thumbnail_fixed(full_path, thumbnail_path)
                 else:
                     thumbnail_url = "/file.png"
@@ -543,7 +687,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             })
         return entries
 
-    def generate_directory_listing_html(self, entries):
+    def generate_directory_listing_html_bak(self, entries):
         entries_html = ""
         for entry in entries:
             #print('entry =', entry)
@@ -573,6 +717,75 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 """
         #print("Generated HTML:", html_content)
         return html_content
+
+
+    def generate_directory_listing_html(self, entries):
+        entries_html = ""
+        for entry in entries:
+            thumbnail_img = f'<img src="{entry["thumbnail_url"]}" alt="{entry["name"]} thumbnail" style="width:128px; vertical-align:middle; margin-right:10px;">' if entry["thumbnail_url"] else ""
+            
+            if entry["name"].lower().endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv')):
+                # URL untuk mengelabui IDM di tab baru
+                play_url = f"/play_video?file={urllib.parse.quote(entry['url'])}"
+                
+                entries_html += f'''
+                <div style="margin-bottom: 15px;">
+                    {thumbnail_img}
+                    <!-- href mengarah ke play_url (IDM bypass), onclick menangani play langsung di tab yang sama -->
+                    <a href="{play_url}" target="_blank" onclick="handleVideoClick(event, '{entry["url"]}');" style="font-size: 16px; color: #0066cc; text-decoration: none;">
+                        {entry["name"]}
+                    </a>
+                </div>
+                '''
+            else:
+                entries_html += f'''
+                <div style="margin-bottom: 15px;">
+                    {thumbnail_img}
+                    <a href="{entry["url"]}" style="font-size: 16px; color: #0066cc; text-decoration: none;">
+                        {entry["name"]}
+                    </a>
+                </div>
+                '''
+
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Directory Listing</title>
+    <script>
+        function handleVideoClick(event, rawVideoUrl) {{
+            // Jika diklik kiri biasa (bukan klik tengah, bukan Ctrl+Klik / Cmd+Klik)
+            if (!event.ctrlKey && !event.metaKey && event.button === 0) {{
+                event.preventDefault(); // Batalkan fungsi target="_blank" (jangan buka tab baru)
+                
+                // Gunakan unescape/decode URL agar siap dibaca oleh engine resolve
+                var cleanUrl = decodeURIComponent(rawVideoUrl);
+                
+                // Kirim perintah play langsung ke halaman utama (embed player)
+                if (window.parent && typeof window.parent.embed_via_backend === 'function') {{
+                    window.parent.embed_via_backend(cleanUrl, 'auto');
+                }} else if (typeof embed_via_backend === 'function') {{
+                    embed_via_backend(cleanUrl, 'auto');
+                }} else {{
+                    // Fallback jika tidak berada di dalam iframe player utama
+                    window.location.href = "/play_video?file=" + encodeURIComponent(cleanUrl);
+                }}
+            }}
+            // Jika klik tengah atau Ctrl+Klik, biarkan berjalan normal (href /play_video akan memicu tab baru tanpa di-intercept IDM)
+        }}
+    </script>
+</head>
+<body>
+    <h1>Directory Listing</h1>
+    <div id="directory-listing" style="padding: 20px;">
+        {entries_html}
+    </div>
+</body>
+</html>
+"""
+        return html_content
+
 
     def is_image_or_video(self, filename):
         image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')

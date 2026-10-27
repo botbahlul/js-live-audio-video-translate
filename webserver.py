@@ -21,17 +21,15 @@ from PIL import Image
 #   GET /resolve?url=<page/video>&engine=auto|yt-dlp|streamlink
 #       -> JSON {ok, engine, title, is_live, kind: "hls"|"file", url: "/proxy?id=..."}
 #   GET /proxy?id=<id>
-#       -> Streams media from the source server (includes original Referer/User-Agent
-#          headers from yt-dlp, forwards Range requests, and rewrites .m3u8
-#          playlists so that segments are also routed through /proxy)
+#       -> stream media from the origin server (the Referer/User-Agent headers from yt-dlp
+#          are included, the Range header is passed through, and .m3u8 playlists are rewritten
+#          so that the segments also pass through /proxy)
 #
-# The proxy only handles URLs registered via /resolve or those appearing within
-# a playlist returned by /resolve; it does not support arbitrary URLs.
+# The proxy only serves URLs registered via /resolve or those that appear
+# within a playlist resulting from /resolve; it does not serve arbitrary URLs.
 # ---------------------------------------------------------------------------
 
-# A single file containing both video and audio, allowing the <video> element
-# to play the content without requiring an FFmpeg merge.
-
+# A single file containing both video and audio, so that <video> can play it without needing to be merged via FFmpeg.
 YTDLP_FORMAT = "b[ext=mp4][protocol=https]/b[ext=mp4][protocol=http]/b[protocol^=m3u8]/b"
 RESOLVE_TIMEOUT = 60       # seconds, time limit for yt-dlp/streamlink
 UPSTREAM_TIMEOUT = 30      # seconds, connection timeout to the origin server
@@ -121,7 +119,7 @@ def run_cmd(cmd, timeout=RESOLVE_TIMEOUT):
     return p.stdout
 
 
-def resolve_ytdlp(page_url):
+def resolve_ytdlp_bak(page_url):
     base = ytdlp_command()
     if not base:
         raise ResolveError('yt-dlp belum terpasang (pip install -U yt-dlp)')
@@ -144,6 +142,53 @@ def resolve_ytdlp(page_url):
     is_hls = 'm3u8' in protocol or '.m3u8' in media_url.lower().split('?')[0]
     return {'url': media_url, 'headers': headers, 'title': info.get('title') or '',
             'is_live': bool(info.get('is_live')), 'hls': is_hls}
+
+
+def resolve_ytdlp(page_url):
+    base = ytdlp_command()
+    if not base:
+        raise ResolveError('yt-dlp belum terpasang (pip install -U yt-dlp)')
+
+    cmd = base + [
+        '-J',
+        '--no-playlist',
+        '--no-warnings',
+        '--extractor-args', 'generic:impersonate',
+        '-f', YTDLP_FORMAT
+    ] + EXTRA_YTDLP_ARGS + [page_url]
+
+    out = run_cmd(cmd)
+
+    try:
+        info = json.loads(out)
+    except ValueError:
+        raise ResolveError('output yt-dlp bukan JSON yang valid')
+
+    if info.get('entries'):
+        info = next((e for e in info['entries'] if e), info)
+
+    media_url = info.get('url')
+    if not media_url:
+        raise ResolveError('yt-dlp tidak memberi satu URL yang bisa diputar langsung')
+
+    protocol = info.get('protocol') or ''
+    if 'dash' in protocol:
+        raise ResolveError('format DASH (mpd) tidak bisa diputar <video> biasa')
+
+    headers = {
+        k: v for k, v in (info.get('http_headers') or {}).items()
+        if k.lower() not in ('accept-encoding', 'host')
+    }
+
+    is_hls = 'm3u8' in protocol or '.m3u8' in media_url.lower().split('?')[0]
+
+    return {
+        'url': media_url,
+        'headers': headers,
+        'title': info.get('title') or '',
+        'is_live': bool(info.get('is_live')),
+        'hls': is_hls
+    }
 
 
 def resolve_streamlink(page_url):
@@ -400,7 +445,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ff_proc = subprocess.Popen(
             [ffmpeg, '-hide_banner', '-loglevel', 'error', '-i', 'pipe:0',
-             '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',   # audio ADTS tidak bisa di-copy ke MP4
+             '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',   # ADTS audio cannot be copied to MP4
              '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1'],
             stdin=sl_proc.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         sl_proc.stdout.close()  # so that SIGPIPE reaches the streamlink when ffmpeg stops
@@ -422,7 +467,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     break
                 self.wfile.write(chunk)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-            pass    # player closed / change video
+            pass    # player closed / video changes
         except OSError as e:
             print('live terputus:', e)
         finally:
@@ -471,13 +516,23 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 item_type = "file"
                 if self.is_image_or_video(item):
+                    # 1. Determine the absolute path to the .thumbnails folder based on the current folder path
                     thumbnails_dir = os.path.join(path, '.thumbnails')
                     os.makedirs(thumbnails_dir, exist_ok=True)
+                    
                     thumbnail_filename = item + '.png'
-                    thumbnail_url = urllib.parse.quote(os.path.join('.thumbnails', thumbnail_filename))
-                    thumbnail_path = self.translate_path(thumbnail_url)
+                    
+                    # 2. Define thumbnail_path directly (without using translate_path)
+                    thumbnail_path = os.path.join(thumbnails_dir, thumbnail_filename)
+                    
+                    # 3. URLs for the browser are aligned with the current web folder structure
+                    # If located in /videos/, the URL becomes .thumbnails/file_name.mp4.png
+                    thumbnail_url = urllib.parse.quote(os.path.join('.thumbnails', thumbnail_filename).replace('\\', '/'))
+                    
+                    # Check if the physical thumbnail file does not exist, if it does not exist then generate it.
                     if not os.path.exists(thumbnail_path):
-                        self.generate_thumbnail(full_path, thumbnail_url)
+                        # Modify the function call to directly pass a valid physical path
+                        self.generate_thumbnail_fixed(full_path, thumbnail_path)
                 else:
                     thumbnail_url = "/file.png"
             entries.append({
@@ -557,6 +612,38 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             print(f"Unexpected error generating thumbnail: {e}")
             self.generate_default_thumbnail(thumbnail_path)
 
+    def generate_thumbnail_fixed(self, filepath, thumbnail_path):
+        """Generates thumbnail using the exact physical absolute paths provided."""
+        os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+        try:
+            if self.is_video(filepath):
+                # Get video duration using ffprobe
+                command = [
+                    'ffprobe', '-hide_banner', '-loglevel', 'error', '-v', 'error',
+                    '-show_entries', 'format=duration', '-of', 'json', filepath
+                ]
+                result = subprocess.run(command, capture_output=True, text=True)
+                duration_info = json.loads(result.stdout)
+                duration = float(duration_info['format']['duration'])
+                middle_time = duration / 4
+                
+                # Extract frame using ffmpeg
+                command = [
+                    'ffmpeg', '-hide_banner', '-loglevel', 'error', '-v', 'error',
+                    '-ss', str(middle_time), '-i', filepath, '-vf', 'thumbnail,scale=128:-1',
+                    '-frames:v', '1', '-q:v', '2', thumbnail_path
+                ]
+                subprocess.run(command, check=True)
+            else:
+                # Handle image thumbnailing using PIL
+                with Image.open(filepath) as img:
+                    img.thumbnail((128, 128))
+                    img.save(thumbnail_path, format="PNG")
+        except Exception as e:
+            print(f"Unexpected error generating thumbnail for {os.path.basename(filepath)}: {e}")
+            self.generate_default_thumbnail(thumbnail_path)
+
+
     def generate_default_thumbnail(self, thumbnail_path):
         with Image.open("/file.png") as img:
             img.thumbnail((128, 128))
@@ -580,8 +667,8 @@ def run(server_class=http.server.ThreadingHTTPServer, handler_class=CustomHTTPRe
     handler_class.directory = directory
     server_address = (host, port)
     httpd = server_class(server_address, handler_class)
-    print('yt-dlp     :', ' '.join(ytdlp_command() or ['TIDAK DITEMUKAN (pip install -U yt-dlp)']))
-    print('streamlink :', ' '.join(streamlink_command() or ['TIDAK DITEMUKAN (pip install -U streamlink)']))
+    print('yt-dlp     :', ' '.join(ytdlp_command() or ['NOT FOUND (pip install -U yt-dlp)']))
+    print('streamlink :', ' '.join(streamlink_command() or ['NOT FOUND (pip install -U streamlink)']))
     print(f'Starting httpd server on {host or "0.0.0.0"}:{port}, serving directory {directory}')
     httpd.serve_forever()
 
@@ -590,10 +677,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simple HTTP Server with Custom Headers')
     parser.add_argument('-p', '--port', type=int, default=8080, help='Port to run the server on (default: 8080)')
     parser.add_argument('-d', '--directory', type=str, default='.', help='Directory to serve (default: current directory)')
-    parser.add_argument('--host', type=str, default='',
-                        help='Alamat bind (default: semua interface). Pakai 127.0.0.1 kalau hanya diakses dari mesin ini')
-    parser.add_argument('--cookies-from-browser', type=str, default=None, metavar='BROWSER',
-                        help='Teruskan ke yt-dlp, mis. firefox atau chrome (untuk situs yang butuh login)')
+    parser.add_argument('-H', '--host', type=str, default='', help='Bind address (default: all interfaces). Use 127.0.0.1 if only accessed from this machine')
+    parser.add_argument('-C', '--cookies-from-browser', type=str, default=None, metavar='BROWSER', help='Forward to yt-dlp, e.g. firefox or chrome (for sites that require login))')
     args = parser.parse_args()
     if args.cookies_from_browser:
         EXTRA_YTDLP_ARGS.extend(['--cookies-from-browser', args.cookies_from_browser])

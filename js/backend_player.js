@@ -1,6 +1,6 @@
 // backend_player.js
-// Player using webserver.py backend (/resolve + /proxy, based on yt-dlp/streamlink).
-// Load this file BEFORE js/index.js.
+// Pemutar yang memakai backend webserver.py (/resolve + /proxy, berbasis yt-dlp/streamlink).
+// Muat file ini SEBELUM js/index.js.
 
 var HLSJS_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1';
 var _backend_hls = null;
@@ -22,7 +22,7 @@ function load_script_once(src) {
 	return _script_promises[src];
 }
 
-// The old embed() removes #my_video from the DOM when playing a YouTube video, so recreate it if it’s gone.
+// embed() lama menghapus #my_video dari DOM saat memutar YouTube, jadi buat ulang kalau hilang.
 function ensure_video_element() {
 	var v = document.querySelector('#my_video');
 	if (!v) {
@@ -42,7 +42,7 @@ function ensure_video_element() {
 	return v;
 }
 
-// Stop previous playback (hls.js, the src attribute set by hls.js, etc.)
+// Hentikan pemutaran sebelumnya (hls.js, atribut src yang dipasang hls.js, dsb.)
 function stop_backend_player() {
 	if (_backend_hls) {
 		try { _backend_hls.destroy(); } catch (e) {}

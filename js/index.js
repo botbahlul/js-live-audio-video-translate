@@ -1006,6 +1006,115 @@ document.querySelector("#embed_button").addEventListener('click', function(){
 	embed();
 });
 
+
+// OPEN LOCAL FILES
+// Adds an "Open Local Files" button (next to the Embed button) and plays the chosen
+// video/audio file in #my_video through a blob: URL. The file never leaves the browser.
+var local_file_object_url = null;
+
+function setup_open_local_button() {
+	var input = document.querySelector('#local_file_input');
+	if (!input) {
+		input = document.createElement('input');
+		input.type = 'file';
+		input.id = 'local_file_input';
+		input.accept = 'video/*,audio/*,.mkv,.flv,.ts,.m4v,.mov,.webm,.mp3,.m4a,.wav,.ogg,.opus';
+		input.style.display = 'none';
+		document.body.appendChild(input);
+	}
+
+	// Use the button from index.html if it already has one, otherwise create it
+	var button = document.querySelector('#open_local_button');
+	if (!button) {
+		button = document.createElement('button');
+		button.id = 'open_local_button';
+		button.type = 'button';
+		button.textContent = 'Open Local Files';
+		var embed_button = document.querySelector('#embed_button');
+		if (embed_button) {
+			button.className = embed_button.className;
+			button.style.marginLeft = '6px';
+			embed_button.insertAdjacentElement('afterend', button);
+		} else {
+			document.body.appendChild(button);
+		}
+	}
+
+	button.addEventListener('click', function() {
+		input.value = ''; // so choosing the same file twice still fires "change"
+		input.click();
+	});
+
+	input.addEventListener('change', function() {
+		if (input.files && input.files[0]) open_local_file(input.files[0]);
+	});
+}
+
+function release_local_file() {
+	if (!local_file_object_url) return;
+	var video = document.querySelector('#my_video');
+	// A video.src attribute wins over <source>, so it must be cleared before other sources are embedded
+	if (video && video.getAttribute('src') === local_file_object_url) video.removeAttribute('src');
+	URL.revokeObjectURL(local_file_object_url);
+	local_file_object_url = null;
+}
+
+function open_local_file(file) {
+	console.log('open_local_file():', file.path, file.name, '| type =', file.type, '| size =', file.size);
+	if (typeof stop_backend_player === 'function') stop_backend_player();
+
+	// Remove the YouTube/CNN iframe, if any
+	var iframe = document.querySelector('#my_iframe');
+	if (iframe && iframe.parentElement) iframe.parentElement.removeChild(iframe);
+
+	var video = document.querySelector('#my_video');
+	if (!video && typeof ensure_video_element === 'function') video = ensure_video_element();
+	if (!video) {
+		video = document.createElement('video');
+		video.id = 'my_video';
+		video.controls = true;
+		(document.querySelector('.video_container .video') || document.body).appendChild(video);
+	}
+
+	var source = document.querySelector('#video_source');
+	if (!source) {
+		source = document.createElement('source');
+		source.id = 'video_source';
+		video.appendChild(source);
+	}
+
+	release_local_file();
+	video.pause();
+	local_file_object_url = URL.createObjectURL(file);
+
+	var on_ok = function() {
+		video.removeEventListener('error', on_error);
+	};
+	var on_error = function() {
+		video.removeEventListener('loadeddata', on_ok);
+		video.removeEventListener('error', on_error);
+		console.error('open_local_file: cannot play', file.name, '| MediaError =', video.error);
+		alert('Browser tidak bisa memutar file ini (format atau codec tidak didukung):\n' + file.name);
+	};
+	video.addEventListener('loadeddata', on_ok, { once: true });
+	video.addEventListener('error', on_error, { once: true });
+
+	video.style.display = 'block';
+	video.style.width = '100%';
+	video.style.height = '100%';
+
+	source.src = local_file_object_url;
+	video.src = local_file_object_url; // keeps video.src non-empty, which maintain_video_size() checks
+	url_box.value = file.name;
+	video.load();
+	var p = video.play();
+	if (p && p.catch) p.catch(function(e) { console.log('open_local_file: play() was not started:', e); });
+
+	maintain_video_size();
+}
+
+setup_open_local_button();
+
 document.querySelector("#start_button").addEventListener('click', function(){
 	session_start_time = formatTimestampToISOLocalString(new Date());
 	//console.log('session_start_time = ', session_start_time);
@@ -1288,6 +1397,69 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 400 AFTER SOME REQUESTS
 				var t = transcript_to_translate;
+				/*if ((Date.now() - translate_time > 1000) && recognizing) {
+					if (t) {
+						//var tt = translate1(t, src, dst).then(result => {
+						var tt = translate2(t, src, dst).then(result => {
+							if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
+
+							result = formatTranscript(result);
+
+							if (result.match(/(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm) 
+									|| result.match(/(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm)) {
+								var buffer = getTimestampedLines(result);
+								//console.log('getTimestampedLines(result) =', getTimestampedLines(result));
+								buffer = arrayRemoveDuplicates(buffer);
+								//console.log('arrayRemoveDuplicates(buffer) =', arrayRemoveDuplicates(buffer));
+								//console.log('buffer[0] =', buffer[0]);
+								array_all_translated_final_transcripts.push(buffer[0]);
+								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
+								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
+								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
+							}
+
+							if (array_all_translated_final_transcripts.length > 0) {
+								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
+								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
+								displayed_translation = array_all_translated_final_transcripts.join('\n') + result;
+								//console.log('displayed_translation =', displayed_translation);
+								displayed_translation = formatTranscript(displayed_translation);
+								//console.log('formatTranscript(displayed_translation) =', formatTranscript(displayed_translation));
+								displayed_translation = removeDuplicateTimestamps(displayed_translation);
+								//console.log('removeDuplicateTimestamps(displayed_translation) =', removeDuplicateTimestamps(displayed_translation));
+								var lines = displayed_translation.trim().split('\n');
+								var unique_lines = [...new Set(lines)];
+								var unique_text = unique_lines.join('\n');
+								// Remove duplicate of translated last_final_transcript to get interim_translation only
+								var interim_translation = result.replace(/^\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}\s*[:：] .*[\.\。]\n/gm, '');
+
+								if (!transcript_is_final) {
+									displayed_translation = unique_text + '\n' + interim_translation;
+									//console.log('!transcript_is_final: displayed_translation =', displayed_translation);
+								} else {
+									displayed_translation = unique_text;
+									//console.log('transcript_is_final: displayed_translation =', displayed_translation);
+								}
+							} else {
+								displayed_translation = result;
+								//console.log('array_all_translated_final_transcripts.length <= 0: displayed_translation =', displayed_translation);
+							}
+
+							if (show_timestamp_dst) {
+								//console.log('displayed_translation =', displayed_translation);
+								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
+							} else {
+								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
+							}
+							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
+
+						}).catch(error => {
+							console.log('error =', error);
+						});
+						translate_time = Date.now();
+					}
+				};*/
 
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) {
@@ -1808,19 +1980,6 @@ function embed_bak(){
     var original_url = url;
 	var isSeeking = false;
 
-    // if (!url) return;
-
-    // Make sure iframe exists, if not then make it
-	//var iframe = document.querySelector("#my_iframe");
-	//if (!iframe) {
-	//	iframe = document.createElement("iframe");
-	//	iframe.id = "my_iframe";
-	//	iframe.style.border = "none";
-	//	iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-	//	iframe.allowFullscreen = true;
-	//	iframe.referrerPolicy = "strict-origin-when-cross-origin"; // PENTING
-	//	document.body.appendChild(iframe);
-	//}
     var iframe = document.querySelector("#my_iframe");
     if (!iframe) {
         iframe = document.createElement("iframe");
@@ -1829,7 +1988,7 @@ function embed_bak(){
         document.body.appendChild(iframe);
     }
 
-    // Always applied, whether it's an HTML-based iframe or one created via JS
+    // Always included, whether as an HTML iframe or one created via JS
     iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
     iframe.referrerPolicy = "strict-origin-when-cross-origin";
@@ -1846,7 +2005,7 @@ function embed_bak(){
         iframe.style.height = "100%";
         iframe.src = `https://www.youtube.com/embed/${ytID}?autoplay=1&rel=0`;
         url_box.value = original_url;
-        url = iframe.src; // supaya cek .mp4/.flv di bawah tidak salah baca
+        url = iframe.src; // so that we don't misread the .mp4/.flv below
     }
 	else {
         console.warn("URL is not YouTube, can't handle it.");
@@ -1921,6 +2080,7 @@ function embed_bak(){
 function embed(){
 	console.log('embed()');
 	if (typeof stop_backend_player === 'function') stop_backend_player();
+	release_local_file();
 
 	var url = url_box.value.trim();
 	var original_url = url;
@@ -2009,7 +2169,6 @@ function embed(){
 		iframe.style.height = "603px";
 		iframe.src = url;
 	}
-
 	maintain_video_size();
 }
 
@@ -2213,7 +2372,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.display = 'inline-block';
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
 	document.querySelector("#dst_textarea").style.allow = "fullscreen";
-	//document.querySelector("#dst_textarea").style.zIndex = 2147483647;
+	document.querySelector("#dst_textarea").style.zIndex = 2147483647;
 
 	document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
@@ -2488,7 +2647,6 @@ var translate1 = async (t, src, dst) => {
 	});
 };
 
-
 var testTranslateEndpoint = async (t, src, dst) => {
 	if (translate_endpoint_testing) {
 		return translate_endpoint;
@@ -2564,7 +2722,6 @@ var testTranslateEndpoint = async (t, src, dst) => {
 
 	return translate_endpoint;
 };
-
 
 var getTranslateFunction = async (t, src, dst) => {
 
@@ -3294,7 +3451,7 @@ function regenerate_textarea() {
 						'position': 'absolute',
 						'fontFamily': dst_selected_font + ', sans-serif',
 						'fontSize': dst_font_size,
-						'color': dst_font_color,
+						'color': dst_font_color.value,
 						'backgroundColor': hexToRgba(dst_container_color, dst_container_opacity),
 						'border': 'none',
 						'display': 'block',
@@ -3315,7 +3472,7 @@ function regenerate_textarea() {
 
 				document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 				document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size)+'px';
-				document.querySelector("#dst_textarea").style.color = dst_font_color;
+				document.querySelector("#dst_textarea").style.color = dst_font_color.value;
 				document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(dst_container_color, dst_container_opacity);
 
 			} else {
@@ -4046,7 +4203,6 @@ function create_hls_video_player() {
 	console.log(div_video_header_unit);
 }
 
-
 function create_cnn_video_player() {
 	var div_detail__media_video, div_ratiobox, tag_iframe;
 
@@ -4088,7 +4244,6 @@ function create_cnn_video_player() {
 	console.log(div_detail__media_video);
 }
 
-
 function showTextareaInFullscreen(videoElement) {
 	// Create the textarea and set its position and size
 	const textarea = document.createElement('textarea');
@@ -4107,7 +4262,6 @@ function showTextareaInFullscreen(videoElement) {
 	document.body.appendChild(textarea);
 	textarea.focus();
 }
-
 
 function enterFullscreen(element) {
 	console.log('enterFullscreen(element)');

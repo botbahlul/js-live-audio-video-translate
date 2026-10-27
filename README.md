@@ -11,7 +11,8 @@ You can also use F11 key to enter fullscreen mode and still see the subtitles. O
 
 
 
-You may need to install CORS Unblock Chrome extension to avoid default CORS Blocking Policy of Chrome and Edge, but it seems not mandatory now (28 October 2026)
+You may need to install CORS Unblock Chrome extension before install this extension to avoid default CORS Blocking Policy of Chrome and Edge, and after install it you need to ACTIVATE IT (TURN IT ON), but it seems not mandatory now (28 October 2026).
+
 
 You will also need Stereo Mix or Virtual Audio Cable recording device for best recognizing
 

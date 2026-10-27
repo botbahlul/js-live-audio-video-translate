@@ -520,7 +520,7 @@ if (localStorage.getItem("src_font_color")) {
 	document.querySelector("#label_src_font_color").textContent = document.querySelector("#slider_src_font_color").value;
 } else {
 	src_font_color = "#00ff1e";
-	document.querySelector("#input_src_font_size").value = src_font_color;
+	document.querySelector("#slider_src_font_color").value = src_font_color;
 	document.querySelector("#label_src_font_color").textContent = document.querySelector("#slider_src_font_color").value;
 }
 
@@ -635,7 +635,7 @@ if (localStorage.getItem("dst_font_color")) {
 	document.querySelector("#label_dst_font_color").textContent = document.querySelector("#slider_dst_font_color").value;
 } else {
 	dst_font_color = "#fff700";
-	document.querySelector("#input_dst_font_size").value = dst_font_color;
+	document.querySelector("#slider_dst_font_color").value = dst_font_color;
 	document.querySelector("#label_dst_font_color").textContent = document.querySelector("#slider_dst_font_color").value;
 }
 

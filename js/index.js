@@ -1288,69 +1288,6 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 400 AFTER SOME REQUESTS
 				var t = transcript_to_translate;
-				/*if ((Date.now() - translate_time > 1000) && recognizing) {
-					if (t) {
-						//var tt = translate1(t, src, dst).then(result => {
-						var tt = translate2(t, src, dst).then(result => {
-							if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
-
-							result = formatTranscript(result);
-
-							if (result.match(/(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm) 
-									|| result.match(/(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm)) {
-								var buffer = getTimestampedLines(result);
-								//console.log('getTimestampedLines(result) =', getTimestampedLines(result));
-								buffer = arrayRemoveDuplicates(buffer);
-								//console.log('arrayRemoveDuplicates(buffer) =', arrayRemoveDuplicates(buffer));
-								//console.log('buffer[0] =', buffer[0]);
-								array_all_translated_final_transcripts.push(buffer[0]);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-							}
-
-							if (array_all_translated_final_transcripts.length > 0) {
-								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-								displayed_translation = array_all_translated_final_transcripts.join('\n') + result;
-								//console.log('displayed_translation =', displayed_translation);
-								displayed_translation = formatTranscript(displayed_translation);
-								//console.log('formatTranscript(displayed_translation) =', formatTranscript(displayed_translation));
-								displayed_translation = removeDuplicateTimestamps(displayed_translation);
-								//console.log('removeDuplicateTimestamps(displayed_translation) =', removeDuplicateTimestamps(displayed_translation));
-								var lines = displayed_translation.trim().split('\n');
-								var unique_lines = [...new Set(lines)];
-								var unique_text = unique_lines.join('\n');
-								// Remove duplicate of translated last_final_transcript to get interim_translation only
-								var interim_translation = result.replace(/^\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}\s*[:：] .*[\.\。]\n/gm, '');
-
-								if (!transcript_is_final) {
-									displayed_translation = unique_text + '\n' + interim_translation;
-									//console.log('!transcript_is_final: displayed_translation =', displayed_translation);
-								} else {
-									displayed_translation = unique_text;
-									//console.log('transcript_is_final: displayed_translation =', displayed_translation);
-								}
-							} else {
-								displayed_translation = result;
-								//console.log('array_all_translated_final_transcripts.length <= 0: displayed_translation =', displayed_translation);
-							}
-
-							if (show_timestamp_dst) {
-								//console.log('displayed_translation =', displayed_translation);
-								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
-							} else {
-								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
-							}
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
-
-						}).catch(error => {
-							console.log('error =', error);
-						});
-						translate_time = Date.now();
-					}
-				};*/
 
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) {
@@ -1871,6 +1808,19 @@ function embed_bak(){
     var original_url = url;
 	var isSeeking = false;
 
+    // if (!url) return;
+
+    // Make sure iframe exists, if not then make it
+	//var iframe = document.querySelector("#my_iframe");
+	//if (!iframe) {
+	//	iframe = document.createElement("iframe");
+	//	iframe.id = "my_iframe";
+	//	iframe.style.border = "none";
+	//	iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+	//	iframe.allowFullscreen = true;
+	//	iframe.referrerPolicy = "strict-origin-when-cross-origin"; // PENTING
+	//	document.body.appendChild(iframe);
+	//}
     var iframe = document.querySelector("#my_iframe");
     if (!iframe) {
         iframe = document.createElement("iframe");
@@ -1879,7 +1829,7 @@ function embed_bak(){
         document.body.appendChild(iframe);
     }
 
-    // Always included, whether as an HTML iframe or one created via JS
+    // Always applied, whether it's an HTML-based iframe or one created via JS
     iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
     iframe.allowFullscreen = true;
     iframe.referrerPolicy = "strict-origin-when-cross-origin";
@@ -1896,7 +1846,7 @@ function embed_bak(){
         iframe.style.height = "100%";
         iframe.src = `https://www.youtube.com/embed/${ytID}?autoplay=1&rel=0`;
         url_box.value = original_url;
-        url = iframe.src; // so that we don't misread the .mp4/.flv below
+        url = iframe.src; // supaya cek .mp4/.flv di bawah tidak salah baca
     }
 	else {
         console.warn("URL is not YouTube, can't handle it.");
@@ -2059,6 +2009,7 @@ function embed(){
 		iframe.style.height = "603px";
 		iframe.src = url;
 	}
+
 	maintain_video_size();
 }
 
@@ -2262,7 +2213,7 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").style.display = 'inline-block';
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
 	document.querySelector("#dst_textarea").style.allow = "fullscreen";
-	document.querySelector("#dst_textarea").style.zIndex = 2147483647;
+	//document.querySelector("#dst_textarea").style.zIndex = 2147483647;
 
 	document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 	document.querySelector("#dst_textarea").style.color = dst_font_color;
@@ -2537,6 +2488,7 @@ var translate1 = async (t, src, dst) => {
 	});
 };
 
+
 var testTranslateEndpoint = async (t, src, dst) => {
 	if (translate_endpoint_testing) {
 		return translate_endpoint;
@@ -2612,6 +2564,7 @@ var testTranslateEndpoint = async (t, src, dst) => {
 
 	return translate_endpoint;
 };
+
 
 var getTranslateFunction = async (t, src, dst) => {
 
@@ -3341,7 +3294,7 @@ function regenerate_textarea() {
 						'position': 'absolute',
 						'fontFamily': dst_selected_font + ', sans-serif',
 						'fontSize': dst_font_size,
-						'color': dst_font_color.value,
+						'color': dst_font_color,
 						'backgroundColor': hexToRgba(dst_container_color, dst_container_opacity),
 						'border': 'none',
 						'display': 'block',
@@ -3362,7 +3315,7 @@ function regenerate_textarea() {
 
 				document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";
 				document.querySelector("#dst_textarea").style.fontSize = String(dst_font_size)+'px';
-				document.querySelector("#dst_textarea").style.color = dst_font_color.value;
+				document.querySelector("#dst_textarea").style.color = dst_font_color;
 				document.querySelector("#dst_textarea").style.backgroundColor = hexToRgba(dst_container_color, dst_container_opacity);
 
 			} else {
@@ -4093,6 +4046,7 @@ function create_hls_video_player() {
 	console.log(div_video_header_unit);
 }
 
+
 function create_cnn_video_player() {
 	var div_detail__media_video, div_ratiobox, tag_iframe;
 
@@ -4134,6 +4088,7 @@ function create_cnn_video_player() {
 	console.log(div_detail__media_video);
 }
 
+
 function showTextareaInFullscreen(videoElement) {
 	// Create the textarea and set its position and size
 	const textarea = document.createElement('textarea');
@@ -4152,6 +4107,7 @@ function showTextareaInFullscreen(videoElement) {
 	document.body.appendChild(textarea);
 	textarea.focus();
 }
+
 
 function enterFullscreen(element) {
 	console.log('enterFullscreen(element)');

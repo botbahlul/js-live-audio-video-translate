@@ -226,7 +226,7 @@ if (localStorage.getItem("show_timestamp_src")) {
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 	console.log('localStorage.getItem("show_timestamp_src") = ', show_timestamp_src);
 } else {
-	show_timestamp_src = true;
+	show_timestamp_src = false;
 	document.querySelector("#checkbox_show_timestamp_src").checked = show_timestamp_src;
 }
 
@@ -235,7 +235,7 @@ if (localStorage.getItem("save_src")) {
 	document.querySelector("#checkbox_save_src").checked = save_src;
 	console.log('localStorage.getItem("save_src") = ', save_src);
 } else {
-	save_src = true;
+	save_src = false;
 	document.querySelector("#checkbox_save_src").checked = save_src;
 }
 
@@ -408,7 +408,7 @@ if (localStorage.getItem("show_timestamp_dst")) {
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
 	console.log('localStorage.getItem("show_timestamp_dst") = ', show_timestamp_dst);
 } else {
-	show_timestamp_dst = true;
+	show_timestamp_dst = false;
 	document.querySelector("#checkbox_show_timestamp_dst").checked = show_timestamp_dst;
 }
 
@@ -417,7 +417,7 @@ if (localStorage.getItem("save_dst")) {
 	document.querySelector("#checkbox_save_dst").checked = save_dst;
 	console.log('localStorage.getItem("save_dst") = ', save_dst);
 } else {
-	save_dst = true;
+	save_dst = false;
 	document.querySelector("#checkbox_save_dst").checked = save_dst;
 }
 
@@ -1066,17 +1066,22 @@ function release_local_file() {
 var MPEGTS_URL = 'https://cdn.jsdelivr.net/npm/mpegts.js@1.8.2/dist/mpegts.js';
 var local_mpegts_player = null;
 var local_mpegts_video_error = null;    // the <video> "error" listener of the current mpegts.js player
+var server_ts_video_error = null;       // the <video> "error" listener of the last play_server_ts()
 
+// Stops the mpegts.js player (if any) and forgets the error listeners of the previous .ts playback, so that
+// listeners of old files never pop up later for an unrelated video.
 function destroy_local_mpegts() {
-	if (!local_mpegts_player) return;
 	var video = document.querySelector('#my_video');
+	if (video && server_ts_video_error) video.removeEventListener('error', server_ts_video_error);
+	server_ts_video_error = null;
+	if (!local_mpegts_player) return;
 	if (video && local_mpegts_video_error) video.removeEventListener('error', local_mpegts_video_error);
 	local_mpegts_video_error = null;
 	try { local_mpegts_player.destroy(); } catch (e) { console.warn('mpegts destroy:', e); }
 	local_mpegts_player = null;
 }
 
-function play_local_ts_in_browser(file, video) {
+function play_local_ts_in_browser(file, video, on_failure) {
 	return load_script_once(MPEGTS_URL).then(function() {
 		if (!window.mpegts || !mpegts.isSupported()) throw new Error('browser ini tidak mendukung pemutaran MPEG-TS (MSE)');
 		console.log('play_local_ts_in_browser():', file.name);
@@ -1087,11 +1092,12 @@ function play_local_ts_in_browser(file, video) {
 		video.style.width = '100%';
 		video.style.height = '100%';
 
+		var failed = false;
 		var explain = function(reason) {
-			console.error('play_local_ts_in_browser:', reason, '| MediaError =', video.error);
-			alert('File .ts ini tidak bisa diputar oleh browser:\n' + file.name + '\n\n' + reason +
-				'\n\nKemungkinan codec-nya bukan H.264/AAC. Salin file ke folder yang disajikan server (mis. videos/), ' +
-				'maka server akan mengonversinya.');
+			if (failed) return;
+			failed = true;
+			console.warn('play_local_ts_in_browser: mpegts.js cannot play', file.name, '|', reason, '| MediaError =', video.error);
+			setTimeout(function() { destroy_local_mpegts(); on_failure(reason); }, 0);
 		};
 		local_mpegts_player = mpegts.createPlayer({ type: 'mpegts', isLive: false, url: local_file_object_url });
 		local_mpegts_player.on(mpegts.Events.ERROR, function(type, detail, info) {
@@ -1109,9 +1115,31 @@ function play_local_ts_in_browser(file, video) {
 	});
 }
 
+// Last resort for a .ts file outside the served folder that the browser cannot play (e.g. AC3 audio, extra data
+// streams): copy it to the server (localhost only, see /upload_media) and let ffmpeg convert it, like any other .ts.
+function upload_and_play_ts(file) {
+	var query = 'name=' + encodeURIComponent(file.name) + '&size=' + file.size;
+	var old_value = url_box.value;
+	url_box.value = 'Mengirim ' + file.name + ' ke server...';
+	return fetch('/upload_media?' + query)
+		.then(function(r) { return r.ok ? r.json() : { ok: false }; })
+		.catch(function() { return { ok: false }; })
+		.then(function(info) {
+			if (info.ok) return info;       // this exact file was sent before
+			return fetch('/upload_media?' + query, { method: 'POST', headers: { 'X-Upload': '1' }, body: file })
+				.then(function(r) { return r.json().catch(function() { return { ok: false, error: 'HTTP ' + r.status }; }); });
+		})
+		.then(function(info) {
+			if (!info.ok) throw new Error(info.error || 'pengiriman file ke server gagal');
+			url_box.value = info.path;
+			play_server_ts(info.path, file.name);
+		})
+		.catch(function(err) { url_box.value = old_value; throw err; });
+}
+
 // Plays a .ts file that lives in the folder served by webserver.py (server_path e.g. "/videos/a.ts").
 // /stream_ts converts it to MP4 on the fly, so the browser plays it instead of downloading it.
-function play_server_ts(server_path) {
+function play_server_ts(server_path, display_name) {
 	var ts_url = '/stream_ts?file=' + encodeURIComponent(server_path);
 	console.log('play_server_ts():', ts_url);
 	destroy_local_mpegts();
@@ -1126,10 +1154,11 @@ function play_server_ts(server_path) {
 	video.style.width = '100%';
 	video.style.height = '100%';
 
-	video.addEventListener('error', function() {
+	server_ts_video_error = function() {
 		console.error('play_server_ts: cannot play', server_path, '| MediaError =', video.error);
-		alert('Browser tidak bisa memutar file ini:\n' + server_path + '\n\nLihat console server untuk pesan dari ffmpeg.');
-	}, { once: true });
+		alert('Browser tidak bisa memutar file ini:\n' + (display_name || server_path) + '\n\nLihat console server untuk pesan dari ffmpeg.');
+	};
+	video.addEventListener('error', server_ts_video_error, { once: true });
 
 	if (source) { source.src = ts_url; source.removeAttribute('type'); }
 	video.src = ts_url;     // maintain_video_size() only resizes a video whose own src attribute is set
@@ -1172,7 +1201,8 @@ function open_local_file(file) {
 	//  1. the file is inside the folder served by webserver.py: the server remuxes it to MP4 (/stream_ts) and also
 	//     converts codecs the browser cannot play. A File object has no real path, so the server is asked where a
 	//     file with this name and size lives (it does not have to be /videos/).
-	//  2. otherwise: mpegts.js demuxes the file inside the browser (H.264/AAC only).
+	//  2. otherwise: mpegts.js demuxes the file inside the browser (H.264/AAC only); if that fails too,
+	//     the file is copied to the server (localhost only) and handled like case 1.
 	if (file.name.toLowerCase().endsWith('.ts')) {
 		console.log('open_local_file: .ts file, looking it up on the server...');
 		fetch('/find_media?name=' + encodeURIComponent(file.name) + '&size=' + file.size)
@@ -1187,7 +1217,14 @@ function open_local_file(file) {
 				}
 				console.log('open_local_file: not in the served folder, playing it in the browser with mpegts.js');
 				url_box.value = file.name;
-				return play_local_ts_in_browser(file, video);
+				return play_local_ts_in_browser(file, video, function(reason) {
+					console.log('open_local_file: the browser cannot play it, sending the file to the server instead');
+					upload_and_play_ts(file).catch(function(err) {
+						console.error('open_local_file (.ts):', err);
+						alert('Tidak bisa memutar file .ts ini:\n' + file.name +
+							'\n\nBrowser: ' + reason + '\nServer: ' + err.message);
+					});
+				});
 			})
 			.catch(function(err) {
 				console.error('open_local_file (.ts):', err);
@@ -1792,25 +1829,13 @@ function updateSubtitleText() {
 	console.log('dst_font_color = ', dst_font_color);
 	document.querySelector("#label_dst_font_color").textContent = document.querySelector("#slider_dst_font_color").value;
 
-	if (document.querySelector("#input_dst_container_width_factor")) {
-		dst_container_width_factor = document.querySelector("#input_dst_container_width_factor").value;
-		dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
-	}
-	else {
-		dst_container_width_factor = 0.8;
-	}
-	
+	dst_container_width_factor = document.querySelector("#input_dst_container_width_factor").value;
+	dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
 	console.log('dst_container_width_factor = ', dst_container_width_factor);
 
-	if (document.querySelector("#input_dst_container_height_factor")) {
-		dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
-		dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
-	}
-	else {
-		dst_container_height_factor = 0.15;
-	}
+	dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
+	dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
 	console.log('dst_container_height_factor = ', dst_container_height_factor);
-
 	document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
 
 
@@ -2369,9 +2394,13 @@ function create_modal_text_area() {
 
 
 	document.querySelector("#src_textarea").style.width = '100%';
+	document.querySelector("#src_textarea").style.maxWidth = 'none';
+	document.querySelector("#src_textarea").style.boxSizing = 'border-box';
+	document.querySelector("#src_textarea").style.margin = '0';
 	document.querySelector("#src_textarea").style.height = '100%';
+	document.querySelector("#src_textarea").style.maxHeight = 'none';
 	document.querySelector("#src_textarea").style.border = 'none';
-	document.querySelector("#src_textarea").style.display = 'inline-block';
+	document.querySelector("#src_textarea").style.display = 'block';
 	document.querySelector("#src_textarea").style.overflow = 'hidden';
 	document.querySelector("#src_textarea").style.allow = "fullscreen";
 	//document.querySelector("#src_textarea").style.zIndex = 2147483647;
@@ -2384,8 +2413,15 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").offsetParent.onresize = (function(){
 
 		document.querySelector("#src_textarea").style.position = 'absolute';
+		document.querySelector("#src_textarea").style.top = '0';
+		document.querySelector("#src_textarea").style.left = '0';
+		document.querySelector("#src_textarea").style.boxSizing = 'border-box';
 		document.querySelector("#src_textarea").style.width = '100%';
+		document.querySelector("#src_textarea").style.maxWidth = 'none';
+		document.querySelector("#src_textarea").style.boxSizing = 'border-box';
+		document.querySelector("#src_textarea").style.margin = '0';
 		document.querySelector("#src_textarea").style.height = '100%';
+		document.querySelector("#src_textarea").style.maxHeight = 'none';
 
 		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_src").checked = false;
@@ -2393,25 +2429,25 @@ function create_modal_text_area() {
 
 		video_info = get_video_player_info();
 		if (video_info) {
-			src_container_width_factor = getRect(document.querySelector("#src_textarea")).width/video_info.width;
+			src_container_width_factor = getRect(document.querySelector("#src_textarea_container")).width/video_info.width;
 			src_container_width_factor = parseFloat(src_container_width_factor).toFixed(3);
 			//console.log('src_container_width_factor = ', src_container_width_factor);
 			document.querySelector("#input_src_container_width_factor").value = src_container_width_factor;
 			localStorage.setItem("src_container_width_factor", src_container_width_factor);
 
-			src_container_height_factor = getRect(document.querySelector("#src_textarea")).height/video_info.height;
+			src_container_height_factor = getRect(document.querySelector("#src_textarea_container")).height/video_info.height;
 			src_container_height_factor = parseFloat(src_container_height_factor).toFixed(3);
 			//console.log('src_container_height_factor = ', src_container_height_factor);
 			document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
 			localStorage.setItem("src_container_height_factor", src_container_height_factor);
 		} else {
-			src_container_width_factor = getRect(document.querySelector("#src_textarea")).width/window.innerWidth;
+			src_container_width_factor = getRect(document.querySelector("#src_textarea_container")).width/window.innerWidth;
 			src_container_width_factor = parseFloat(src_container_width_factor).toFixed(3);
 			//console.log('src_container_width_factor = ', src_container_width_factor);
 			document.querySelector("#input_src_container_width_factor").value = src_container_width_factor;
 			localStorage.setItem("src_container_width_factor", src_container_width_factor);
 
-			src_container_height_factor = getRect(document.querySelector("#src_textarea")).height/window.innerHeight;
+			src_container_height_factor = getRect(document.querySelector("#src_textarea_container")).height/window.innerHeight;
 			src_container_height_factor = parseFloat(src_container_height_factor).toFixed(3);
 			//console.log('src_container_height_factor = ', src_container_height_factor);
 			document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
@@ -2422,6 +2458,9 @@ function create_modal_text_area() {
 	document.querySelector("#src_textarea").offsetParent.ondrag = (function(){
 
 		document.querySelector("#src_textarea").style.position = 'absolute';
+		document.querySelector("#src_textarea").style.top = '0';
+		document.querySelector("#src_textarea").style.left = '0';
+		document.querySelector("#src_textarea").style.boxSizing = 'border-box';
 
 		if (getRect(document.querySelector("#src_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#src_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_src").checked = false;
@@ -2498,9 +2537,13 @@ function create_modal_text_area() {
 	};
 
 	document.querySelector("#dst_textarea").style.width = '100%';
+	document.querySelector("#dst_textarea").style.maxWidth = 'none';
+	document.querySelector("#dst_textarea").style.boxSizing = 'border-box';
+	document.querySelector("#dst_textarea").style.margin = '0';
 	document.querySelector("#dst_textarea").style.height = '100%';
+	document.querySelector("#dst_textarea").style.maxHeight = 'none';
 	document.querySelector("#dst_textarea").style.border = 'none';
-	document.querySelector("#dst_textarea").style.display = 'inline-block';
+	document.querySelector("#dst_textarea").style.display = 'block';
 	document.querySelector("#dst_textarea").style.overflow = 'hidden';
 	document.querySelector("#dst_textarea").style.allow = "fullscreen";
 	document.querySelector("#dst_textarea").style.zIndex = 2147483647;
@@ -2513,8 +2556,15 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").offsetParent.onresize = (function(){
 
 		document.querySelector("#dst_textarea").style.position = 'absolute';
+		document.querySelector("#dst_textarea").style.top = '0';
+		document.querySelector("#dst_textarea").style.left = '0';
+		document.querySelector("#dst_textarea").style.boxSizing = 'border-box';
 		document.querySelector("#dst_textarea").style.width = '100%';
+		document.querySelector("#dst_textarea").style.maxWidth = 'none';
+		document.querySelector("#dst_textarea").style.boxSizing = 'border-box';
+		document.querySelector("#dst_textarea").style.margin = '0';
 		document.querySelector("#dst_textarea").style.height = '100%';
+		document.querySelector("#dst_textarea").style.maxHeight = 'none';
 
 		if (getRect(document.querySelector("#dst_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#dst_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_dst").checked = false;
@@ -2522,25 +2572,25 @@ function create_modal_text_area() {
 
 		video_info = get_video_player_info();
 		if (video_info) {
-			dst_container_width_factor = getRect(document.querySelector("#dst_textarea")).width/video_info.width;
+			dst_container_width_factor = getRect(document.querySelector("#dst_textarea_container")).width/video_info.width;
 			dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
 			//console.log('dst_container_width_factor = ', dst_container_width_factor);
 			document.querySelector("#input_dst_container_width_factor").value = dst_container_width_factor;
 			localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
 
-			dst_container_height_factor = getRect(document.querySelector("#dst_textarea")).height/video_info.height;
+			dst_container_height_factor = getRect(document.querySelector("#dst_textarea_container")).height/video_info.height;
 			dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
 			//console.log('dst_container_height_factor = ', dst_container_height_factor);
 			document.querySelector("#input_dst_container_height_factor").value = dst_container_height_factor;
 			localStorage.setItem("dst_container_height_factor", dst_container_height_factor);
 		} else {
-			dst_container_width_factor = getRect(document.querySelector("#dst_textarea")).width/window.innerWidth;
+			dst_container_width_factor = getRect(document.querySelector("#dst_textarea_container")).width/window.innerWidth;
 			dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
 			//console.log('dst_container_width_factor = ', dst_container_width_factor);
 			document.querySelector("#input_dst_container_width_factor").value = dst_container_width_factor;
 			localStorage.setItem("dst_container_width_factor", dst_container_width_factor);
 
-			dst_container_height_factor = getRect(document.querySelector("#dst_textarea")).height/window.innerHeight;
+			dst_container_height_factor = getRect(document.querySelector("#dst_textarea_container")).height/window.innerHeight;
 			dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
 			//console.log('dst_container_height_factor = ', dst_container_height_factor);
 			document.querySelector("#input_dst_container_height_factor").value = dst_container_height_factor;
@@ -2551,6 +2601,9 @@ function create_modal_text_area() {
 	document.querySelector("#dst_textarea").offsetParent.ondrag = (function(){
 
 		document.querySelector("#dst_textarea").style.position = 'absolute';
+		document.querySelector("#dst_textarea").style.top = '0';
+		document.querySelector("#dst_textarea").style.left = '0';
+		document.querySelector("#dst_textarea").style.boxSizing = 'border-box';
 
 		if (getRect(document.querySelector("#dst_textarea_container")).left != video_info.left + 0.5*(video_info.width-getRect(document.querySelector("#dst_textarea_container")).width)) {
 			document.querySelector("#checkbox_centerize_dst").checked = false;
@@ -3544,9 +3597,13 @@ function regenerate_textarea() {
 				//document.querySelector("#src_textarea").style.top = String(src_top) + 'px'; // DON'T USE THIS!!!
 				//document.querySelector("#src_textarea").style.left = String(src_left) + 'px'; // DON'T USE THIS!!!
 				document.querySelector("#src_textarea").style.width = '100%';
+				document.querySelector("#src_textarea").style.maxWidth = 'none';
+				document.querySelector("#src_textarea").style.boxSizing = 'border-box';
+				document.querySelector("#src_textarea").style.margin = '0';
 				document.querySelector("#src_textarea").style.height = '100%';
+				document.querySelector("#src_textarea").style.maxHeight = 'none';
 				document.querySelector("#src_textarea").style.border = 'none';
-				document.querySelector("#src_textarea").style.display = 'inline-block';
+				document.querySelector("#src_textarea").style.display = 'block';
 				document.querySelector("#src_textarea").style.overflow = 'hidden';
 
 				document.querySelector("#src_textarea").style.fontFamily = src_selected_font + ", sans-serif";
@@ -3596,9 +3653,13 @@ function regenerate_textarea() {
 				//document.querySelector("#dst_textarea").style.top = String(dst_top) + 'px'; // DON'T USE THIS!!!
 				//document.querySelector("#dst_textarea").style.left = String(dst_left) + 'px'; // DON'T USE THIS!!!
 				document.querySelector("#dst_textarea").style.width = '100%';
+				document.querySelector("#dst_textarea").style.maxWidth = 'none';
+				document.querySelector("#dst_textarea").style.boxSizing = 'border-box';
+				document.querySelector("#dst_textarea").style.margin = '0';
 				document.querySelector("#dst_textarea").style.height = '100%';
+				document.querySelector("#dst_textarea").style.maxHeight = 'none';
 				document.querySelector("#dst_textarea").style.border = 'none';
-				document.querySelector("#dst_textarea").style.display = 'inline-block';
+				document.querySelector("#dst_textarea").style.display = 'block';
 				document.querySelector("#dst_textarea").style.overflow = 'hidden';
 
 				document.querySelector("#dst_textarea").style.fontFamily = dst_selected_font + ", sans-serif";

@@ -1051,6 +1051,7 @@ function setup_open_local_button() {
 }
 
 function release_local_file() {
+	destroy_local_mpegts();
 	if (!local_file_object_url) return;
 	var video = document.querySelector('#my_video');
 	// A video.src attribute wins over <source>, so it must be cleared before other sources are embedded
@@ -1059,11 +1060,92 @@ function release_local_file() {
 	local_file_object_url = null;
 }
 
+// A .ts file that is NOT inside the folder served by webserver.py cannot be remuxed by the server (the browser
+// never tells the server where a file is), so it is demuxed in the browser itself with mpegts.js (MSE).
+// This only works for H.264/H.265 video with AAC/MP3 audio, which is what most .ts recordings contain.
+var MPEGTS_URL = 'https://cdn.jsdelivr.net/npm/mpegts.js@1.8.2/dist/mpegts.js';
+var local_mpegts_player = null;
+var local_mpegts_video_error = null;    // the <video> "error" listener of the current mpegts.js player
+
+function destroy_local_mpegts() {
+	if (!local_mpegts_player) return;
+	var video = document.querySelector('#my_video');
+	if (video && local_mpegts_video_error) video.removeEventListener('error', local_mpegts_video_error);
+	local_mpegts_video_error = null;
+	try { local_mpegts_player.destroy(); } catch (e) { console.warn('mpegts destroy:', e); }
+	local_mpegts_player = null;
+}
+
+function play_local_ts_in_browser(file, video) {
+	return load_script_once(MPEGTS_URL).then(function() {
+		if (!window.mpegts || !mpegts.isSupported()) throw new Error('browser ini tidak mendukung pemutaran MPEG-TS (MSE)');
+		console.log('play_local_ts_in_browser():', file.name);
+
+		destroy_local_mpegts();
+		local_file_object_url = URL.createObjectURL(file);
+		video.style.display = 'block';
+		video.style.width = '100%';
+		video.style.height = '100%';
+
+		var explain = function(reason) {
+			console.error('play_local_ts_in_browser:', reason, '| MediaError =', video.error);
+			alert('File .ts ini tidak bisa diputar oleh browser:\n' + file.name + '\n\n' + reason +
+				'\n\nKemungkinan codec-nya bukan H.264/AAC. Salin file ke folder yang disajikan server (mis. videos/), ' +
+				'maka server akan mengonversinya.');
+		};
+		local_mpegts_player = mpegts.createPlayer({ type: 'mpegts', isLive: false, url: local_file_object_url });
+		local_mpegts_player.on(mpegts.Events.ERROR, function(type, detail, info) {
+			explain(type + ' / ' + detail + (info && info.msg ? ' / ' + info.msg : ''));
+		});
+		// codecs that MSE refuses show up only as an error of the <video> element itself
+		local_mpegts_video_error = function() { explain('MediaError code ' + (video.error && video.error.code)); };
+		video.addEventListener('error', local_mpegts_video_error, { once: true });
+		local_mpegts_player.attachMediaElement(video);     // sets video.src, so maintain_video_size() works too
+		local_mpegts_player.load();
+		var p = local_mpegts_player.play();
+		if (p && p.catch) p.catch(function(e) { console.log('play_local_ts_in_browser: play() was not started:', e); });
+
+		maintain_video_size();
+	});
+}
+
+// Plays a .ts file that lives in the folder served by webserver.py (server_path e.g. "/videos/a.ts").
+// /stream_ts converts it to MP4 on the fly, so the browser plays it instead of downloading it.
+function play_server_ts(server_path) {
+	var ts_url = '/stream_ts?file=' + encodeURIComponent(server_path);
+	console.log('play_server_ts():', ts_url);
+	destroy_local_mpegts();
+
+	var iframe = document.querySelector('#my_iframe');
+	if (iframe && iframe.parentElement) iframe.parentElement.removeChild(iframe);
+
+	var video = (typeof ensure_video_element === 'function') ? ensure_video_element() : document.querySelector('#my_video');
+	var source = document.querySelector('#video_source');
+	video.pause();
+	video.style.display = 'block';
+	video.style.width = '100%';
+	video.style.height = '100%';
+
+	video.addEventListener('error', function() {
+		console.error('play_server_ts: cannot play', server_path, '| MediaError =', video.error);
+		alert('Browser tidak bisa memutar file ini:\n' + server_path + '\n\nLihat console server untuk pesan dari ffmpeg.');
+	}, { once: true });
+
+	if (source) { source.src = ts_url; source.removeAttribute('type'); }
+	video.src = ts_url;     // maintain_video_size() only resizes a video whose own src attribute is set
+	video.load();
+	var p = video.play();
+	if (p && p.catch) p.catch(function(e) { console.log('play_server_ts: play() was not started:', e); });
+
+	maintain_video_size();
+}
+
+
 function open_local_file(file) {
 	console.log('open_local_file():', file.path, file.name, '| type =', file.type, '| size =', file.size);
 	if (typeof stop_backend_player === 'function') stop_backend_player();
 
-	// Remove the YouTube/CNN iframe, if any
+	// Hapus iframe YouTube/CNN jika ada
 	var iframe = document.querySelector('#my_iframe');
 	if (iframe && iframe.parentElement) iframe.parentElement.removeChild(iframe);
 
@@ -1085,6 +1167,36 @@ function open_local_file(file) {
 
 	release_local_file();
 	video.pause();
+
+	// .ts: browsers cannot play MPEG-TS by themselves. Two ways:
+	//  1. the file is inside the folder served by webserver.py: the server remuxes it to MP4 (/stream_ts) and also
+	//     converts codecs the browser cannot play. A File object has no real path, so the server is asked where a
+	//     file with this name and size lives (it does not have to be /videos/).
+	//  2. otherwise: mpegts.js demuxes the file inside the browser (H.264/AAC only).
+	if (file.name.toLowerCase().endsWith('.ts')) {
+		console.log('open_local_file: .ts file, looking it up on the server...');
+		fetch('/find_media?name=' + encodeURIComponent(file.name) + '&size=' + file.size)
+			.then(function(r) { return r.json(); })
+			.catch(function() { return { ok: false }; })
+			.then(function(info) {
+				if (info.ok) {
+					console.log('open_local_file: found on the server =', info.path, '| same size =', info.exact);
+					url_box.value = info.path;      // so the Embed button can play it again
+					play_server_ts(info.path);
+					return;
+				}
+				console.log('open_local_file: not in the served folder, playing it in the browser with mpegts.js');
+				url_box.value = file.name;
+				return play_local_ts_in_browser(file, video);
+			})
+			.catch(function(err) {
+				console.error('open_local_file (.ts):', err);
+				alert('Tidak bisa memutar file .ts ini:\n' + file.name + '\n\n' + err.message);
+			});
+		return;     // the blob: code below is only for formats the browser can play by itself
+	}
+
+	// --- OPERASI NORMAL UNTUK FORMAT STANDAR (MP4, WEBM) ---
 	local_file_object_url = URL.createObjectURL(file);
 
 	var on_ok = function() {
@@ -1093,8 +1205,8 @@ function open_local_file(file) {
 	var on_error = function() {
 		video.removeEventListener('loadeddata', on_ok);
 		video.removeEventListener('error', on_error);
-		console.error('open_local_file: cannot play', file.name, '| MediaError =', video.error);
-		alert('Browser tidak bisa memutar file ini (format atau codec tidak didukung):\n' + file.name);
+		console.error('open_local_file: tidak dapat memutar berkas', file.name, '| MediaError =', video.error);
+		alert('Browser tidak mendukung jenis berkas atau codec ini:\n' + file.name);
 	};
 	video.addEventListener('loadeddata', on_ok, { once: true });
 	video.addEventListener('error', on_error, { once: true });
@@ -1104,7 +1216,7 @@ function open_local_file(file) {
 	video.style.height = '100%';
 
 	source.src = local_file_object_url;
-	video.src = local_file_object_url; // keeps video.src non-empty, which maintain_video_size() checks
+	video.src = local_file_object_url; 
 	url_box.value = file.name;
 	video.load();
 	var p = video.play();
@@ -1680,13 +1792,25 @@ function updateSubtitleText() {
 	console.log('dst_font_color = ', dst_font_color);
 	document.querySelector("#label_dst_font_color").textContent = document.querySelector("#slider_dst_font_color").value;
 
-	dst_container_width_factor = document.querySelector("#input_dst_container_width_factor").value;
-	dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
+	if (document.querySelector("#input_dst_container_width_factor")) {
+		dst_container_width_factor = document.querySelector("#input_dst_container_width_factor").value;
+		dst_container_width_factor = parseFloat(dst_container_width_factor).toFixed(3);
+	}
+	else {
+		dst_container_width_factor = 0.8;
+	}
+	
 	console.log('dst_container_width_factor = ', dst_container_width_factor);
 
-	dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
-	dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
+	if (document.querySelector("#input_dst_container_height_factor")) {
+		dst_container_height_factor = document.querySelector("#input_dst_container_height_factor").value;
+		dst_container_height_factor = parseFloat(dst_container_height_factor).toFixed(3);
+	}
+	else {
+		dst_container_height_factor = 0.15;
+	}
 	console.log('dst_container_height_factor = ', dst_container_height_factor);
+
 	document.querySelector("#input_src_container_height_factor").value = src_container_height_factor;
 
 
@@ -2080,7 +2204,7 @@ function embed_bak(){
 function embed(){
 	console.log('embed()');
 	if (typeof stop_backend_player === 'function') stop_backend_player();
-	release_local_file();
+	destroy_local_mpegts();
 
 	var url = url_box.value.trim();
 	var original_url = url;
@@ -2098,15 +2222,23 @@ function embed(){
 	var is_mp4  = lower.includes('.mp4');
 	var is_flv  = lower.includes('.flv');
 	var is_m3u8 = lower.includes('.m3u8');
-	var is_cnn  = url.includes('www.cnnindonesia.com');
+	// .ts on the server (e.g. /videos/a.ts). Not for http(s):// URLs, and not for anything that merely contains ".ts"
+	var is_ts   = /\.ts([?#].*)?$/.test(lower) && !/^[a-z][a-z0-9+.-]*:\/\//.test(lower);
+	var is_cnn  = url.includes('://cnnindonesia.com');
 
 	console.log('embed: url =', JSON.stringify(url), '| youtube =', is_youtube,
-		'| mp4/flv/m3u8/cnn =', is_mp4, is_flv, is_m3u8, is_cnn, '| backend prefix =', !!m);
+		'| mp4/flv/m3u8/ts/cnn =', is_mp4, is_flv, is_m3u8, is_ts, is_cnn, '| backend prefix =', !!m);
 
 	if (!url) { console.warn('URL kosong'); return; }
 
-	// Other sites, or forced by using the prefixes dl:/ytdlp:/streamlink:
-	if (m || (!is_youtube && !is_mp4 && !is_flv && !is_m3u8 && !is_cnn)) {
+	// .ts from the server folder: play through the live remuxer so the browser does not download it
+	if (is_ts) {
+		play_server_ts(url);
+		return;
+	}
+
+	// Sisa penanganan untuk situs lain (YouTube, MP4, FLV, M3U8, CNN) tetap sama...
+	if (m || (!is_youtube && !is_mp4 && !is_flv && !is_m3u8 && !is_ts && !is_cnn)) {
 		embed_via_backend(url, engine);
 		return;
 	}
@@ -2127,7 +2259,6 @@ function embed(){
 		iframe.referrerPolicy = "strict-origin-when-cross-origin";
 
 		var ytID = getYoutubePlayerID(url);
-		console.log('ytID =', ytID);
 		iframe.style.display = "block";
 		iframe.style.width = "100%";
 		iframe.style.height = "100%";
@@ -2147,7 +2278,7 @@ function embed(){
 			video.load();
 			video.play();
 		} else if (is_flv) {
-			loadScript('https://cdn.jsdelivr.net/npm/flv.js@latest', function() {
+			loadScript('https://jsdelivr.net', function() {
 				if (flvjs.isSupported()) {
 					var flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
 					flvPlayer.attachMediaElement(video);
@@ -2156,7 +2287,6 @@ function embed(){
 				}
 			});
 		} else {
-			// m3u8 handled directly via the backend (hls.js + proxy) — more reliable than the old video.js code
 			embed_via_backend(url, 'auto');
 			return;
 		}
@@ -2169,6 +2299,7 @@ function embed(){
 		iframe.style.height = "603px";
 		iframe.src = url;
 	}
+
 	maintain_video_size();
 }
 

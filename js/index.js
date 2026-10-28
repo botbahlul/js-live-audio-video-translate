@@ -1083,7 +1083,7 @@ function destroy_local_mpegts() {
 
 function play_local_ts_in_browser(file, video, on_failure) {
 	return load_script_once(MPEGTS_URL).then(function() {
-		if (!window.mpegts || !mpegts.isSupported()) throw new Error('browser ini tidak mendukung pemutaran MPEG-TS (MSE)');
+		if (!window.mpegts || !mpegts.isSupported()) throw new Error('This browser does not support MPEG-TS (MSE) playback.');
 		console.log('play_local_ts_in_browser():', file.name);
 
 		destroy_local_mpegts();
@@ -1130,7 +1130,7 @@ function upload_and_play_ts(file) {
 				.then(function(r) { return r.json().catch(function() { return { ok: false, error: 'HTTP ' + r.status }; }); });
 		})
 		.then(function(info) {
-			if (!info.ok) throw new Error(info.error || 'pengiriman file ke server gagal');
+			if (!info.ok) throw new Error(info.error || 'File transfer to the server failed');
 			url_box.value = info.path;
 			play_server_ts(info.path, file.name);
 		})
@@ -1156,7 +1156,7 @@ function play_server_ts(server_path, display_name) {
 
 	server_ts_video_error = function() {
 		console.error('play_server_ts: cannot play', server_path, '| MediaError =', video.error);
-		alert('Browser tidak bisa memutar file ini:\n' + (display_name || server_path) + '\n\nLihat console server untuk pesan dari ffmpeg.');
+		alert('This browser cannot play this file:\n' + (display_name || server_path) + '\n\nCheck the server console for messages from ffmpeg.');
 	};
 	video.addEventListener('error', server_ts_video_error, { once: true });
 
@@ -1174,7 +1174,7 @@ function open_local_file(file) {
 	console.log('open_local_file():', file.path, file.name, '| type =', file.type, '| size =', file.size);
 	if (typeof stop_backend_player === 'function') stop_backend_player();
 
-	// Hapus iframe YouTube/CNN jika ada
+	// Remove YouTube/CNN iframe if present
 	var iframe = document.querySelector('#my_iframe');
 	if (iframe && iframe.parentElement) iframe.parentElement.removeChild(iframe);
 
@@ -1233,7 +1233,7 @@ function open_local_file(file) {
 		return;     // the blob: code below is only for formats the browser can play by itself
 	}
 
-	// --- OPERASI NORMAL UNTUK FORMAT STANDAR (MP4, WEBM) ---
+	// --- NORMAL OPERATION FOR STANDARD FORMATS (MP4, WEBM) ---
 	local_file_object_url = URL.createObjectURL(file);
 
 	var on_ok = function() {
@@ -1242,8 +1242,8 @@ function open_local_file(file) {
 	var on_error = function() {
 		video.removeEventListener('loadeddata', on_ok);
 		video.removeEventListener('error', on_error);
-		console.error('open_local_file: tidak dapat memutar berkas', file.name, '| MediaError =', video.error);
-		alert('Browser tidak mendukung jenis berkas atau codec ini:\n' + file.name);
+		console.error('open_local_file: cannot play file', file.name, '| MediaError =', video.error);
+		alert('Browser does not support this file type or codec:\n' + file.name);
 	};
 	video.addEventListener('loadeddata', on_ok, { once: true });
 	video.addEventListener('error', on_error, { once: true });
@@ -1546,70 +1546,7 @@ if (!(('webkitSpeechRecognition'||'SpeechRecognition') in window)) {
 
 				//var  t = unique_text; // CAN'T BE USED BECAUSE GOOGLE TRANSLATE SERVER WILL RESPOND WITH 400 AFTER SOME REQUESTS
 				var t = transcript_to_translate;
-				/*if ((Date.now() - translate_time > 1000) && recognizing) {
-					if (t) {
-						//var tt = translate1(t, src, dst).then(result => {
-						var tt = translate2(t, src, dst).then(result => {
-							if (document.querySelector("#dst_textarea_container")) document.querySelector("#dst_textarea_container").style.display = 'block';
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").style.display = 'inline-block';
-
-							result = formatTranscript(result);
-
-							if (result.match(/(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{4})-(\d{2})-(\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm) 
-									|| result.match(/(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3} *--> *(\d{2})-(\d{2})-(\d{4}) \d{2}:\d{2}:\d{2}\.\d{3}\s*: .*[\.\。]\n/gm)) {
-								var buffer = getTimestampedLines(result);
-								//console.log('getTimestampedLines(result) =', getTimestampedLines(result));
-								buffer = arrayRemoveDuplicates(buffer);
-								//console.log('arrayRemoveDuplicates(buffer) =', arrayRemoveDuplicates(buffer));
-								//console.log('buffer[0] =', buffer[0]);
-								array_all_translated_final_transcripts.push(buffer[0]);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-							}
-
-							if (array_all_translated_final_transcripts.length > 0) {
-								array_all_translated_final_transcripts = arrayRemoveDuplicates(array_all_translated_final_transcripts);
-								//console.log('array_all_translated_final_transcripts =', array_all_translated_final_transcripts);
-								displayed_translation = array_all_translated_final_transcripts.join('\n') + result;
-								//console.log('displayed_translation =', displayed_translation);
-								displayed_translation = formatTranscript(displayed_translation);
-								//console.log('formatTranscript(displayed_translation) =', formatTranscript(displayed_translation));
-								displayed_translation = removeDuplicateTimestamps(displayed_translation);
-								//console.log('removeDuplicateTimestamps(displayed_translation) =', removeDuplicateTimestamps(displayed_translation));
-								var lines = displayed_translation.trim().split('\n');
-								var unique_lines = [...new Set(lines)];
-								var unique_text = unique_lines.join('\n');
-								// Remove duplicate of translated last_final_transcript to get interim_translation only
-								var interim_translation = result.replace(/^\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3} *--> *\d{2,4}-\d{2}-\d{2,4} \d{2}:\d{2}:\d{2}\.\d{3}\s*[:：] .*[\.\。]\n/gm, '');
-
-								if (!transcript_is_final) {
-									displayed_translation = unique_text + '\n' + interim_translation;
-									//console.log('!transcript_is_final: displayed_translation =', displayed_translation);
-								} else {
-									displayed_translation = unique_text;
-									//console.log('transcript_is_final: displayed_translation =', displayed_translation);
-								}
-							} else {
-								displayed_translation = result;
-								//console.log('array_all_translated_final_transcripts.length <= 0: displayed_translation =', displayed_translation);
-							}
-
-							if (show_timestamp_dst) {
-								//console.log('displayed_translation =', displayed_translation);
-								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = displayed_translation;
-							} else {
-								if (displayed_translation && document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").value = removeTimestamps(displayed_translation);
-							}
-							if (document.querySelector("#dst_textarea")) document.querySelector("#dst_textarea").scrollTop=document.querySelector("#dst_textarea").scrollHeight;
-
-						}).catch(error => {
-							console.log('error =', error);
-						});
-						translate_time = Date.now();
-					}
-				};*/
-
+	
 				if ((Date.now() - translate_time > 1000) && recognizing) {
 					if (t) {
 
@@ -2262,7 +2199,7 @@ function embed(){
 		return;
 	}
 
-	// Sisa penanganan untuk situs lain (YouTube, MP4, FLV, M3U8, CNN) tetap sama...
+	// The remaining handling for other sites (YouTube, MP4, FLV, M3U8, CNN) remains the same...
 	if (m || (!is_youtube && !is_mp4 && !is_flv && !is_m3u8 && !is_ts && !is_cnn)) {
 		embed_via_backend(url, engine);
 		return;

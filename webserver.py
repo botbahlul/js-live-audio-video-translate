@@ -8,6 +8,7 @@ import shutil
 import hashlib
 import threading
 import subprocess
+import html
 import importlib.util
 import urllib.parse
 import urllib.request
@@ -40,6 +41,10 @@ DIRECT_MEDIA_RE = re.compile(r'\.(m3u8|mp4|m4v|webm)$', re.I)
 URI_ATTR_RE = re.compile(r'URI="([^"]+)"')
 
 EXTRA_YTDLP_ARGS = []      # populated from --cookies-from-browser
+
+# "Open Local Files" sends a .ts that the browser cannot play itself to the server, which keeps the
+# one most recent file here (inside the served folder, hidden from listings) and remuxes it with ffmpeg.
+LOCAL_CACHE_DIR = '.local_cache'
 
 PROXY_TARGETS = OrderedDict()   # id -> (url, headers)
 PROXY_LOCK = threading.Lock()
@@ -292,6 +297,39 @@ def stop_live_sessions():
         _kill_session(s)
 
 
+# ---------------------------------------------------------------------------
+# .ts playback: browsers cannot play MPEG-TS, so /stream_ts remuxes it to fragmented MP4 on the fly.
+# H.264 video and AAC audio are only copied (fast, no quality loss); anything else
+# (e.g. MPEG-2 video or MP2/AC3 audio from DVB recordings) is converted to H.264 / AAC,
+# because the browser cannot play those inside MP4 either.
+# ---------------------------------------------------------------------------
+def probe_codecs(path):
+    try:
+        p = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,codec_name',
+                            '-of', 'json', path],
+                           capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+        streams = json.loads(p.stdout).get('streams', [])
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return '', ''
+    first = lambda kind: next((s.get('codec_name', '') for s in streams if s.get('codec_type') == kind), '')
+    return first('video'), first('audio')
+
+
+def ts_remux_command(ffmpeg, path):
+    video_codec, audio_codec = probe_codecs(path)
+    cmd = [ffmpeg, '-hide_banner', '-loglevel', 'error', '-fflags', '+genpts', '-i', path,
+           '-map', '0:v:0?', '-map', '0:a:0?', '-sn', '-dn']    # no subtitle/data streams: they break the MP4 muxer
+    if video_codec in ('h264', ''):
+        cmd += ['-c:v', 'copy']
+    else:
+        cmd += ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p']
+    # AAC inside MPEG-TS is ADTS; MP4 needs it unwrapped. ffmpeg does NOT do this by itself when writing
+    # fragmented MP4 to a pipe: without the bitstream filter the output stops after a fraction of a second.
+    cmd += ['-c:a', 'copy', '-bsf:a', 'aac_adtstoasc'] if audio_codec == 'aac' else ['-c:a', 'aac', '-b:a', '128k']
+    cmd += ['-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1']
+    return cmd, video_codec, audio_codec
+
+
 class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         # /live cannot be seeked; if an ad is played, the browser will spawn many new processes
@@ -313,54 +351,55 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             return self.handle_proxy(parsed)
         if parsed.path == '/live':
             return self.handle_live(parsed)
-        # --- TAMBAHKAN HANDLER BARU INI ---
         if parsed.path == '/play_video':
             return self.handle_play_video(parsed)
+        # --- PASTIKAN ROUTE STREAM_TS ADA DI SINI ---
+        if parsed.path == '/stream_ts':
+            return self.handle_stream_ts(parsed)
+        if parsed.path == '/find_media':
+            return self.handle_find_media(parsed)
+        if parsed.path == '/upload_media':
+            return self.handle_upload_check(parsed)
 
-        print('self.path =', self.path)
         decoded_path = urllib.parse.unquote(self.path)
-        print(f"Requested path = self.path = {self.path}")
-        print(f"Decoded requested path = {decoded_path}")
-        print('self.translate_path(decoded_path) =', self.translate_path(decoded_path))
-
         if self.path.startswith('/is_directory'):
             self.check_is_directory()
         else:
             full_path = self.translate_path(self.path)
-            print(f"Full path = {full_path}")
 
             if os.path.isdir(full_path):
                 index_path = os.path.join(full_path, 'index.html')
                 if os.path.exists(index_path):
-                    print(f"Serving index.html at {index_path}")
                     self.path = os.path.join(self.path, 'index.html')
                     return super().do_GET()
                 else:
-                    print(f"Serving directory listing for {full_path}")
                     self.create_directory_listing(full_path)
+            # --- HANDLER FILE SINGLE (FIX PARSER RANGE REQUEST) ---
             elif os.path.isfile(full_path):
-                # --- STRATEGI BARU: HANDLER PARTIAL STREAMING (PENCEGAH DOWNLOAD) ---
+                # --- HANDLER BERKAS MEDIA (ANTI-DOWNLOAD BROWSER & FIX PLAY .TS) ---
                 lower_path = full_path.lower()
-                if lower_path.endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv')):
-                    # Tentukan MIME-Type yang presisi sesuai ekstensi
+                if lower_path.endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv', '.ts')):
+                    # Tentukan tipe data MIME yang sah
                     ctype = 'video/mp4'
                     if lower_path.endswith('.webm'): ctype = 'video/webm'
                     elif lower_path.endswith('.mkv'): ctype = 'video/x-matroska'
                     elif lower_path.endswith('.avi'): ctype = 'video/x-msvideo'
                     elif lower_path.endswith('.mov'): ctype = 'video/quicktime'
                     elif lower_path.endswith('.flv'): ctype = 'video/x-flv'
+                    elif lower_path.endswith('.ts'): ctype = 'video/mp2t'
 
                     file_size = os.path.getsize(full_path)
                     range_header = self.headers.get('Range')
 
-                    # Jika browser meminta streaming parsial (Range Request)
+                    # 1. JIKA BROWSER MEMINTA PARTIAL STREAMING (RANGE REQUEST)
                     if range_header and range_header.startswith("bytes="):
                         try:
-                            # Ambil rentang byte yang diminta browser (contoh: bytes=0-)
-                            ranges = range_header.strip().split("=")[1].split("-")
-                            start_byte = int(ranges[0])
+                            # FIX BERHASIL: Ambil bagian kanan setelah tanda "=" (indeks 1) lalu pecah dengan "-"
+                            bytes_value = range_header.strip().split("=")[1]
+                            ranges = bytes_value.split("-")
+                            start_byte = int(ranges[0]) if ranges[0] else 0
                             end_byte = int(ranges[1]) if ranges[1] else file_size - 1
-                        except ValueError:
+                        except (ValueError, IndexError):
                             start_byte = 0
                             end_byte = file_size - 1
 
@@ -371,7 +410,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         end_byte = min(end_byte, file_size - 1)
                         content_length = end_byte - start_byte + 1
 
-                        # Kirim status 206 Parsial ke browser (Kunci utama agar tidak mendownload)
+                        # Balas dengan kode HTTP 206 Partial Content (Kunci utama mematikan auto-download)
                         self.send_response(206)
                         self.send_header('Content-Type', ctype)
                         self.send_header('Accept-Ranges', 'bytes')
@@ -379,7 +418,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self.send_header('Content-Length', str(content_length))
                         self.end_headers()
 
-                        # Salurkan bongkahan data video yang diminta saja
+                        # Salurkan bongkahan memori video secara bertahap
                         with open(full_path, 'rb') as f:
                             f.seek(start_byte)
                             remaining = content_length
@@ -392,7 +431,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                                 remaining -= len(chunk)
                         return
                     else:
-                        # Jika browser meminta file utuh tanpa Range
+                        # 2. REQUEST REGULER TANPA HEADER RANGE
                         self.send_response(200)
                         self.send_header('Content-Type', ctype)
                         self.send_header('Accept-Ranges', 'bytes')
@@ -402,14 +441,13 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                             shutil.copyfileobj(f, self.wfile)
                         return
                 
-                # Biarkan file non-video diurusi oleh handler default Python
+                # Sediakan file non-video lewat handler default bawaan Python
                 return super().do_GET()
-
             else:
                 self.send_error(404, self.path + " file not found")
 
     def handle_play_video(self, parsed):
-        """Serves a clean HTML video player for new tabs to bypass IDM interception."""
+        """Serves HTML video player and handles live remuxing for non-native formats like .ts"""
         qs = urllib.parse.parse_qs(parsed.query)
         video_url = (qs.get('file') or [''])[0].strip()
         
@@ -420,8 +458,36 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         decoded_url = urllib.parse.unquote(video_url)
         file_name = decoded_url.split('/')[-1]
         lower_name = file_name.lower()
+        file_name = html.escape(file_name)      # shown inside the HTML below
         
-        # Deteksi format yang tidak didukung browser native di tab baru
+        # --- SOLUSI STRATEGI BARU JIKA USER AKSES FILE COCOK DI TAB BARU ---
+        # 1. Jika formatnya .ts, buat halaman khusus yang mengarah ke endpoint live remuxer
+        if lower_name.endswith('.ts'):
+            html_player = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Live Remuxing: {file_name}</title>
+                <style>
+                    body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }}
+                    video {{ width: 100%; height: 100%; object-fit: contain; }}
+                </style>
+            </head>
+            <body>
+                <!-- Mengarahkan source ke endpoint streaming khusus .ts -->
+                <video controls autoplay name="media">
+                    <source src="/stream_ts?file={urllib.parse.quote(decoded_url)}" type="video/mp4">
+                </video>
+            </body>
+            </html>
+            """
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.end_headers()
+            self.wfile.write(html_player.encode('utf-8'))
+            return
+
+        # 2. Blok proteksi otomatis untuk format yang benar-benar tidak bisa diputar browser (MKV, AVI, FLV)
         if lower_name.endswith(('.mkv', '.avi', '.flv', '.mov')):
             html_content = f"""
             <!DOCTYPE html>
@@ -444,8 +510,8 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             <body>
                 <div class="box">
                     <h2>Unsupported Browser Format!</h2>
-                    <p>Format <b>{file_name}</b> tidak didukung pemutar native di tab baru.</p>
-                    <p>Silakan putar di halaman utama menggunakan Embed Player.</p>
+                    <p>Format <b>{file_name}</b> membutuhkan pemutar desktop (seperti VLC).</p>
+                    <p>Silakan putar di halaman utama menggunakan fitur Embed Player.</p>
                     <p>Tab ini akan menutup dalam <span id="timer" style="color:#ff9900;font-weight:bold;">4</span> detik...</p>
                 </div>
             </body>
@@ -457,7 +523,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(html_content.encode('utf-8'))
             return
 
-        # Jika format didukung (MP4, WebM), berikan pemutar HTML5 langsung
+        # Jika format asli adalah MP4/WebM bawaan
         html_player = f"""
         <!DOCTYPE html>
         <html>
@@ -470,7 +536,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         </head>
         <body>
             <video controls autoplay name="media">
-                <source src="{video_url}" type="video/mp4">
+                <source src="{html.escape(video_url)}" type="video/mp4">
             </video>
         </body>
         </html>
@@ -479,6 +545,182 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
         self.wfile.write(html_player.encode('utf-8'))
+
+
+    def is_inside_root(self, full_path):
+        # translate_path() does not stop "..", so the endpoints that open files check it explicitly
+        root = os.path.normcase(os.path.abspath(self.directory))
+        target = os.path.normcase(os.path.abspath(full_path))
+        return target == root or target.startswith(root + os.sep)
+
+    def handle_stream_ts(self, parsed):
+        # .ts -> fragmented MP4 piped straight to the browser (see ts_remux_command)
+        qs = urllib.parse.parse_qs(parsed.query)
+        video_rel_path = (qs.get('file') or [''])[0].strip()
+        full_path = self.translate_path(video_rel_path)
+
+        if not video_rel_path or not self.is_inside_root(full_path) or not os.path.isfile(full_path):
+            self.send_error(404, "File video tidak ditemukan")
+            return
+        ffmpeg = shutil.which('ffmpeg')
+        if not ffmpeg:
+            self.send_error(503, "ffmpeg tidak ditemukan di PATH")
+            return
+
+        cmd, video_codec, audio_codec = ts_remux_command(ffmpeg, full_path)
+        print('stream_ts: %s | video=%s audio=%s -> %s' % (
+            video_rel_path, video_codec or '?', audio_codec or '-',
+            'copy' if '-c:v' in cmd and cmd[cmd.index('-c:v') + 1] == 'copy' else 'convert to H.264'))
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        threading.Thread(target=_pump_stderr, args=('ffmpeg', proc), daemon=True).start()
+
+        self._no_ranges = True      # a pipe cannot be seeked; do not advertise Accept-Ranges
+        try:
+            # Wait for the first bytes before sending the headers, so an ffmpeg failure becomes a
+            # real error response instead of an empty "video" in the browser.
+            first = proc.stdout.read1(64 * 1024)
+            if not first:
+                self.send_error(500, "ffmpeg gagal memproses file ini (lihat console server)")
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'video/mp4')
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            self.wfile.write(first)
+            while True:
+                chunk = proc.stdout.read1(64 * 1024)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass    # player closed / video changed
+        except OSError as e:
+            print('stream_ts terputus:', e)
+        finally:
+            _kill_session((proc,))
+
+    def handle_find_media(self, parsed):
+        # A browser File object has no real path. This looks for a file with the same name (and size)
+        # inside the served folder, so that "Open Local Files" can hand it to /stream_ts.
+        qs = urllib.parse.parse_qs(parsed.query)
+        name = (qs.get('name') or [''])[0]
+        if not name or '/' in name or '\\' in name:
+            return self.send_json(400, {'ok': False, 'error': 'parameter name tidak valid'})
+        try:
+            size = int((qs.get('size') or [''])[0])
+        except ValueError:
+            size = None
+
+        root = os.path.abspath(self.directory)
+        wanted = os.path.normcase(name)
+        fallback = None
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if not d.startswith('.')]    # skip .thumbnails etc.
+            for fn in filenames:
+                if os.path.normcase(fn) != wanted:
+                    continue
+                full = os.path.join(dirpath, fn)
+                rel = '/' + os.path.relpath(full, root).replace(os.sep, '/')
+                try:
+                    same_size = size is None or os.path.getsize(full) == size
+                except OSError:
+                    continue
+                if same_size:
+                    return self.send_json(200, {'ok': True, 'path': rel, 'exact': True})
+                fallback = fallback or rel
+        if fallback:
+            return self.send_json(200, {'ok': True, 'path': fallback, 'exact': False})
+        self.send_json(404, {'ok': False, 'error': 'File "%s" tidak ada di folder yang disajikan server. '
+                                                  'Salin file itu ke folder tersebut (mis. videos/) lalu buka lagi.' % name})
+
+    # ----- /upload_media: a file picked with "Open Local Files" that is not in the served folder -----
+    def is_local_client(self):
+        return self.client_address[0] in ('127.0.0.1', '::1', '::ffff:127.0.0.1')
+
+    def upload_cache_path(self, name, size):
+        digest = hashlib.sha1(('%s|%d' % (name, size)).encode('utf-8')).hexdigest()[:16]
+        return os.path.join(self.directory, LOCAL_CACHE_DIR, digest + '.ts')
+
+    def parse_upload_query(self, parsed):
+        qs = urllib.parse.parse_qs(parsed.query)
+        name = (qs.get('name') or [''])[0]
+        try:
+            size = int((qs.get('size') or [''])[0])
+        except ValueError:
+            size = -1
+        if not name.lower().endswith('.ts') or size < 0:
+            return None, None
+        return name, size
+
+    def handle_upload_check(self, parsed):
+        # has this exact file (name + size) been sent before? then it does not have to be sent again
+        name, size = self.parse_upload_query(parsed)
+        if name is None:
+            return self.send_json(400, {'ok': False, 'error': 'parameter tidak valid (hanya file .ts)'})
+        path = self.upload_cache_path(name, size)
+        if os.path.isfile(path) and os.path.getsize(path) == size:
+            return self.send_json(200, {'ok': True, 'cached': True,
+                                        'path': '/' + LOCAL_CACHE_DIR + '/' + os.path.basename(path)})
+        self.send_json(404, {'ok': False})
+
+    def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == '/upload_media':
+            return self.handle_upload_media(parsed)
+        self.send_error(404, 'endpoint POST tidak dikenal')
+
+    def handle_upload_media(self, parsed):
+        # Only from this computer, and only with a custom header: a web page on another site cannot add that
+        # header without a CORS preflight, which this server never answers.
+        if not self.is_local_client() or self.headers.get('X-Upload') != '1':
+            return self.send_json(403, {'ok': False, 'error': 'upload hanya diizinkan dari komputer ini (localhost)'})
+        name, size = self.parse_upload_query(parsed)
+        try:
+            length = int(self.headers.get('Content-Length', ''))
+        except ValueError:
+            length = -1
+        if name is None or length != size:
+            return self.send_json(400, {'ok': False, 'error': 'parameter tidak valid (hanya .ts; size harus sama dengan Content-Length)'})
+
+        cache_dir = os.path.join(self.directory, LOCAL_CACHE_DIR)
+        os.makedirs(cache_dir, exist_ok=True)
+        target = self.upload_cache_path(name, size)
+        for fn in os.listdir(cache_dir):            # only the most recent file is kept
+            old = os.path.join(cache_dir, fn)
+            if old != target:
+                try:
+                    os.remove(old)
+                except OSError:
+                    pass                            # e.g. still open in ffmpeg on Windows
+        if shutil.disk_usage(cache_dir).free < size + 200 * 1024 * 1024:
+            return self.send_json(507, {'ok': False, 'error': 'ruang disk tidak cukup untuk menyalin file ini'})
+
+        tmp = target + '.part'
+        received = 0
+        try:
+            with open(tmp, 'wb') as f:
+                while received < size:
+                    chunk = self.rfile.read(min(1024 * 1024, size - received))
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    received += len(chunk)
+            if received != size:
+                raise OSError('koneksi terputus (%d dari %d byte)' % (received, size))
+            os.replace(tmp, target)
+        except OSError as e:
+            print('upload_media gagal:', e)
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            try:
+                self.send_json(500, {'ok': False, 'error': str(e)})
+            except OSError:
+                pass
+            return
+        print('upload_media: %s (%d byte) -> %s' % (name, size, os.path.basename(target)))
+        self.send_json(200, {'ok': True, 'path': '/' + LOCAL_CACHE_DIR + '/' + os.path.basename(target)})
 
     # ----- /resolve -----------------------------------------------------
     def send_json(self, status, obj):
@@ -724,7 +966,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         for entry in entries:
             thumbnail_img = f'<img src="{entry["thumbnail_url"]}" alt="{entry["name"]} thumbnail" style="width:128px; vertical-align:middle; margin-right:10px;">' if entry["thumbnail_url"] else ""
             
-            if entry["name"].lower().endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv')):
+            if entry["name"].lower().endswith(('.mp4', '.webm', '.mkv', '.avi', '.mov', '.flv', '.ts')):
                 # URL untuk mengelabui IDM di tab baru
                 play_url = f"/play_video?file={urllib.parse.quote(entry['url'])}"
                 
@@ -789,7 +1031,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def is_image_or_video(self, filename):
         image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')
-        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv', '.ts')
         return filename.lower().endswith(image_extensions + video_extensions)
 
     def generate_thumbnail(self, filepath, thumbnail_url):
@@ -858,12 +1100,18 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
     def generate_default_thumbnail(self, thumbnail_path):
-        with Image.open("/file.png") as img:
-            img.thumbnail((128, 128))
-            img.save(thumbnail_path, format="PNG")
+        # file.png lives in the served folder, not in the root of the disk; if it cannot be read, use a plain
+        # placeholder, so that one unreadable video can no longer break the whole directory listing
+        try:
+            with Image.open(os.path.join(self.directory, "file.png")) as img:
+                img.thumbnail((128, 128))
+                img.save(thumbnail_path, format="PNG")
+        except Exception as e:
+            print(f"file.png tidak bisa dipakai untuk thumbnail default ({e}), memakai kotak abu-abu")
+            Image.new('RGB', (128, 72), (90, 90, 90)).save(thumbnail_path, format="PNG")
 
     def is_video(self, filename):
-        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv')
+        video_extensions = ('.mpg', '.mpeg', '.mp4', '.webm', '.ts', '.mkv', '.flv', '.avi', '.wmv', '.ogv', '.ts')
         return filename.lower().endswith(video_extensions)
 
     def translate_path(self, path):
@@ -878,6 +1126,7 @@ def run(server_class=http.server.ThreadingHTTPServer, handler_class=CustomHTTPRe
         port=8080, directory='.', host=''):
     os.chdir(directory)
     handler_class.directory = directory
+    shutil.rmtree(LOCAL_CACHE_DIR, ignore_errors=True)      # leftovers of the previous run
     server_address = (host, port)
     httpd = server_class(server_address, handler_class)
     print('yt-dlp     :', ' '.join(ytdlp_command() or ['NOT FOUND (pip install -U yt-dlp)']))

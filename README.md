@@ -20,8 +20,11 @@ You will also need Stereo Mix or Virtual Audio Cable recording device for best r
 ![image](https://user-images.githubusercontent.com/88623122/199528286-1ab77dc4-38a9-41f2-9b92-25db352a1ed2.png)
 ![image](https://user-images.githubusercontent.com/88623122/199528861-22541706-3bdf-427c-8c2f-44174b114e34.png)
 
-and on linux you willl need PAVUCONTROL (by choosing MONITOR of your audio device as INPUT DEVICE)
+On linux you willl need PAVUCONTROL (by choosing MONITOR of your audio device as INPUT DEVICE)
+
 ![image](https://user-images.githubusercontent.com/88623122/199517907-76d61acb-3f07-49b6-8f2f-4b6a2b787eff.png)
+
+Or simply just use that route_audio.sh
 
 https://user-images.githubusercontent.com/88623122/183360325-64f32c7b-cec8-470f-bb59-eca27140d232.mp4
 

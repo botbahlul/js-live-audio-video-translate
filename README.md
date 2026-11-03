@@ -26,6 +26,8 @@ On linux you willl need PAVUCONTROL (by choosing MONITOR of your audio device as
 
 Or simply just use that [route_audio.sh](https://github.com/botbahlul/js-live-audio-video-translate/blob/main/route_audio.sh)
 
+On macOS you will need [blackhole](https://github.com/existentialaudio/blackhole) and [switchaudio-osx](https://github.com/deweller/switchaudio-osx)
+
 https://user-images.githubusercontent.com/88623122/183360325-64f32c7b-cec8-470f-bb59-eca27140d232.mp4
 
 Check my other SPEECH RECOGNITIION + TRANSLATE PROJECTS https://github.com/botbahlul?tab=repositories

@@ -1,0 +1,1 @@
+#!/bin/shfolder1="./build"folder2="./dist"file1="./webserver.spec"if [ -d "$folder1" ]; then	rm -rf "$folder1"fiif [ -d "$folder2" ]; then	rm -rf "$folder2"fiif [ -f "$file1" ]; then	rm -f "$file1"fipyinstaller \--hidden-import json \--hidden-import urllib \--hidden-import collections \--hidden-import PIL \--onefile webserver.py
